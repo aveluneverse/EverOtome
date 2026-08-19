@@ -14,7 +14,7 @@ It isn't a game, and it isn't a hosted service. It's a shell: swap in your own c
 
 EverOtome itself is a pure front-end layer built in vanilla JS. It ships no AI model, no backend service, and no asset generation; those are yours to bring. You can look around before wiring anything, too: a sample character and demo album are bundled, and the preview is one command away after cloning.
 
-<!-- [media slot: overview video] demo-chat-desktop-*.webm — four rounds of everyday chat; this is what the product looks like day to day. -->
+https://github.com/user-attachments/assets/6a927036-275d-4233-83ad-424f64aa6070
 
 ---
 
