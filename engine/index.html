@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c1c28">
+<title>EverOtome</title>
+<link rel="manifest" href="manifest.webmanifest">
+<!-- 加入主畫面：第一顆是標準版（Chrome 認的是這顆，apple- 版在 DevTools 已標記
+     棄用），其餘三顆是 iOS 專用；title 是殼中性值，app.js 開機依 config
+     pwaTitle／brandTitle／displayName 動態蓋掉＝殼不硬編任何專案私名 -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="EverOtome">
+<!-- favicon／app icon 四顆＝專案標記本體（作者原畫，授權見 ASSETS.md）；
+     tools/make_placeholder_icons.py 生成的是幾何占位版，跑它會蓋掉這四顆——
+     自架站要換成自己的圖示時才用 -->
+<link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
+<link rel="apple-touch-icon" href="app-icon-180.png">
+<link rel="stylesheet" href="css/sprite.css">
+<link rel="stylesheet" href="css/chat.css">
+<link rel="stylesheet" href="css/phone.css">
+<link rel="stylesheet" href="css/layout.css">
+</head>
+<body>
+<!-- 乙女遊戲式舞台：
+     桌機＝背景 cover 滿版自由裁邊；右側 Chat Log 前景 SVG 框
+     （chatlog-frame.svg）＋輸入列錨視窗右欄；左下 ADV 對話框（半透玻璃）；
+     左上品牌角＝星盤徽章＋波浪線＋品牌字。
+     手機＝立繪滿版（臉更高）、中段 Chat Log 直立半透明矩形常駐（不用 ADV 框）、
+     輸入列上抬、底部工具列（電話／外觀／設定／收起對話框）。
+     功能入口一律用 .js-open-*／.js-toggle-sprite class 綁定（同功能桌機／手機兩顆
+     實體按鈕共用一條邏輯）。素材皮走 config.ui → CSS 變數；無素材＝純 CSS fallback。
+     名字與所有個性化文字皆由 app.js 依 config 填入（displayName＝情境顯示名）。 -->
+<div id="stage-root">
+  <div id="stage-bg" aria-hidden="true"></div>
+
+  <!-- CG 演出層：intimate 狀態開啟時蓋掉房間背景與立繪（圖裡有他
+       本人）；雙層 crossfade。cg.js 控制；flag／相冊不可用＝恆 hidden 零影響。 -->
+  <div id="cg-layer" hidden aria-hidden="true">
+    <div class="cg-img cg-img-a"></div>
+    <div class="cg-img cg-img-b"></div>
+  </div>
+
+  <!-- 立繪（sprite.js 建內容） -->
+  <section id="stage-col">
+    <div id="stage" class="sprite-breathe"></div>
+  </section>
+
+  <!-- ADV 對話框（adv.js 建內容；桌機戲台，手機隱藏改用 Chat Log 常駐） -->
+  <div id="adv-root"></div>
+
+  <!-- Chat Log：完整對話歷史（桌機＝右側玻璃框；手機＝中段直立半透矩形常駐）。
+       手機版標題列雙頁籤（CHAT LOG｜THINKING）——思緒與對話泡泡
+       分開顯示、不再擠同一塊；桌機照舊單一 title（tabs CSS 藏，思緒仍在泡泡前
+       摺疊列＋ADV Thinking 鈕）。#thoughts-pane 收 app.js 分發的每輪思緒
+       （transient 同 Thinking 鈕：不落帳本、重整即空——設計，非 bug）。 -->
+  <aside id="chatlog">
+    <div class="chatlog-head">
+      <span class="chatlog-title">Chat Log</span>
+      <div class="chatlog-tabs" role="tablist" aria-label="對話與思緒切換" data-i18n-attr="aria-label:chatlog.tabs">
+        <button type="button" id="tab-chat" class="chatlog-tab is-active" role="tab" aria-selected="true" aria-controls="msgs">CHAT LOG</button>
+        <button type="button" id="tab-thoughts" class="chatlog-tab" role="tab" aria-selected="false" aria-controls="thoughts-pane">THINKING</button>
+      </div>
+      <!-- Chat Log 滿版切換（手機限定，桌機 CSS 藏＝同 .chatlog-tabs pattern）：
+           右上小鈕，平時中段遮罩不遮立繪、點鈕 Chat Log 展開滿版＋立繪整個隱藏
+           （不透出、免得太亂）、再點收回。與 dock 眼睛鍵成家族（一小一大），
+           expand/collapse 雙態 icon 由 body.chatlog-full 純 CSS 切（比照眼睛鍵
+           eye/eye-off pattern）。 -->
+      <button type="button" class="chatlog-full-btn js-toggle-chatlog-full" aria-label="展開對話" data-i18n-attr="aria-label:chatlog.expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="4 14 10 14 10 20"></polyline>
+          <polyline points="20 10 14 10 14 4"></polyline>
+          <line x1="14" y1="10" x2="21" y2="3"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      </button>
+      <span id="chat-status" aria-live="polite"></span>
+    </div>
+    <!-- 主題自刻框的頂部裝飾（雙淡出線＋三菱形）：有素材框的主題（如預設
+         crystal-swan）CSS 隱藏＝現況零變化；換成無素材框的主題才現身。 -->
+    <div class="chatlog-ornament" aria-hidden="true">
+      <span class="chatlog-ornament-diamond"></span>
+      <span class="chatlog-ornament-diamond chatlog-ornament-diamond-center"></span>
+      <span class="chatlog-ornament-diamond"></span>
+    </div>
+    <div id="msgs" role="log" aria-label="對話記錄" aria-live="polite" data-i18n-attr="aria-label:chatlog.log"></div>
+    <div id="thoughts-pane" role="log" aria-label="他的思緒" aria-live="polite" data-i18n-attr="aria-label:chatlog.thoughts,data-empty-text:chatlog.thoughtsEmpty"></div>
+  </aside>
+
+  <!-- 傳照片狀態：獨立於 Chat Log -->
+  <div id="photo-status" class="photo-status" aria-live="polite"></div>
+
+  <!-- 輸入列（自刻半透框）：MENU（四項功能）＋迴紋針＋輸入＋送出 -->
+  <form id="inputbar">
+    <button type="button" id="btn-cmd-menu" class="cmd-menu-btn" aria-label="功能選單" aria-expanded="false" data-i18n-attr="aria-label:menu.label">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="4" y1="7" x2="20" y2="7"></line>
+        <line x1="4" y1="12" x2="20" y2="12"></line>
+        <line x1="4" y1="17" x2="20" y2="17"></line>
+      </svg>
+    </button>
+    <button type="button" id="btn-attach" class="attach-btn" aria-label="傳照片" data-i18n-attr="aria-label:input.attach">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+      </svg>
+    </button>
+    <input type="file" id="photo-input" accept="image/*" multiple hidden>
+    <textarea
+      id="chat-input"
+      rows="1"
+      placeholder="說點什麼⋯⋯"
+      aria-label="輸入訊息"
+      autocomplete="off"
+      data-i18n-attr="placeholder:input.placeholder,aria-label:input.label"
+    ></textarea>
+    <button type="submit" id="btn-send" aria-label="送出" data-i18n-attr="aria-label:input.send">
+      <span class="send-label">Send</span>
+      <svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+    <!-- 功能選單：清畫面／乾淨開始／狀態（一律可見）；忘記暫存（沙盒模式
+         限定）／CG 相冊（手機限定，需 cgEndpoint）視情況顯示。指令走既有
+         WS 裸字串路徑，冪等無前端狀態（server 是唯一真相）。 -->
+    <nav id="cmd-pop" hidden>
+      <button type="button" data-cmd="clear">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="5" y1="5" x2="19" y2="19"></line>
+          <line x1="19" y1="5" x2="5" y2="19"></line>
+        </svg>
+        <span data-i18n="menu.clear">清畫面</span>
+      </button>
+      <button type="button" data-cmd="new">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+        <span data-i18n="menu.fresh">乾淨開始</span>
+      </button>
+      <button type="button" data-cmd="status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <line x1="12" y1="11" x2="12" y2="16"></line>
+          <circle cx="12" cy="8" r="0.5" fill="currentColor"></circle>
+        </svg>
+        <span data-i18n="menu.status">狀態</span>
+      </button>
+      <!-- 沙盒測試模式：預設 hidden，app.js 的 applySandboxUi()
+           在沙盒 ON 時才翻開（js-sandbox-forget class 供它 querySelectorAll）。 -->
+      <button type="button" class="js-sandbox-forget" data-cmd="sandbox_forget" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
+          <path d="M22 21H7"></path>
+          <path d="m5 11 9 9"></path>
+        </svg>
+        <span data-i18n="menu.forget">忘記暫存</span>
+      </button>
+      <!-- CG 相冊：手機的 CG 面板入口——桌機已有側欄 CG 鈕、此項桌機由
+           layout.css（#cmd-pop .js-menu-cg）藏。預設 hidden 同側欄鈕：flag
+           OFF／無 cgEndpoint＝永不出現，顯隱由 app.js initCg() 同一句管；
+           開面板走 MENU 分派 data-cmd="cg"（同一個 cgPanel.open()）。沙盒中
+           照常顯示（相冊管理＝使用者的策展資料，沙盒相容段既有語意）。 -->
+      <button type="button" class="js-menu-cg" data-cmd="cg" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <path d="m21 15-5-5L5 21"></path>
+        </svg>
+        <span data-i18n="menu.cg">CG 相冊</span>
+      </button>
+    </nav>
+  </form>
+
+  <!-- 品牌角＋左側欄功能鈕（電話／外觀／CG／設定／顯示選項）：
+       星盤徽章（素材皮 deco-compass）＋右延波浪線（引擎刻）＋品牌字疊波浪上。 -->
+  <header id="brand">
+    <span class="brand-ornament" aria-hidden="true"></span>
+    <!-- 字＋線鎖組：整組垂直置中對齊徽章中心，白底線緊貼字
+         下方（flex column——線永遠跟著字，不用硬算字高）。
+         漸層必須 userSpaceOnUse——objectBoundingBox 遇水平直線（bbox 高 0）依 SVG
+         規範漸層視同 none＝整條隱形（實測命中的陷阱，非理論疑慮）。 -->
+    <div class="brand-lockup" aria-hidden="true">
+      <span id="brand-title"></span>
+      <svg class="brand-wave" viewBox="0 0 420 8" preserveAspectRatio="none" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="brand-wave-fade" gradientUnits="userSpaceOnUse" x1="2" y1="4" x2="418" y2="4">
+            <stop offset="0" stop-color="currentColor" stop-opacity="0.9"></stop>
+            <stop offset="0.55" stop-color="currentColor" stop-opacity="0.8"></stop>
+            <stop offset="1" stop-color="currentColor" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        <line x1="2" y1="4" x2="418" y2="4" stroke="url(#brand-wave-fade)"
+              stroke-width="1.4" stroke-linecap="round" vector-effect="non-scaling-stroke"></line>
+      </svg>
+    </div>
+    <span id="char-name" hidden></span>
+    <!-- 左側欄五鈕：打電話→外觀→CG→設定→顯示選項，由上而下（CG 鈕預設
+         hidden，需 cgEndpoint 才出現；顯示選項展開後才看到隱藏人像／收起
+         對話框兩顆子鈕，見下方眼睛子鈕組）。 -->
+    <!-- 電話鈕＝打電話／掛斷雙態（比照眼睛鈕 eye/eye-off pattern，
+         body.in-call 純 CSS 切 icon）；通話中鈕旁小 pill 顯示計時（#call-pill）。 -->
+    <button type="button" id="btn-phone" class="js-open-phone side-btn side-btn-1" aria-label="打電話" data-i18n-attr="aria-label:side.phone">
+      <svg class="icon-call" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+      </svg>
+      <svg class="icon-hangup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g transform="rotate(135 12 12) translate(12 12) scale(0.8) translate(-12 -12)"><path stroke-width="2.5" d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></g>
+      </svg>
+    </button>
+    <span id="call-pill" hidden></span>
+    <!-- 外觀鈕 icon 統一用調色盤（面板現含造型＋主題色系，palette 語意涵蓋
+         兩者）。Lucide palette icon。 -->
+    <button type="button" class="side-btn side-btn-2 js-open-appearance" aria-label="外觀" data-i18n-attr="aria-label:side.appearance">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+      </svg>
+    </button>
+    <!-- CG 場景鈕（位置：外觀下方）。預設 hidden——
+         config 無 cgEndpoint／flag OFF（album 404）＝永不出現（開源殼零成本）。 -->
+    <button type="button" class="side-btn side-btn-3 js-open-cg" aria-label="CG 相冊" hidden data-i18n-attr="aria-label:side.cg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+        <path d="m21 15-5-5L5 21"></path>
+      </svg>
+    </button>
+    <button type="button" id="btn-settings" class="side-btn side-btn-4 js-open-settings" aria-label="設定" data-i18n-attr="aria-label:side.settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+    <!-- 桌機眼睛鈕＝expander：點開右側兩顆圓形子鈕（隱藏人像／隱藏視窗），
+         用於截圖時自訂背景乾淨度（結 Thinking 時沒人像比較乾淨）。與手機
+         dock 眼睛（藏 Chat Log）是姊妹鍵、各管各的；手機零改動（.side-btn
+         家族手機整欄藏）。DOM 序放設定之後＝與視覺序（第五顆）一致，tab
+         順序不跳格。 -->
+    <button type="button" class="side-btn side-btn-5 js-eye-menu" aria-label="顯示選項" aria-expanded="false" data-i18n-attr="aria-label:side.eye">
+      <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>
+    <!-- 眼睛子鈕組（桌機限定；hidden 蓋 display 坑＝[hidden] 顯式規則在 CSS）：
+         人像鈕走 settings applySpriteVisible（與設定頁「顯示立繪」同一份狀態、
+         開面板 _refresh 自動同步）；視窗鈕沿用 .js-toggle-adv 既有全域綁定
+         （body.hide-adv）。雙態 icon 各由 body class 純 CSS 切（eye/eye-off
+         同款 pattern）。 -->
+    <div class="eye-sub" hidden>
+      <button type="button" class="eye-sub-btn js-toggle-sprite-desk" aria-label="隱藏立繪" data-i18n-attr="aria-label:side.hideSprite">
+        <svg class="icon-figure" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <svg class="icon-figure-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      </button>
+      <button type="button" class="eye-sub-btn js-toggle-adv" aria-label="收起對話框" data-i18n-attr="aria-label:side.hideAdv">
+        <svg class="icon-window" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <svg class="icon-window-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 手機底部工具列（四鈕）：電話／外觀／設定／收起對話 -->
+  <nav id="dock" aria-label="快速功能" data-i18n-attr="aria-label:side.dock">
+    <button type="button" class="dock-btn js-open-phone" aria-label="打電話" data-i18n-attr="aria-label:side.phone">
+      <svg class="icon-call" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+      </svg>
+      <svg class="icon-hangup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g transform="rotate(135 12 12) translate(12 12) scale(0.8) translate(-12 -12)"><path stroke-width="2.5" d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></g>
+      </svg>
+    </button>
+    <button type="button" class="dock-btn js-open-appearance" aria-label="外觀" data-i18n-attr="aria-label:side.appearance">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+      </svg>
+    </button>
+    <button type="button" class="dock-btn js-open-settings" aria-label="設定" data-i18n-attr="aria-label:side.settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+    <!-- eye 鈕＝藏 Chat Log（立繪太重要、手機上恆留）——欣賞模式 -->
+    <button type="button" class="dock-btn js-toggle-chatlog" aria-label="收起對話" data-i18n-attr="aria-label:chatlog.hide">
+      <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+      </svg>
+    </button>
+  </nav>
+
+  <!-- 電話面板／來電浮層（phone.js 建內容） -->
+  <div id="phone-root"></div>
+  <!-- 設定面板（settings.js 建內容） -->
+  <div id="settings-root"></div>
+  <!-- 外觀面板（app.js 建內容：角色造型＋介面主題兩區） -->
+  <div id="appearance-root"></div>
+  <!-- CG 相冊彈窗（cg.js buildCgPanel 建內容——視圖態點卡送
+       /cg <id>；管理態齒輪切上傳／編輯／刪除／排序／開場景／手機張）。 -->
+  <div id="cg-root"></div>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

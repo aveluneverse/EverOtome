@@ -1,0 +1,4 @@
+# local artifacts
+node_modules/
+engine/config.json
+__pycache__/

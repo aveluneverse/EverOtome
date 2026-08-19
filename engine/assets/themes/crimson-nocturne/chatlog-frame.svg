@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 965 1146" fill="none">
+  <!-- Chat Log 框：自包含向量元件（描邊／發光全部內嵌，供 background-image
+       載入）。vector-effect: non-scaling-stroke ＝ 任何顯示尺寸線寬恆定、
+       永遠銳利。 -->
+  <defs>
+    <filter id="glow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="#ff8fb8" flood-opacity="0.8"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="3.6" flood-color="#ff3482" flood-opacity="0.3"/>
+    </filter>
+    <style>
+      path, rect, circle { vector-effect: non-scaling-stroke; }
+      .ob { stroke: #ff6ca1; stroke-width: 2.5; opacity: 0.95; }
+      .ib { stroke: #ffb2cf; stroke-width: 1.15; opacity: 0.68; }
+      .dv { stroke: #ff6ca1; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+      .dv2 { stroke: #ff6ca1; stroke-width: 0.8; opacity: 0.5; stroke-linecap: round; }
+      .dot { fill: #ffb2cf; }
+      .dm { fill: rgba(199, 90, 130, 0.16); stroke: #ffb2cf; stroke-linejoin: round; }
+      .dm-m { stroke-width: 2; }
+      .dm-s { stroke-width: 1.45; }
+      .dm-l { stroke: #ffb2cf; stroke-width: 1.25; }
+      .tk { stroke: #ff6ca1; stroke-width: 1.3; stroke-linecap: round; opacity: 0.72; }
+    </style>
+  </defs>
+  <g filter="url(#glow)">
+    <rect class="ob" x="18" y="18" width="929" height="1110" rx="30"/>
+    <rect class="ib" x="29" y="29" width="907" height="1088" rx="23"/>
+    <g>
+      <path class="dv" d="M86 126H420"/>
+      <path class="dv2" d="M98 133H414"/>
+      <path class="dv" d="M545 126H879"/>
+      <path class="dv2" d="M551 133H867"/>
+      <circle class="dot" cx="427" cy="126" r="2.3"/>
+      <circle class="dot" cx="538" cy="126" r="2.3"/>
+      <path class="dm dm-s" d="M439 126L449 116L459 126L449 136Z"/>
+      <path class="dm dm-m" d="M482.5 108L500.5 126L482.5 144L464.5 126Z"/>
+      <path class="dm dm-s" d="M506 126L516 116L526 126L516 136Z"/>
+      <path class="dm-l" d="M459 126H464.5"/>
+      <path class="dm-l" d="M500.5 126H506"/>
+    </g>
+  </g>
+</svg>

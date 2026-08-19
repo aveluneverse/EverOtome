@@ -1,0 +1,26 @@
+.sprite-frame { width: 100%; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
+/* 疊圖制：全部差分幀常駐、疊同一位，翻頁＝切 opacity。 */
+.sprite-stack-host { position: relative; }
+.sprite-frame-stacked { position: absolute; left: 0; top: 0; }
+/* 臉紅暈層：疊圖幀之上（z-index 2——幀是 append 序疊放無 z、暈層必須顯式壓頂）；
+ * 在容器內＝跟呼吸動畫一起微動（暈黏在臉上）。
+ * transition-duration 由 blush.js 依淡入／緩退切換（0.9s in／2.8s out）。 */
+.sprite-blush { position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  opacity: 0; transition-property: opacity; transition-timing-function: ease; }
+.sprite-blush img { display: block; width: 100%; height: auto; user-select: none; -webkit-user-drag: none; }
+/* 表情貼片層：疊圖幀之上（z-index 1）、紅暈層（z2）之下——貼片是整塊臉皮、暈要疊在
+ * 新表情上；inset:0 全畫布對位（貼片與底圖同畫布）。淡入／淡出由 expression.js 逐 img
+ * 設 transition-duration；同表情內換態（眨眼／口型）瞬切 0s。 */
+.sprite-expr { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.sprite-expr img { position: absolute; inset: 0; width: 100%; height: auto; display: block; opacity: 0;
+  transition-property: opacity; transition-timing-function: ease; transition-duration: 0s;
+  user-select: none; -webkit-user-drag: none; }
+/* 自帶紅暈的表情：ExpressionController 在 active 期間給容器加此 class，壓下臉紅暈層
+ * （!important 蓋過 blush.js 寫的 inline opacity；計時照跑、表情退了紅暈自回）。 */
+.expr-blush-builtin .sprite-blush { opacity: 0 !important; }
+.sprite-breathe { animation: sprite-breathe 4.2s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes sprite-breathe {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(3px) scaleY(0.995); }
+}
+@media (prefers-reduced-motion: reduce) { .sprite-breathe { animation: none; } }

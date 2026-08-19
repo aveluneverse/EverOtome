@@ -1,0 +1,260 @@
+/* phone.css —— 電話面板／來電浮層／留言卡。
+ *
+ * 版面決策：待撥／通話視圖疊在 Chat Log 區（#phone-root 的定位在 layout.css——
+ * 桌機＝右側玻璃框區、手機＝全舞台；絕不蓋住立繪——通話中他在畫面上跟妳說話
+ * 這件事要看得到），來電浮層才是全頁級（接通前沒有嘴型動畫可看，用全頁式的
+ * 緊急感更合理）。
+ * 電話入口鈕已移入 ☰ 選單（樣式吃 layout.css #cmd-pop button，本檔不再定義）。
+ * 色系一律吃 chat.css 頂部的 :root token，本檔不出現硬編色號；接聽綠／掛斷紅是
+ * 電話語意功能色（--accept/--decline）；有素材皮（body.has-ui-skin）時接聽／掛斷
+ * 改用素材圓鈕（--ui-btn-call/--ui-btn-hangup），無皮 fallback 維持綠紅圓鈕。
+ */
+
+/* 黑遮罩案：面板不再鋪任何暗色遮罩、也不再有自己的字幕流——通話內容全數渲進
+ * 真正的 Chat Log（chat.js CallLogRenderer），面板只剩「計時＋狀態＋掛斷」
+ * 一條透明頂列，貼在 Chat Log 標題帶下方。整片 pointer-events 放行（通話中
+ * 照樣捲動聊天、點播放鍵），只有按鈕自己可點。 */
+.phone-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  padding: 1rem 1.2rem;
+  background: none;
+  color: var(--text);
+  text-align: center;
+  pointer-events: none;
+}
+
+.phone-panel[hidden] {
+  display: none;
+}
+
+.phone-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto; /* 面板本體 pointer-events:none，可點元件各自放行 */
+}
+
+.phone-close svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.phone-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.phone-view[hidden] {
+  display: none;
+}
+
+/* （通話頂條〔計時／狀態／小掛斷鈕〕整組退場——通話控制搬左側欄電話鈕
+ * 〔body.in-call 變掛斷樣＋#call-pill 計時，見 layout.css〕；通話內容早在
+ * 黑遮罩案就住進真正的 Chat Log。） */
+
+.phone-voicemail-slot:empty {
+  display: none;
+}
+
+.phone-voicemail {
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  text-align: left;
+}
+
+.phone-voicemail-play {
+  flex: 0 0 auto;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 0;
+  background: var(--primary);
+  color: var(--on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.phone-voicemail-play svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.phone-voicemail-text-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.phone-voicemail-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.phone-voicemail-fallback-note {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* v7：狀態訊息的唯一可見出口改為 Chat Log（onStatusNote），面板內狀態行退場；
+ * 待撥大鈕同步退役（直撥制——按左側電話鈕即撥，這顆沒有存在理由了）。
+ * 選擇器帶容器＝壓過下方通用鈕規則的同權重 display:flex（v6 hidden 案同款教訓）。 */
+.phone-panel .phone-status-msg { display: none; }
+.phone-view-idle .phone-dial-btn { display: none; }
+
+.phone-dial-btn,
+.phone-hangup-btn,
+.phone-accept-btn,
+.phone-decline-btn {
+  width: 4.2rem;
+  height: 4.2rem;
+  border-radius: 50%;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* （通話中的小掛斷鈕退場——掛斷＝左側欄電話鈕的雙態切換，同款 side-btn 玻璃
+ * 圓底、只換橫向話筒 icon，不另外發明紅色版本。下方 .phone-hangup-btn 基礎
+ * 群組規則保留＝來電浮層的拒接大鈕仍在用。） */
+
+.phone-dial-btn svg,
+.phone-hangup-btn svg,
+.phone-accept-btn svg,
+.phone-decline-btn svg {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+
+.phone-dial-btn,
+.phone-accept-btn {
+  background: var(--accept);
+  color: var(--on-accept);
+}
+
+/* 素材皮：撥出／接聽＝btn-call、掛斷／拒接＝btn-hangup 素材圓鈕（素材本身已含
+ * 聽筒圖形與方向，不再需要 svg 與 rotate） */
+body.has-ui-skin .phone-dial-btn,
+body.has-ui-skin .phone-accept-btn {
+  background: var(--ui-btn-call);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow: none;
+  width: 5.4rem;
+  height: 5.4rem;
+}
+body.has-ui-skin .phone-hangup-btn,
+body.has-ui-skin .phone-decline-btn {
+  background: var(--ui-btn-hangup);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow: none;
+  width: 5.4rem;
+  height: 5.4rem;
+}
+body.has-ui-skin .phone-dial-btn svg,
+body.has-ui-skin .phone-accept-btn svg,
+body.has-ui-skin .phone-hangup-btn svg,
+body.has-ui-skin .phone-decline-btn svg {
+  display: none;
+}
+body.has-ui-skin .phone-dial-btn:focus-visible,
+body.has-ui-skin .phone-accept-btn:focus-visible,
+body.has-ui-skin .phone-hangup-btn:focus-visible,
+body.has-ui-skin .phone-decline-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+.phone-dial-btn:active,
+.phone-accept-btn:active {
+  opacity: 0.85;
+}
+
+.phone-hangup-btn,
+.phone-decline-btn {
+  background: var(--decline);
+  color: var(--on-decline);
+}
+
+.phone-hangup-btn:active,
+.phone-decline-btn:active {
+  opacity: 0.85;
+}
+
+.phone-hangup-btn svg,
+.phone-decline-btn svg {
+  transform: rotate(135deg);
+}
+
+/* （黑遮罩案：.phone-subs／.phone-sub* 字幕流樣式整組退場——通話內容改渲真正
+ * 的 Chat Log，見 chat.js CallLogRenderer。面板通話中不再現身，手機定位段
+ * 一併退場。） */
+
+.phone-incoming-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  background: rgba(var(--veil-rgb), 0.97);
+  color: var(--text);
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.phone-incoming-overlay[hidden] {
+  display: none;
+}
+
+.phone-incoming-reason {
+  font-size: 1.1rem;
+  max-width: 24rem;
+  line-height: 1.6;
+}
+
+.phone-incoming-actions {
+  display: flex;
+  gap: 3rem;
+}
+

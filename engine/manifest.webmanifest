@@ -1,0 +1,15 @@
+{
+  "name": "EverOtome",
+  "short_name": "EverOtome",
+  "id": "everotome",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c1c28",
+  "theme_color": "#0c1c28",
+  "start_url": ".",
+  "icons": [
+    { "src": "app-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "app-icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

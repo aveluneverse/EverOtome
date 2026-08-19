@@ -1,0 +1,29 @@
+{
+  "size": [
+    1024,
+    1536
+  ],
+  "eyeStates": 3,
+  "moods": {
+    "neutral": {
+      "A": "A.png",
+      "B": "B.png",
+      "C": "C.png",
+      "D": "D.png",
+      "E": "E.png",
+      "F": "F.png",
+      "G": "G.png",
+      "H": "H.png",
+      "I": "I.png"
+    }
+  },
+  "blush": "blush.webp",
+  "expressions": {
+    "smile": {
+      "label": "Smile",
+      "mode": "flash",
+      "eyes": { "any": "expr/smile_eye_any.webp" },
+      "mouth": {}
+    }
+  }
+}

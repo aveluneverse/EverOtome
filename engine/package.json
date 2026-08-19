@@ -1,0 +1,7 @@
+{
+  "name": "everotome",
+  "private": true,
+  "type": "module",
+  "devDependencies": { "vitest": "^3.0.0", "jsdom": "^25.0.0" },
+  "scripts": { "test": "vitest run" }
+}

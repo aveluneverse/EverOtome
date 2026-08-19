@@ -1,0 +1,355 @@
+/* chat.css —— 聊天內容樣式：氣泡／訊息串內容。
+ * 版面殼（舞台／Chat Log 視窗定位／輸入列對位／手機浮層）收斂在 layout.css，
+ * 本檔只管「訊息長什麼樣」——泡泡、思緒、系統行。
+ *
+ * ── 色系 token（全站唯一定義處） ──────────────────────────────────────────
+ * Default theme：crystal-swan（水晶天鵝，藍白冰晶調）。
+ * token 按角色命名（--primary＝主行動色，非色相），換色系只換這一塊；其餘
+ * 主題（config.themes）由 theme.js 覆寫這些 token，見該檔 VAR_MAP。
+ */
+
+:root {
+  /* 底階（暗→亮）：深藍夜（無皮 fallback 與手機純色場景用） */
+  --bg-deep: #0c1c28;
+  --bg-bar: #131a2c;
+  --bg: #141d33;
+  --bg-input: #121a2e;
+  --bg-solid: #131c31;
+  --surface: #182642;
+  --surface-2: #1c2a4a;
+  --veil-rgb: 35, 51, 90; /* 半透明底 rgb 分量（浮層／面板／選單） */
+
+  /* 邊框階（淡→明） */
+  --line: #26344f;
+  --line-2: #2c3a5c;
+  --line-3: #38486e;
+
+  /* 文字階 */
+  --text: #e8f2ff;
+  --text-dim: #9fb0cc;
+  --text-faint: #7b89a6;
+
+  /* 主行動色 */
+  --primary: #7d9bd4;
+  --on-primary: #14203a;
+  --primary-soft: #c6d7f0;
+
+  /* 互動細節 */
+  --hover: #a9c2e8;
+  --focus: #e8f2ff;
+  --status-accent: #a9c2e8;
+  --sub-accent: #c6d7f0;
+
+  /* 按鈕系統：所有按鈕元件底色一律走 --btn-bg、icon 走 --btn-ink；扁平無漸層。
+   * hover＝變底色（亮一階），不用邊緣發光。 */
+  --btn-bg: #2b3f6b;
+  --btn-bg-hover: #3d5488;
+  --btn-ink: #c6d7f0;
+
+  /* 泡泡（sent 同 --primary 色相、reply 是獨立的深藍色）。主題可整組覆寫
+   * 泡泡四色＋ring（每套主題配對雙方底色＋文字色＋ring 邊框）；ring＝主題
+   * 泡泡的 1px 邊框——用 inset box-shadow 實現、不動盒寸。 */
+  --bubble-sent: #a9bfe2ed;
+  --on-bubble-sent: #182743;
+  --bubble-reply: #203765f2;
+  --on-bubble-reply: #f2f7ff;
+  --bubble-sent-ring: #d5e4fa;
+  --bubble-reply-ring: #7097d0;
+
+  /* 玻璃面板家族（ADV 框／輸入列共用；值走 token 抽換制——換色系只換這一塊）。
+   * 其餘 alpha 變體（卡片底／捲軸細線／輸入欄底等）不另立 token——一律
+   * color-mix 掛 --primary／--btn-bg 等主 token，主題換主色即全跟。 */
+  --panel-bg: rgba(28, 43, 78, 0.74);      /* ADV／輸入列玻璃底 */
+  --panel-line: rgba(155, 188, 235, 0.34); /* 玻璃面板框線 */
+  --glass-bg: rgba(15, 24, 52, 0.5);       /* Chat Log 框內薄紗（中間透明感） */
+  --scroll-thumb: #55719f;                 /* Chat Log 主捲軸 */
+  --glow-rgb: 111, 165, 255;               /* 光暈 rgb 分量（標題／徽章 shadow） */
+  --title-ink: #eef5ff;                    /* 標題字 */
+
+  /* 手機實色列（輸入列／輸入欄／dock）——主題下同步換色系 */
+  --m-bar-bg: #131a2c;
+  --m-field-bg: #1c2a48;
+  --m-dock-bg: #101626;
+
+  /* 功能色（電話語意，跨方案不動） */
+  --error: #e0918c;
+  --accept: #4caf82;
+  --on-accept: #0f2018;
+  --decline: #d9635f;
+  --on-decline: #2a0f0e;
+
+  /* 立繪背景上的文字可讀性陰影 */
+  --ink-shadow: rgba(5, 9, 18, 0.9);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+
+.row { display: flex; }
+.row.sent { justify-content: flex-end; }
+/* 圖＋文同送：垂直排列——圖上、文下、右對齊（sent 側慣例） */
+.row.sent.row-stack {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+.row.reply { justify-content: flex-start; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+
+.bubble {
+  max-width: 82%;
+  padding: 13px 17px;
+  border-radius: 20px;
+  font-size: 15px;
+  line-height: 1.7;
+  box-shadow: 0 4px 14px rgba(10, 6, 20, 0.35);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  position: relative;
+}
+
+.bubble.sent {
+  background: var(--bubble-sent);
+  color: var(--on-bubble-sent);
+  border-bottom-right-radius: 6px; /* 沿用既有慣例的尖角指向 */
+  box-shadow: 0 4px 14px rgba(10, 6, 20, 0.35), inset 0 0 0 1px var(--bubble-sent-ring);
+}
+
+.bubble.reply {
+  background: var(--bubble-reply);
+  color: var(--on-bubble-reply);
+  /* 泡泡幾何對齊 sent——圓角與內距吃 .bubble base（20px／13×17）＝左下 6px
+   * 尖角對比跟右邊一樣明顯；舊版「信紙感」（18px＋16×18）退役。行高 1.85
+   * 保留＝長訊息的閱讀舒適度不變。不理想時 L1：改回 border-radius:18px;
+   * padding:16px 18px。 */
+  border-bottom-left-radius: 6px; /* 尖角對齊 sent 同款 */
+  line-height: 1.85;
+  box-shadow: 0 4px 14px rgba(10, 6, 20, 0.35), inset 0 0 0 1px var(--bubble-reply-ring);
+}
+
+.bubble-placeholder {
+  opacity: 0.65;
+  font-style: italic;
+}
+
+/* 照片泡泡（即時傳送，見 chat.js `_buildPhotoBubble`）：<a target="_blank"> 包
+ * <img>，本身不吃 .bubble.sent 的底色／padding（純圖片，非文字氣泡）。 */
+.bubble.bubble-photo {
+  display: inline-block;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  line-height: 0;
+  max-width: 220px;
+  max-height: 220px;
+}
+
+.bubble-photo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 220px;
+  max-height: 220px;
+  object-fit: contain;
+  background: var(--bg-deep);
+}
+
+/* 歷史回填的 [照片×N] 占位（原圖已被伺服器閱後即焚銷毀，見 chat.js renderHistory） */
+.bubble-photo-note {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.bubble-react {
+  position: absolute;
+  bottom: -0.6rem;
+  left: -0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--line-3);
+  border-radius: 999px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.thought {
+  max-width: 82%;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text-dim);
+  cursor: pointer;
+  overflow: hidden;
+  max-height: 1.4em;
+  transition: max-height 0.2s ease;
+  /* overflow:hidden 讓 flex 的 min-height:auto 內容保護失效——#msgs（flex column）
+   * 空間吃緊時這行會被 shrink 壓扁（探針實錄：60 段思緒展開只剩 491/1020px；
+   * 泡泡 .row 因 overflow visible 天然免疫）。shrink 歸零＝高度只由自己的
+   * max-height 管，容器滿了走 #msgs 的捲軸。 */
+  flex-shrink: 0;
+}
+
+/* 展開態不設上限：20em 封頂會把長思緒硬裁掉尾巴——思緒要看就看全部；
+ * 收合動畫因此退場，直接展開。 */
+.thought.open {
+  max-height: none;
+  white-space: pre-wrap;
+}
+
+/* THINKING 頁思緒條目（手機雙頁籤）：頁籤裡空間專屬——完整顯示、不摺疊不
+ * 互動；條目間細線分隔（同泡泡色 token 家族、跟主題走）。 */
+.thought-entry {
+  font-size: 0.84rem;
+  font-style: italic;
+  line-height: 1.7;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding: 0.4rem 0 0.65rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary-soft) 14%, transparent);
+}
+.thought-entry:last-child { border-bottom: 0; }
+
+.sys-msg {
+  align-self: center;
+  color: var(--text-faint);
+  font-size: 0.82rem;
+  text-align: center;
+  white-space: pre-line;
+}
+
+/* 泡泡＋播放鍵橫排（play 鍵統一放泡泡外面右側）：.bubble-line 撐滿列寬，
+ * 泡泡照舊 max-width 82% 自然縮、鈕貼泡泡右側底對齊。 */
+.bubble-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.45rem;
+  width: 100%;
+}
+.bubble-line .msg-play-btn {
+  flex: 0 0 auto;
+  margin-bottom: 0.15rem;
+}
+
+/* ── 語音重播鈕（電話功能；播放鍵統一放泡泡外面右側）──────────────────────
+ * 放在有語音的每一句句尾：掛在 reply 泡泡／留言 System 行的文字尾端
+ * （inline-flex 貼字流）；配色走按鈕系統 token（--btn-bg 家族）＋hover 變底色
+ * 通則；播放中換 stop 形＋亮一階底色。桌機手機同一套（尺寸 rem 制天然縮放）。 */
+.msg-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-left: 0.45rem;
+  vertical-align: -0.35rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--btn-bg);
+  color: var(--btn-ink);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.msg-play-btn svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.msg-play-btn:hover { background: var(--btn-bg-hover); }
+.msg-play-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.msg-play-btn.playing { background: var(--btn-bg-hover); }
+/* 合成中：普通聊天句點播放＝現場合成、聲音要等一兩秒——按鈕先進 stop 形＋輕
+ * 脈動＝「收到了、正在準備」。animation-delay 0.35s：存檔重播與快取命中幾乎
+ * 當幀就把 loading 摘掉，永遠看不到這個脈動，不會整排鈕沒事閃一下。 */
+.msg-play-btn.loading { animation: msgPlayLoading 1.1s ease-in-out 0.35s infinite; }
+@keyframes msgPlayLoading {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msg-play-btn.loading { animation: none; opacity: 0.7; }
+}
+
+/* 玫瑰愛心鈕：與 .msg-play-btn 同族、共用 .bubble-line 橫排的家——桌機預設
+ * 淡出、hover 泡泡列才浮現；手機沒有 hover 概念，恆顯淡愛心（工程取捨：原案
+ * 是手機「輕點泡泡浮現」，但會撞思緒摺疊列／選字手勢，先求穩改常駐淡出）。
+ * 亮起＝實心＋主色，跟 .msg-play-btn「扁平圓底、hover 變亮一階」的美學刻意
+ * 不同——這顆是「已收藏」的永久狀態標記，不是「播放中」的暫態，用顏色而非
+ * 底色說話。 */
+.msg-rose-btn {
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0.3rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.18s ease, color 0.18s ease;
+}
+.bubble-line:hover .msg-rose-btn,
+.msg-rose-btn:focus-visible {
+  opacity: 1; /* :focus-visible 補鍵盤操作者——純 hover 顯現會讓只用 Tab 導覽的人永遠看不到這顆鈕 */
+}
+.msg-rose-btn.is-rosed { opacity: 1; color: var(--status-accent); }
+.msg-rose-btn.is-rosed svg { fill: currentColor; }
+.msg-rose-btn svg { width: 100%; height: 100%; display: block; }
+.msg-rose-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (hover: none) {
+  .msg-rose-btn { opacity: 0.45; }
+  .msg-rose-btn.is-rosed { opacity: 1; }
+}
+
+/* 思考中指示器（Chat Log 內的 transient 行；ADV 框另有自己的脈動點） */
+.status-line {
+  align-self: center;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: center;
+}
+
+/* 「他在打字」三點：send 成功即出（chat.js showThinkingDots）、任何 frame
+ * 到達即清——手機無 ADV，等待期不能空白像沒反應；桌機同款一致。 */
+.status-dots span {
+  display: inline-block;
+  width: 0.32em;
+  height: 0.32em;
+  border-radius: 50%;
+  background: currentColor;
+  margin: 0 0.14em;
+  opacity: 0.3;
+  animation: statusDotPulse 1.2s ease-in-out infinite;
+}
+.status-dots span:nth-child(2) { animation-delay: 0.2s; }
+.status-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes statusDotPulse {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 0.9; transform: translateY(-0.12em); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-dots span { animation: none; opacity: 0.6; }
+}
+
+.photo-status {
+  min-height: 1.1em;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.photo-status:empty { display: none; }
+
+.photo-status.is-error { color: var(--error); }
+
+@media (prefers-reduced-motion: reduce) {
+  .thought { transition: none; }
+}

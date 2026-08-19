@@ -1,0 +1,723 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EverOtome Character Lab</title>
+<!-- 表情試妝間：把某套素材的表情貼片疊在活立繪上試看，不必開後端、不必真的聊天。
+     吃的是正式控制器（js/expression.js＋js/blush.js＋css/sprite.css），不自製表情層／
+     紅暈層——這頁看到的貼法、對位、淡入淡出＝實裝後聊天室的行為。唯一刻意不同：
+     計時器按住不退（聊天室裡 flash 表情 2.5 秒自退、sustain 90 秒保底、臉紅 90 秒緩退；
+     試妝間選了就一直亮到你切別的，看接縫要看多久就看多久）。聊天室的真實時長寫在狀態列
+     的 title 與使用提示裡，不藏。
+     表情清單不寫死在這頁，直接讀 manifest.expressions（tools/gen_expression.py 寫進去
+     就會出現）；素材夾用 ?set= 換（相對 engine/，見下方 SET_ARG 註解）。
+     manifest 兩個鍵（expressions／blush）的完整契約見 docs/sprite-guide.md。
+
+     版面守則（動過就要重驗）：
+     a. #stage 內不放 padding／border——SpritePlayer 把第一張幀留在文流當尺寸錨、其餘幀
+        與貼片層／紅暈層走 absolute inset:0 對位，容器一有內距三層就會錯開。#stage 只吃
+        寬度，其餘一律掛在外層 .stage-wrap。
+     b. 立繪不放在方框裡：背後沒有卡片／邊框／內陰影，只有一團彌散光暈
+        （#stage::before，z-index -1、radial 收在 transparent 再加 blur，量不出一條邊）。
+        整頁背後是試妝間房間背景圖（lab-bg.webp，橫幅 16:9，.ambient 固定層，--room-fit 預設
+        contain＝整張放進視窗、任何一邊都不裁；寬扁視窗左右露一點底色當側翼），輕壓暗＋淡暗角讓
+        它當氛圍不當主角；
+        立繪站在中央拱門裡，面板是毛玻璃、兩側鏡子與衣櫃透過面板隱約可見。擺位與壓暗量全是
+        :root 的 --room-* token，調數字不動結構。
+     b2. 桌機一屏看完整隻：#stage 改由視窗高度定尺寸（height: var(--stage-h)＋
+        aspect-ratio: var(--sprite-aspect)，寬度自己算），--stage-h 已扣掉頁面上下內距、
+        標題塊與欄間距，並用 vw 項與絕對上限確保算出來的寬度塞得進中欄（一旦被
+        max-width 夾住，高度是定值、比例就會被壓扁，三層對位當場失準）。
+        --sprite-aspect 由 sprite.js 依 manifest.size 設在 #stage 上，沒有就退 1024/1536。
+     c. 舞台不隨面板內容位移：三欄是 grid、align-items:start（任一欄長高其餘不動），左右
+        兩欄用上下限都是絕對長度的 minmax（內容推不動），中欄拿剩下的；狀態列固定高度＋
+        單行省略（切表情時字變長也不會把面板撐高），html 留固定捲軸槽（面板高度跨過視窗
+        高度時不會因捲軸出現／消失改變欄寬）。
+     d. 全部 icon 是本頁自繪的 inline SVG（symbol＋use，跟 index.html 同一套線稿筆觸），
+        零 emoji、零 unicode 圖形符號。
+     e. 字級只從 :root 的 --fs-* 六階取、追蹤只用 --track-*：新字串別再發明 11.5／14.5 這種
+        半像素鄰居（單看分不出、擺在一起就是沒排過版）。
+     f. 面板狀態一律從控制器現況反推（見 script 的 syncUi）；引擎不動的情況（static 單張
+        立繪、自帶紅暈表情壓下紅暈層）面板要看得出來，不能讓鈕亮著、畫面沒事發生。
+     g. 面板是玻璃不是牆：透一點（房間隱約透過來）、線細、陰影內收（8/18 定案）——
+        面板不浮在房間上面，是嵌在房間裡；玻璃濃度／線／內影三個 token 見 :root。 -->
+<!-- 試妝間自己的圖示（紫色版）；主面板／PWA 用 ../favicon.png 那套粉色版 -->
+<link rel="icon" type="image/png" sizes="192x192" href="lab-icon.png">
+<link rel="stylesheet" href="../css/sprite.css">
+<style>
+  :root {
+    /* 底色三階：頁面底、中段、舞台內側 */
+    --bg-0: #110c1f; --bg-1: #181027; --bg-2: #24163b;
+    /* 面板玻璃：一般／實心／柔和 */
+    --panel: rgba(26, 18, 45, 0.72);
+    --panel-strong: rgba(30, 19, 52, 0.9);
+    --panel-soft: rgba(50, 35, 79, 0.5);
+    /* 線：外框走 --line（細、淡——面板嵌在房間裡，不是浮在上面）；虛線提示框走 --line-strong */
+    --line: rgba(225, 196, 255, 0.15);
+    --line-section: rgba(225, 196, 255, 0.08); /* 區塊框比面板外框 --line 淡一階，讓「面板 > 區塊 > 按鈕」層次讀得出來；8/19 調淡一階，嫌太淡改 .12 一個數字 */
+    --line-strong: rgba(238, 212, 255, 0.42);
+    --text: #f7efff; --text-soft: #d8c8ea; --text-muted: #aa98c3;
+    --lavender: #bda8ff; --lavender-strong: #9679ec;
+    --pink: #e8a3d4; --pink-soft: #f7cae8;
+    --gold: #e5c58c;
+    --btn: rgba(92, 66, 135, 0.62); --btn-hover: rgba(122, 87, 171, 0.78);
+    --btn-active-a: #cdb9ff; --btn-active-b: #aa88ef;
+    --on-active: #1a1028; --on-active-soft: #2a1c46;
+    /* 面板陰影一律內收（inset）：外投影會讓面板浮起來壓在房間上，內影是玻璃鑲進去的感覺；
+       第一層 1px 頂光是玻璃上緣的一線亮 */
+    --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 26px rgba(6, 0, 20, 0.36);
+    /* 玻璃濃度三級：控制面板／側卡／面板內區塊（由外到內遞減，房間隱約透過來但字仍好讀） */
+    --glass-panel-a: rgba(31, 20, 51, 0.60); --glass-panel-b: rgba(22, 14, 38, 0.54);
+    --glass-card-a: rgba(25, 17, 42, 0.48);  --glass-card-b: rgba(18, 12, 31, 0.40);
+    --glass-section-a: rgba(19, 13, 34, 0.40); --glass-section-b: rgba(15, 10, 27, 0.30);
+    /* 背景房間：橫幅圖（1672×941＝16:9）。--room-fit: contain＝整張放進視窗、任何一邊都不裁
+       ——瀏覽器扣掉分頁列後的可見區多半比 16:9 更寬扁（如 1536×740），contain 時高度剛好、左右
+       露出一點底色當舞台側翼；比 16:9 更高的視窗則寬度剛好、上下露底色。想要滿寬（寬扁視窗會
+       切掉拱門頂）改 `100% auto`。位置：桌機貼底（地板線＝視窗底、立繪腳踩地板），疊排貼頂。
+       圖本身已暗（亮度 20-38），壓暗只輕輕上淺下深統一色調、暗角淡淡收一圈。 */
+    --room-fit: contain;
+    --room-pos: 50% 100%;
+    --room-dim-top: rgba(17, 12, 31, 0.20); --room-dim-bottom: rgba(17, 12, 31, 0.40);
+    --room-vignette: rgba(11, 7, 21, 0.35);
+    /* 毛玻璃：面板背後的房間糊成柔光，字好讀、兩側鏡子衣櫃的形狀看得出來（8/18 回饋：兩側元素要露出） */
+    --glass-blur: 9px;
+    --radius-xl: 28px; --radius-lg: 22px; --radius-md: 16px; --radius-sm: 12px;
+    /* 版面寬：三欄（提示 300｜立繪 1fr｜面板 400）在 1440 螢幕上剛好吃滿而不空曠。
+       桌機立繪由高度定尺寸（守則 b2、--stage-h），中欄多出來的寬度是留白，不是把立繪撐大；
+       --stage-max 只在疊起來（≤1024）、立繪改吃欄寬時當寬上限。 */
+    --content-max: 1400px;
+    --stage-max: 520px;
+    /* 立繪高度＝視窗高扣掉版面開銷（上下內距 26＋26、標題塊約 63、欄間距 20＝約 135，
+       取 9.75rem＝156px 留餘裕）。第二項把「中欄還剩多寬」換算成高度上限（1.45 是
+       2:3 比例的保守倒數），第三項是絕對天花板——兩者都是為了讓算出來的寬度永遠塞得
+       進中欄，不會被 max-width 夾住而壓扁比例。 */
+    --stage-h: min(calc(100dvh - 9.75rem), calc((100vw - 792px) * 1.45), 900px);
+    /* 全站單一緩動＋三段時長（快速回饋／一般互動／展開） */
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --dur-fast: 0.25s; --dur: 0.3s; --dur-slow: 0.4s;
+    --serif: "Noto Serif TC", "Source Han Serif TC", "PingFang TC", ui-serif, Georgia, "Microsoft JhengHei", serif;
+    --sans: -apple-system, "PingFang TC", "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    /* 字級六階＋追蹤兩階（守則 e）：xs 眉標／狀態列／鈕副標，sm 說明文，md 標籤與鈕主標，
+       base 內文基準，lg 空狀態標題，xl 面板標題；h1 另走 clamp。 */
+    --fs-xs: 11px; --fs-sm: 12.5px; --fs-md: 14px; --fs-base: 15px; --fs-lg: 16px; --fs-xl: 22px;
+    --track-title: 0.06em; --track-eyebrow: 0.22em;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html {
+    color-scheme: dark;
+    /* 捲軸槽固定：面板長高／變矮跨過視窗高度時，欄寬不會跟著跳、舞台也就不會縮放 */
+    scrollbar-gutter: stable;
+  }
+  body {
+    margin: 0; min-height: 100dvh; color: var(--text); font-family: var(--sans);
+    font-size: var(--fs-base); line-height: 1.7; overflow-x: hidden;
+    background: var(--bg-0);   /* 漸層畫在 .ambient 固定層（見下）；這裡只留純底當保底 */
+  }
+  button { font: inherit; color: inherit; }
+  code { font-family: var(--mono); font-size: 0.9em; color: #ead9ff;
+    background: rgba(126, 94, 178, 0.2); border-radius: 5px; padding: 0.05em 0.32em; }
+
+  /* ---------- 背景氛圍（彌散光暈＋慢速花瓣） ----------
+     頁面漸層畫在這層 fixed 上，不用 body 的 background-attachment: fixed——疊排模式會捲頁，
+     fixed attachment 在 Android Chrome 每幀重繪整張背景（iOS 則直接忽略）；固定層零成本、
+     兩邊視覺相同。 */
+  .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    /* 由上到下：兩團彌散光暈（原有）→ 淡暗角 → 上淺下深的壓暗 → 房間圖（--room-fit，預設
+       contain＝整張不裁）→ 純底保底。直幅手機圖變成上方一條橫幅，下方是壓暗純底、多半被疊排
+       的面板蓋住。 */
+    background:
+      radial-gradient(circle at 12% 14%, rgba(173, 112, 255, 0.16), transparent 34%),
+      radial-gradient(circle at 84% 74%, rgba(229, 120, 190, 0.11), transparent 32%),
+      radial-gradient(ellipse 78% 68% at 50% 56%, transparent 58%, var(--room-vignette) 100%),
+      linear-gradient(180deg, var(--room-dim-top), var(--room-dim-bottom)),
+      url("lab-bg.webp") var(--room-pos) / var(--room-fit) no-repeat,
+      var(--bg-0); }
+  .ambient::before, .ambient::after {
+    content: ""; position: absolute; border-radius: 999px; filter: blur(24px); opacity: 0.4;
+  }
+  .ambient::before { width: 460px; height: 460px; left: -180px; top: 16vh;
+    background: rgba(154, 102, 222, 0.16); }
+  .ambient::after { width: 540px; height: 540px; right: -240px; bottom: -90px;
+    background: rgba(209, 106, 179, 0.12); }
+  .petal {
+    position: absolute; width: 9px; height: 14px; border-radius: 70% 30% 70% 30%;
+    background: rgba(247, 199, 233, 0.42); box-shadow: 0 0 16px rgba(247, 199, 233, 0.16);
+    animation: floatPetal linear infinite;
+  }
+  .petal:nth-child(1) { left: 8%;  top: -4%; animation-duration: 15s; animation-delay: -2s; }
+  .petal:nth-child(2) { left: 31%; top: -6%; animation-duration: 19s; animation-delay: -9s;
+    transform: scale(0.8) rotate(28deg); }
+  .petal:nth-child(3) { left: 52%; top: -3%; animation-duration: 14s; animation-delay: -5s;
+    transform: scale(0.65) rotate(-18deg); }
+  .petal:nth-child(4) { left: 76%; top: -5%; animation-duration: 21s; animation-delay: -14s;
+    transform: scale(1.05) rotate(16deg); }
+  .petal:nth-child(5) { left: 90%; top: -2%; animation-duration: 17s; animation-delay: -7s;
+    transform: scale(0.75) rotate(48deg); }
+  .petal:nth-child(6) { left: 17%; top: -7%; animation-duration: 20s; animation-delay: -16s;
+    transform: scale(0.8) rotate(-36deg); }
+  @keyframes floatPetal {
+    0%   { translate: 0 0; rotate: 0deg; opacity: 0; }
+    12%  { opacity: 0.6; }
+    78%  { opacity: 0.4; }
+    100% { translate: 90px 112vh; rotate: 210deg; opacity: 0; }
+  }
+
+  /* ---------- 自刻捲軸 ----------
+     8/18 定案（跨開源專案通用）：介面捲軸一律自刻、不用系統內建——6px、軌道隱形、
+     滑塊扁平半透明霧紫（同日補：不要漸層光澤，那是上個時代的東西）。WebKit／Blink 走 ::-webkit-scrollbar；
+     Firefox 只有 thin＋雙色（scrollbar-color），用 @supports 隔開寫——Chrome 121+ 一旦看到
+     scrollbar-color／scrollbar-width 就忽略 ::-webkit-scrollbar，兩套不能寫在同一元素上。
+     這裡套全域（頁面捲軸＋面板／側欄的內捲軸都吃同一套）。 */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-thumb { border-radius: 999px; border: 0; min-height: 28px;
+    background: rgba(178, 152, 224, 0.42); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(196, 172, 238, 0.62); }
+  @supports not selector(::-webkit-scrollbar) {
+    html, .panel-body, .side-col { scrollbar-width: thin; scrollbar-color: rgba(178, 152, 224, 0.42) transparent; }
+  }
+
+  /* ---------- 版面 ---------- */
+  .page { position: relative; z-index: 1; width: min(var(--content-max), calc(100% - 40px));
+    margin: 0 auto; padding: 26px 0 26px; animation: pageIn var(--dur-slow) var(--ease) both; }
+  @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+  /* 三欄：使用提示｜立繪｜控制面板。左右兩欄的 minmax() 上下限都寫絕對長度，
+     內容推不動它（grid 的 maximize 步驟把兩欄各自撐到上限，剩下全歸中欄那個 1fr），所以
+     面板寫什麼字都不會改變立繪的寬度。align-items:start＝任一欄長高其餘留在原位。
+     DOM 順序是 舞台、面板、側欄（＝窄螢幕的排列，也是螢幕閱讀器的閱讀順序），寬螢幕
+     只由 grid-area 換位置；側欄沒有可聚焦元素，Tab 序不受影響。 */
+  .shell { display: grid; align-items: start; gap: 26px;
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(340px, 400px);
+    grid-template-areas: "side stage panel"; }
+  .stage-col { grid-area: stage; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .control-panel { grid-area: panel; }
+  .side-col { grid-area: side; display: flex; flex-direction: column; gap: 18px; }
+
+  /* ---------- 中欄：標題 ---------- */
+  /* 標題塊壓到兩行（眉標＋主標）：桌機要一屏看完整隻立繪，標題每多一行、立繪就少一行
+     的高度（--stage-h 的 9.75rem 開銷就是照這兩行算的）。原本那句長說明併進使用提示。 */
+  .eyebrow { margin: 0 0 7px; color: var(--pink-soft); font-size: var(--fs-xs); line-height: 1.4;
+    letter-spacing: var(--track-eyebrow); text-transform: uppercase; }
+  .stage-title { font-family: var(--serif); margin: 0; font-size: clamp(24px, 2.2vw, 32px);
+    font-weight: 600; letter-spacing: var(--track-title); line-height: 1.25;
+    text-shadow: 0 0 26px rgba(233, 178, 225, 0.18); }
+  /* 中欄的軸線就是立繪，標題站在同一條軸上；頁面層級的非對稱由左側欄、右面板負責 */
+  .stage-heading { width: 100%; max-width: 560px; text-align: center; }
+
+  /* ---------- 中欄：舞台 ----------
+     立繪直接站在頁面氛圍上，背後沒有卡片：無邊框、無底色方塊、無陰影。唯一的背景是
+     #stage::before 那團彌散光暈——radial 收在 transparent、再加 blur，量不出一條邊；
+     掛在 #stage 上（不是外層）才會永遠跟立繪同寬同高。z-index -1＝壓在所有幀之下
+     （#stage 自己是 z-index:1 的堆疊脈絡，負值只會沉到它內部的最底層）。
+     桌機尺寸由高度決定（見檔頭守則 b2），#stage 仍然零 padding／零 border。 */
+  /* 疊排時 .stage-wrap 的 max-width 就是立繪寬上限（#stage 吃 100%）；桌機由 #stage 自己
+     依高度定寬，wrap 在 ≥1025 解除上限（下方媒體查詢），否則 900px 高的立繪 600px 寬會
+     對稱溢出 520px 的 wrap——畫面看不出來，但 code 就說了謊。 */
+  .stage-wrap { position: relative; width: 100%; max-width: var(--stage-max);
+    display: flex; flex-direction: column; align-items: center; }
+  #stage { position: relative; z-index: 1;
+    height: var(--stage-h); aspect-ratio: var(--sprite-aspect, 1024 / 1536); width: auto;
+    flex: 0 0 auto; }
+  #stage::before {
+    content: ""; position: absolute; z-index: -1; pointer-events: none; inset: 2% -4% 0;
+    background:
+      radial-gradient(ellipse 44% 30% at 50% 90%, rgba(196, 136, 238, 0.3), transparent 68%),
+      radial-gradient(ellipse 50% 36% at 50% 30%, rgba(160, 112, 216, 0.17), transparent 70%);
+    filter: blur(26px);
+  }
+  /* 讀不到素材＝沒有幀，別讓空舞台佔著一屏高（JS 在 loadFailed 時掛這個 class） */
+  .stage-wrap.is-empty #stage { height: 0; }
+  /* 讀不到素材時才出現，走文流不走絕對定位——立繪高度為 0 時它自己把位置撐開就好 */
+  .stage-fallback { margin: 36px auto; width: min(300px, 100%);
+    padding: 22px 20px; text-align: center; color: var(--text-soft); font-size: var(--fs-sm);
+    line-height: 1.8; border: 1px dashed var(--line-strong); border-radius: var(--radius-lg);
+    background: rgba(20, 14, 34, 0.66); }
+  .stage-fallback strong { display: block; margin-bottom: 6px; color: var(--text);
+    font-family: var(--serif); font-size: var(--fs-lg); font-weight: 600; }
+
+  /* ---------- 左欄：使用提示＋素材夾 ---------- */
+  .side-card { padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius-lg);
+    background: linear-gradient(180deg, var(--glass-card-a), var(--glass-card-b));
+    box-shadow: var(--shadow-inset);
+    -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+  .side-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 9px; margin: 0 0 11px;
+    font-family: var(--serif); font-size: var(--fs-md); font-weight: 600; letter-spacing: var(--track-title);
+    color: #ecdcff; }
+  .side-title .ic { flex: none; width: 16px; height: 16px; color: var(--gold);
+    transform: translateY(2px); }
+  .tips-list { margin: 0; padding-left: 1.3em; color: var(--text-soft);
+    font-size: var(--fs-sm); line-height: 1.8; }
+  .tips-list li { margin-bottom: 6px; }
+  .tips-list li:last-child { margin-bottom: 0; }
+  .tips-list::marker, .tips-list li::marker { color: var(--lavender); }
+
+  /* ---------- 右欄：控制面板 ---------- */
+  /* 面板是玻璃（守則 g）：細線、內影、房間隱約透過來；亮度刻意壓在舞台之下——面板負責
+     操作、立繪負責主角，兩塊同亮同浮會互相搶（初稿是 .94 實心＋外投影，8/18 午後改玻璃）。 */
+  .control-panel { position: relative; padding: 25px; overflow: hidden;
+    display: flex; flex-direction: column;
+    border: 1px solid var(--line); border-radius: var(--radius-xl);
+    background: linear-gradient(180deg, var(--glass-panel-a), var(--glass-panel-b));
+    box-shadow: var(--shadow-inset);
+    -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+  /* 玻璃更透之後，鏡子／衣櫃的亮部會從面板底下透上來——面板文字加一層極淡的字影，
+     疊在亮部上仍好讀（鈕有自己的底、亮起時是深字，不加） */
+  .side-card, .control-panel { text-shadow: 0 1px 2px rgba(8, 4, 20, 0.55); }
+  .choice-btn { text-shadow: none; }
+  /* 系統設「降低透明度」的人：毛玻璃退成實心面板（房間仍在後面，只是不透過來） */
+  @media (prefers-reduced-transparency: reduce) {
+    .control-panel, .side-card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .control-panel { background: linear-gradient(180deg, rgba(31, 20, 51, 0.96), rgba(22, 14, 38, 0.95)); }
+    .side-card { background: linear-gradient(180deg, rgba(25, 17, 42, 0.95), rgba(18, 12, 31, 0.94)); }
+  }
+  /* 視窗太矮時面板自己捲，不去把整頁撐長（桌機一屏的前提）。捲的是內層＝那圈裝飾細框
+     留在原地不跟著跑；負外距＋等量內距是給 focus 外框的 3px 讓位，免得被捲動裁掉，
+     淨內距仍是 22px。 */
+  .panel-body { min-height: 0; overflow-y: auto; margin: -3px; padding: 3px; }
+  /* 內描一圈細框＝乙遊卡框的裝飾語彙；absolute 不吃版面寬度 */
+  .control-panel::before { content: ""; position: absolute; inset: 9px; pointer-events: none;
+    border: 1px solid rgba(233, 205, 255, 0.09); border-radius: var(--radius-lg); }
+  .panel-header { position: relative; z-index: 2; padding: 4px 4px 0; }
+  .panel-title { font-family: var(--serif); margin: 0; font-size: var(--fs-xl); font-weight: 600;
+    letter-spacing: var(--track-title); }
+  .panel-subtitle { margin: 8px 0 0; color: var(--text-muted); font-size: var(--fs-sm); line-height: 1.65; }
+  /* 固定高＋單行省略：切表情時狀態字變長也撐不高面板（見檔頭守則 c） */
+  .status-pill { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px;
+    height: 38px; margin: 16px 4px 0; padding: 0 13px; overflow: hidden;
+    border: 1px solid rgba(211, 184, 255, 0.24); border-radius: 999px;
+    background: rgba(77, 53, 113, 0.42); color: #eadfff; }
+  /* 燈點跟著狀態走：三排都在靜止態＝暗、任一排離開靜止態＝亮（不是純裝飾） */
+  .status-dot { flex: none; width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(220, 183, 255, 0.32); box-shadow: none;
+    transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+  .status-pill.is-live .status-dot { background: #dcb7ff; box-shadow: 0 0 12px rgba(220, 183, 255, 0.6); }
+  #status-text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    font-family: var(--mono); font-size: var(--fs-xs); }
+  .empty { position: relative; z-index: 2; margin: 14px 4px 0; padding: 11px 13px;
+    color: var(--text-soft); font-size: var(--fs-sm); line-height: 1.75;
+    border: 1px dashed var(--line-strong); border-radius: var(--radius-sm);
+    background: rgba(60, 40, 92, 0.24); }
+  /* 邊框層級：區塊框（表情／嘴巴／臉紅三塊）走獨立 token --line-section（見 :root），
+     比面板外框／側卡共用的 --line 再淡一階，讀出「面板 > 區塊 > 按鈕」的層次。 */
+  .panel-section { position: relative; z-index: 2; margin-top: 14px; padding: 16px;
+    border: 1px solid var(--line-section); border-radius: var(--radius-md);
+    background: linear-gradient(180deg, var(--glass-section-a), var(--glass-section-b)); }
+  .section-label { display: flex; align-items: center; gap: 9px; margin: 0 0 13px;
+    font-family: var(--serif); font-size: var(--fs-md); font-weight: 600; letter-spacing: var(--track-title);
+    color: #f2dcf2; }
+  .section-label .ic { flex: none; width: 17px; height: 17px; color: var(--lavender); }
+  /* 尾端一條漸淡髮絲線：非對稱重心，且無銳利邊界 */
+  .section-label::after { content: ""; flex: 1; height: 1px; min-width: 12px;
+    background: linear-gradient(90deg, rgba(229, 185, 224, 0.4), transparent); }
+  .section-note { margin: -4px 0 12px; color: var(--text-muted); font-size: var(--fs-sm); line-height: 1.6; }
+  /* 自帶紅暈的表情亮著＝引擎壓下紅暈層（sprite.css .expr-blush-builtin）：鈕仍照控制器狀態亮
+     （紅暈是「先按住、表情退了才回來」，不是沒按到），但整排壓暗＋現出說明，讓人看得出
+     「現在按了畫面不會變」（守則 f） */
+  .option-grid.is-masked .choice-btn { opacity: 0.55; }
+  .option-grid.is-masked .choice-btn:hover { transform: none; }
+
+  /* ---------- 按鈕 ---------- */
+  .option-grid { display: grid; gap: 10px; }
+  .option-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(124px, 1fr)); }
+  /* 三態一列到底（不 auto-fit 換行）：臉紅是一組三選一，掉成 2+1 會讀成兩組。
+     窄欄時靠縮內距與字級硬塞，不靠折行。 */
+  .option-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .option-grid.cols-3 .choice-btn { padding-inline: 6px; }
+  .option-grid.cols-3 .choice-main { font-size: var(--fs-sm); }
+  .choice-btn {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    border: 1px solid rgba(211, 181, 245, 0.24); border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, rgba(86, 56, 124, 0.62), rgba(62, 40, 95, 0.62));
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease),
+      background var(--dur) var(--ease), box-shadow var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  .choice-btn { min-height: 52px; padding: 8px 12px; }
+  .choice-btn:hover {
+    transform: translateY(-1px); border-color: rgba(235, 211, 255, 0.42);
+    background: linear-gradient(180deg, rgba(109, 74, 154, 0.76), rgba(77, 48, 115, 0.74));
+  }
+  .choice-btn:active { transform: translateY(0); }
+  .choice-btn:focus-visible {
+    outline: 2px solid rgba(214, 190, 255, 0.75); outline-offset: 2px; }
+  .choice-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+  .choice-main { display: block; font-size: var(--fs-md); font-weight: 600; }
+  .choice-sub { display: block; margin-top: 2px; color: var(--text-soft); font-family: var(--mono);
+    font-size: var(--fs-xs); }
+  /* 亮起＝薰衣草漸層＋深字。「平靜／安靜／不臉紅」是靜止態，走安靜版亮法：同樣看得出
+     選中，但不會開場就三塊白光跟立繪搶眼睛（初稿是三顆全亮）。 */
+  .choice-btn.is-active { color: var(--on-active); border-color: rgba(255, 255, 255, 0.34);
+    background: linear-gradient(180deg, var(--btn-active-a), var(--btn-active-b));
+    box-shadow: 0 10px 22px rgba(142, 103, 220, 0.22), inset 0 1px rgba(255, 255, 255, 0.34); }
+  .choice-btn.is-active .choice-sub { color: var(--on-active-soft); }
+  .choice-btn.is-active[data-expr=""],
+  .choice-btn.is-active[data-talk="0"],
+  .choice-btn.is-active[data-blush="0"] {
+    color: var(--text); border-color: rgba(203, 175, 255, 0.5);
+    background: linear-gradient(180deg, rgba(120, 92, 176, 0.58), rgba(84, 60, 128, 0.58));
+    box-shadow: inset 0 0 0 1px rgba(205, 185, 255, 0.14), inset 0 1px rgba(255, 255, 255, 0.08);
+  }
+  .choice-btn.is-active[data-expr=""] .choice-sub,
+  .choice-btn.is-active[data-talk="0"] .choice-sub,
+  .choice-btn.is-active[data-blush="0"] .choice-sub { color: var(--text-soft); }
+
+
+  .asset-copy { margin: 0; color: var(--text-soft); font-size: var(--fs-sm); line-height: 1.75;
+    word-break: break-word; }
+  .asset-copy + .asset-copy { margin-top: 8px; color: var(--text-muted); }
+
+  /* ---------- 響應 ----------
+     三欄要成立，中欄得比面板寬（立繪才還是主角）：1241px 以下先收成兩欄（提示掉到立繪
+     下方、面板照樣在右），1024px 以下再收成單欄，順序＝立繪、面板、提示。 */
+  /* 桌機兩段：側欄與面板超過一屏就自己捲，不把整頁撐長 */
+  @media (min-width: 1025px) {
+    .side-col, .control-panel { max-height: calc(100dvh - 3.25rem); }
+    .side-col { overflow-y: auto; }
+    .stage-wrap { max-width: none; }   /* 桌機寬度由 #stage 依高度自算（守則 b2） */
+  }
+  @media (max-width: 1240px) {
+    .shell { grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+      grid-template-areas: "stage panel" "side panel"; }
+    /* 中欄變寬，換算成高度上限的那一項跟著換算式（頁寬扣面板 400＋間距 26） */
+    :root { --stage-h: min(calc(100dvh - 9.75rem), calc((100vw - 466px) * 1.45), 900px); }
+  }
+  @media (max-width: 1024px) {
+    .shell { grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "stage" "panel" "side"; gap: 22px; }
+    .control-panel, .side-col { max-width: 560px; margin-inline: auto; width: 100%; }
+    .page { padding-top: 28px; padding-bottom: 48px; }
+    /* 疊起來就允許捲頁：立繪改回吃欄寬（高度自己按比例算） */
+    #stage { height: auto; width: 100%; }
+    /* 直幅視窗房間圖比視窗矮：貼頂讓它在立繪頭肩後面，露底色的部分在下方被面板蓋住 */
+    :root { --room-pos: 50% 0%; }
+  }
+  @media (max-width: 460px) {
+    .page { width: calc(100% - 24px); padding: 20px 0 36px; }
+    .control-panel { padding: 19px; border-radius: var(--radius-lg); }
+    .side-card { padding: 15px 16px; }
+  }
+
+  /* ---------- 減少動態 ----------
+     花瓣與頁面進場全關、UI 過場關（立繪呼吸由 sprite.css 自行關）。貼片／紅暈的淡入淡出
+     是引擎行為（controller 逐 img 設 transition-duration），這裡不覆寫。 */
+  @media (prefers-reduced-motion: reduce) {
+    .petal { display: none; }
+    .page { animation: none; }
+    .choice-btn { transition: none; }
+    .choice-btn:hover { transform: none; }
+  }
+</style></head><body>
+
+<div class="ambient" aria-hidden="true">
+  <span class="petal"></span><span class="petal"></span><span class="petal"></span>
+  <span class="petal"></span><span class="petal"></span><span class="petal"></span>
+</div>
+
+<!-- icon 母版：全部本頁自繪，24 格線、fill:none／stroke:currentColor／圓端圓角，
+     跟 engine/index.html 的 icon-call／send-icon／icon-expand 同一套筆觸。 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-sparkle" viewBox="0 0 24 24">
+    <path d="M10.5 3 C11.1 8.4 12.1 9.4 17.5 10 C12.1 10.6 11.1 11.6 10.5 17 C9.9 11.6 8.9 10.6 3.5 10 C8.9 9.4 9.9 8.4 10.5 3 Z"/>
+    <path d="M17.5 13.5 C17.8 16.2 18.3 16.7 21 17 C18.3 17.3 17.8 17.8 17.5 20.5 C17.2 17.8 16.7 17.3 14 17 C16.7 16.7 17.2 16.2 17.5 13.5 Z"/>
+  </symbol>
+  <symbol id="i-mouth" viewBox="0 0 24 24">
+    <circle cx="7.6" cy="7.8" r="1.1" fill="currentColor" stroke="none"/>
+    <circle cx="16.4" cy="7.8" r="1.1" fill="currentColor" stroke="none"/>
+    <path d="M5.6 12.4 Q12 19.6 18.4 12.4"/>
+  </symbol>
+  <symbol id="i-blush" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.5"/>
+    <ellipse cx="7.7" cy="13.6" rx="2.5" ry="1.7" transform="rotate(-12 7.7 13.6)"/>
+    <ellipse cx="16.3" cy="13.6" rx="2.5" ry="1.7" transform="rotate(12 16.3 13.6)"/>
+  </symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24">
+    <path d="M3 18 V7.4 A1.4 1.4 0 0 1 4.4 6 H9.6 L11.8 8.6 H19.6 A1.4 1.4 0 0 1 21 10 V18 A1.4 1.4 0 0 1 19.6 19.4 H4.4 A1.4 1.4 0 0 1 3 18 Z"/>
+  </symbol>
+  <symbol id="i-guide" viewBox="0 0 24 24">
+    <path d="M12 6.8 C10.4 5.6 8.4 5 5.6 5 A0.8 0.8 0 0 0 4.8 5.8 V17 A0.8 0.8 0 0 0 5.6 17.8 C8.4 17.8 10.4 18.4 12 19.6"/>
+    <path d="M12 6.8 C13.6 5.6 15.6 5 18.4 5 A0.8 0.8 0 0 1 19.2 5.8 V17 A0.8 0.8 0 0 1 18.4 17.8 C15.6 17.8 13.6 18.4 12 19.6"/>
+    <path d="M12 6.8 V19.6"/>
+  </symbol>
+</defs></svg>
+
+<main class="page">
+  <div class="shell">
+
+    <section class="stage-col" aria-labelledby="page-title">
+      <header class="stage-heading">
+        <p class="eyebrow">EverOtome Character Lab</p>
+        <h1 class="stage-title" id="page-title" data-i18n="lab.title">表情試妝間</h1>
+      </header>
+
+      <div class="stage-wrap">
+        <div id="stage" class="sprite-breathe"></div>
+        <p class="stage-fallback" id="stage-fallback" hidden><strong data-i18n="lab.noSprite">這裡還沒有立繪</strong><span data-i18n-html="lab.noSpriteHint">右邊面板寫了讀不到哪一份 manifest；把 <code>?set=</code> 改對就會出現。</span></p>
+      </div>
+    </section>
+
+    <aside class="control-panel" aria-label="試妝控制面板" data-i18n-attr="aria-label:lab.panelLabel">
+      <div class="panel-body">
+      <header class="panel-header">
+        <p class="eyebrow">Try-On Controls</p>
+        <h2 class="panel-title" data-i18n="lab.panelTitle">角色表情控制</h2>
+        <p class="panel-subtitle" data-i18n="lab.panelSubtitle">這裡按下去的每一顆，走的都是實裝後聊天室的同一份控制器；只有一點不同：這裡選了就一直亮到你切別的。</p>
+      </header>
+
+      <p class="status-pill" id="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span><span id="status-text"></span>
+      </p>
+      <p class="empty" id="empty" hidden></p>
+
+      <section class="panel-section" aria-labelledby="lbl-expr">
+        <h3 class="section-label" id="lbl-expr">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-sparkle"></use></svg>
+          <span data-i18n="lab.expr">表情</span>
+        </h3>
+        <div class="option-grid cols-2" id="row-expr">
+          <button type="button" class="choice-btn" data-expr="" aria-pressed="false">
+            <span class="choice-main" data-i18n="lab.neutral">平靜</span><span class="choice-sub">neutral</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel-section" aria-labelledby="lbl-talk">
+        <h3 class="section-label" id="lbl-talk">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-mouth"></use></svg>
+          <span data-i18n="lab.mouth">嘴巴</span>
+        </h3>
+        <p class="section-note" data-i18n="lab.mouthNote">「講話」用的是打字口型：嘴巴開合，眼睛維持目前表情。</p>
+        <div class="option-grid cols-2" id="row-talk">
+          <button type="button" class="choice-btn" data-talk="0" aria-pressed="false">
+            <span class="choice-main" data-i18n="lab.quiet">安靜</span><span class="choice-sub">quiet</span>
+          </button>
+          <button type="button" class="choice-btn" data-talk="1" aria-pressed="false">
+            <span class="choice-main" data-i18n="lab.talking">講話</span><span class="choice-sub">talking</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel-section" aria-labelledby="lbl-blush">
+        <h3 class="section-label" id="lbl-blush">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-blush"></use></svg>
+          <span data-i18n="lab.blushTitle">臉紅（可疊）</span>
+        </h3>
+        <p class="section-note" id="blush-note" hidden data-i18n="lab.blushNote">這個表情自帶紅暈：紅暈層先壓下，表情退了才回來。</p>
+        <div class="option-grid cols-3" id="row-blush">
+          <button type="button" class="choice-btn" data-blush="0" aria-pressed="false">
+            <span class="choice-main" data-i18n="lab.blushNone">不臉紅</span><span class="choice-sub">none</span>
+          </button>
+          <button type="button" class="choice-btn" data-blush="1" aria-pressed="false">
+            <span class="choice-main" data-i18n="lab.blushMid">臉紅</span><span class="choice-sub">mid</span>
+          </button>
+          <button type="button" class="choice-btn" data-blush="2" aria-pressed="false">
+            <span class="choice-main" data-i18n="lab.blushDeep">臉紅（深）</span><span class="choice-sub">deep</span>
+          </button>
+        </div>
+      </section>
+      </div>
+    </aside>
+
+    <aside class="side-col">
+      <section class="side-card" aria-labelledby="asset-title">
+        <h2 class="side-title" id="asset-title">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-folder"></use></svg>
+          <span data-i18n="lab.assets">素材夾</span>
+        </h2>
+        <p class="asset-copy"><span data-i18n="lab.assetsNow">現在讀的是</span> <code id="set-path"></code></p>
+        <p class="asset-copy" data-i18n-html="lab.assetsSwitch">換一套：網址加 <code>?set=assets/my-character/</code>，路徑相對 <code>engine/</code>，跟 <code>config.json</code> 的 <code>assetsPath</code> 同一個字串。</p>
+      </section>
+
+      <section class="side-card" aria-labelledby="tips-title">
+        <h2 class="side-title" id="tips-title">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-guide"></use></svg>
+          <span data-i18n="lab.tips">使用提示</span>
+        </h2>
+        <ol class="tips-list">
+          <li data-i18n-html="lab.tip1">立繪是活的（會眨眼、呼吸）。切表情時看貼片淡入：聊天室裡角色回覆夾了 <code>[expr:ID]</code> 暗號，就是這個效果。</li>
+          <li data-i18n-html="lab.tip2">表情分兩種模式：<code>flash</code> 在聊天室裡亮 2.5 秒就自己退（適合一瞬的表情），<code>sustain</code> 撐到下一句、最長 90 秒；臉紅在聊天室裡 90 秒後緩退。這裡全部按住不退，狀態列會標出模式。</li>
+          <li data-i18n="lab.tip3">只換眉眼的表情，看眉毛、髮絲有沒有接縫，眨眼時下眼皮會不會露出底圖那雙眼睛。</li>
+          <li data-i18n="lab.tip4">眼、嘴、底色一起換的表情，按「講話」看三個口型會不會跟著換、底色有沒有跟著嘴晃。</li>
+          <li data-i18n-html="lab.tip5">臉紅可以疊在表情上。表情若宣告 <code>blush: "builtin"</code>（自帶紅暈），亮著時紅暈層會先壓下（兩層紅暈會疊成豬肝色），表情退了才回來。</li>
+          <li data-i18n="lab.tip6">切回「平靜」會淡回原本的臉，眨眼也恢復。</li>
+          <li data-i18n="lab.tip7">每套素材只長出自己 manifest 宣告過的表情鈕；沒宣告就沒有鈕，實裝後的聊天室也一樣。</li>
+        </ol>
+      </section>
+    </aside>
+
+  </div>
+</main>
+
+<script type="module">
+  import { SpritePlayer } from "../js/sprite.js";
+  import { ExpressionController } from "../js/expression.js";
+  import { BlushController } from "../js/blush.js";
+  import { initI18n, t } from "../js/i18n.js";
+
+  // 語系判定越早跑越好：initI18n() 讀 ?lang=／localStorage／瀏覽器語言，設好 <html lang>
+  // 並把上面標好 data-i18n／data-i18n-html／data-i18n-attr 的靜態字串套一次——此時
+  // manifest 還沒讀、鈕還沒長出來，先跑不會跟後面的 DOM 動作打架。
+  initI18n();
+
+  // 素材夾：?set= 收「相對 engine/ 的資料夾」＝config.json 那個 assetsPath 字串
+  // （例如 assets/sample/）。本頁住在 engine/demo/，所以往上補一層 ../；以 / 開頭
+  // ＝站台絕對路徑，原樣使用。每套讀自己的 manifest：宣告了什麼才長出什麼鈕，
+  // 跟聊天室的素材宣告制同構。
+  // 尾巴補 /：少打斜線時錯誤訊息才不會把資料夾跟 manifest.json 黏成一串。
+  const SET_ARG = (new URLSearchParams(location.search).get("set") || "assets/sample/").replace(/\/?$/, "/");
+  const SET_PATH = SET_ARG.startsWith("/") ? SET_ARG : `../${SET_ARG}`;
+  document.getElementById("set-path").textContent = SET_ARG;
+
+  const stage = document.getElementById("stage");
+  const statusPill = document.getElementById("status");
+  const statusText = document.getElementById("status-text");
+  const emptyEl = document.getElementById("empty");
+  const stageFallback = document.getElementById("stage-fallback");
+  const stageWrap = document.querySelector(".stage-wrap");
+  const p = new SpritePlayer(stage, { assetsPath: SET_PATH });
+  // 讀不到 manifest（?set= 路徑打錯）不讓它變成沒人接的 rejection：記下來、下面用
+  // 空狀態框說清楚，畫面其餘部分照常可按（控制器對 null manifest 本來就靜默）。
+  let loadFailed = false;
+  try {
+    await p.load();
+    p.startIdle();
+  } catch {
+    loadFailed = true;
+  }
+
+  // load() 先存 manifest 再解析，半路丟錯（JSON 對但缺 moods）時 p.manifest 仍非 null——
+  // 讀失敗就當沒有 manifest，別拿半份去長鈕。
+  const manifest = loadFailed ? null : p.manifest;
+  // static 單張立繪：沒有口型幀、控制器也不掛貼片與紅暈層（expression.js／blush.js 的
+  // syncFrom 視同無鍵），三排鈕按了引擎都不動——這頁要照實顯示，不能讓鈕假亮（守則 f）。
+  const isStatic = !!(manifest && manifest.static === true);
+
+  // 正式控制器（跟聊天室同一份）：表情層 bind 幀同步鉤子、兩層都從 manifest 自報素材。
+  // 計時器按住不退：聊天室的 flash 2.5 秒／sustain 90 秒／臉紅 90 秒在試妝間都不合理
+  // （選了就該亮到切別的），透過建構參數把 hold 拉到 setTimeout 上限內的大值（約 23 天）——
+  // 不改引擎、不另做一套；狀態列 title 與提示寫明聊天室的真實時長。
+  const HOLD_MS = 2_000_000_000;
+  const expr = new ExpressionController(stage, { flashHoldMs: HOLD_MS, sustainCapMs: HOLD_MS });
+  expr.bind(p);
+  expr.syncFrom(manifest, SET_PATH);
+  const blush = new BlushController(stage, { holdMs: HOLD_MS });
+  blush.syncFrom(manifest, SET_PATH);
+
+  // 表情鈕：manifest.expressions 有幾個就長幾顆（工具寫進去這頁就看得到，不用改這支）。
+  // 主標＝def.label || id，副標＝id 本身——那串 id 就是後端回覆要夾的 [expr:ID]。
+  const defs = (!isStatic && manifest && manifest.expressions) || {};
+  const rowExpr = document.getElementById("row-expr");
+  for (const [id, def] of Object.entries(defs)) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "choice-btn";
+    b.dataset.expr = id;
+    b.setAttribute("aria-pressed", "false");
+    const main = document.createElement("span");
+    main.className = "choice-main";
+    main.textContent = (def && def.label) || id;
+    const sub = document.createElement("span");
+    sub.className = "choice-sub";
+    sub.textContent = id;
+    b.append(main, sub);
+    rowExpr.appendChild(b);
+  }
+
+  // 空狀態：這套素材沒宣告表情／臉紅時，對應的鈕按了不會有反應——與其讓人以為壞了，
+  // 直接說缺哪個鍵。缺任一個鍵就會顯示（只點名缺的那個）；範例角色兩個鍵都宣告了，
+  // 開箱直接長出鈕、看不到這個框。
+  const hasExpr = Object.keys(defs).length > 0;
+  const hasBlush = !isStatic && !!(manifest && typeof manifest.blush === "string" && manifest.blush);
+  if (loadFailed) {
+    emptyEl.textContent = t("lab.errLoad", { path: SET_PATH });
+    emptyEl.hidden = false;
+    stageFallback.hidden = false;
+    stageWrap.classList.add("is-empty");   // 沒有幀＝別讓空舞台佔著一屏高
+  } else if (isStatic) {
+    emptyEl.textContent = t("lab.errStatic");
+    emptyEl.hidden = false;
+    document.querySelectorAll(".choice-btn").forEach((b) => { b.disabled = true; });
+  } else if (!hasExpr || !hasBlush) {
+    const missing = [!hasExpr ? "expressions" : null, !hasBlush ? "blush" : null].filter(Boolean).join(t("lab.sep"));
+    emptyEl.textContent = t("lab.errMissing", { missing });
+    emptyEl.hidden = false;
+  }
+
+  let talking = false;
+  const blushLayer = stage.querySelector(".sprite-blush");
+  const rowBlush = document.getElementById("row-blush");
+  const blushNote = document.getElementById("blush-note");
+
+  // 面板狀態一律「從控制器現況反推」，不記自己的一份（計時器雖已按住，仍每秒對時一次：
+  // 自帶紅暈的壓下／還原、日後若有人從 console 或其他鉤子動控制器，面板都跟得上）。
+  function setPressed(sel, isOn) {
+    document.querySelectorAll(sel).forEach((b) => {
+      const on = isOn(b);
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+  function syncUi() {
+    const cur = expr.active || "";
+    // 濃度也從紅暈層 inline opacity 反推：deep＝1、mid＝0.75（blush.js 的 LEVEL_OPACITY），
+    // 沒亮／已退＝0。取 0.9 當分界，兩級之間留足夠餘裕。
+    const op = parseFloat(blushLayer.style.opacity || "0");
+    const blushLv = op > 0.9 ? "2" : (op > 0 ? "1" : "0");
+    setPressed("#row-expr button", (b) => b.dataset.expr === cur);
+    setPressed("#row-talk button", (b) => (b.dataset.talk === "1") === talking);
+    setPressed("#row-blush button", (b) => b.dataset.blush === blushLv);
+    // 自帶紅暈的表情亮著時引擎用 CSS 壓下紅暈層（inline opacity 不變＝控制器仍記得有臉紅）：
+    // 鈕照控制器狀態亮，整排壓暗＋現出說明；表情退了 class 拿掉、下一秒對時自然還原。
+    const masked = stage.classList.contains("expr-blush-builtin");
+    rowBlush.classList.toggle("is-masked", masked);
+    blushNote.hidden = !masked;
+    const def = defs[cur];
+    // 狀態列＝現在選了什麼，三排各一格「表情（模式）｜嘴巴｜臉紅」，跟鈕同步變；燈點在任一排
+    // 離開靜止態時亮。技術事實（模式在聊天室的時長／眼幾態／嘴幾態／底色／自帶紅暈）寫進
+    // title，滑過去看得到，不擠單行。
+    const mode = def ? (def.mode === "flash" ? "flash" : "sustain") : null;
+    const exprLabel = def ? (def.label || cur) : t("lab.neutral");
+    const talkLabel = t(talking ? "lab.talking" : "lab.quiet");
+    const blushLabel = t(blushLv === "2" ? "lab.blushDeep" : (blushLv === "1" ? "lab.blushMid" : "lab.blushNone"));
+    const exprPart = mode ? t("lab.statusExpr", { label: exprLabel, mode }) : exprLabel;
+    const text = [exprPart, talkLabel, blushLabel].join(t("lab.statusSep"));
+    const detail = def
+      ? t("lab.detail", {
+          label: exprLabel,
+          mode: t(mode === "flash" ? "lab.detailFlash" : "lab.detailSustain"),
+          counts: t("lab.detailCounts", { eyes: Object.keys(def.eyes || {}).length, mouth: Object.keys(def.mouth || {}).length }),
+          base: t(def.static ? "lab.detailBaseYes" : "lab.detailBaseNo"),
+          blush: t(def.blush === "builtin" ? "lab.detailBlushYes" : "lab.detailBlushNo"),
+          hold: t("lab.detailHold"),
+        })
+      : t("lab.detailNeutral");
+    statusPill.classList.toggle("is-live", !!cur || talking || blushLv !== "0");
+    if (statusText.textContent !== text) {
+      statusText.textContent = text;
+      statusPill.title = detail;
+    }
+  }
+  function apply() {
+    if (talking) p.startTalking(); else { p.stopTalking(); p.setMouth(0); }
+    syncUi();
+  }
+  setInterval(syncUi, 1000);
+
+
+  // ---- 三排選項 ----
+  rowExpr.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    if (b.dataset.expr) expr.show(b.dataset.expr); else expr.release();
+    apply();
+  });
+  document.querySelectorAll("#row-talk button").forEach((b) =>
+    b.addEventListener("click", () => { talking = b.dataset.talk === "1"; apply(); }));
+  document.querySelectorAll("#row-blush button").forEach((b) =>
+    b.addEventListener("click", () => {
+      const lv = b.dataset.blush;
+      if (lv === "2") blush.show("deep"); else if (lv === "1") blush.show("mid"); else blush.clear(false);
+      apply();   // 亮哪一顆由 syncUi 讀紅暈層 inline opacity 反推，不另記旗標
+    }));
+
+  apply();
+  window.__exprDemo = { player: p, expr, blush }; // 探針用
+</script></body></html>

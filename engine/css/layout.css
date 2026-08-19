@@ -1,0 +1,2232 @@
+/* layout.css —— 乙女遊戲式舞台（滿版案：桌機背景 16:9 cover 滿版）。
+ *
+ * 舞台解鎖 16:9——stage＝整個視窗，背景 cover 自由裁邊（房間圖 2560×1440、
+ * 主體收中央安全區）；Chat Log 框為前景 SVG 素材（chatlog-frame.svg，向量
+ * 元件，任何縮放線寬恆定），UI 全部錨視窗、不再對位底圖。右欄幾何（構圖
+ * 比例）：框 965:1146、高吃 79.6dvh、窄窗以 40vw 為界高度讓步——見下方
+ * --clog-* 變數。
+ * 手機直屏（<900px）＝立繪滿版臉更高、中段 Chat Log 直立半透矩形常駐（不用
+ * ADV 框）、輸入列上抬、底部工具列 #dock（電話／外觀／設定／收起他）。
+ *
+ * 素材皮開關：app.js 讀 config.ui → body.has-ui-skin ＋ --ui-* 變數（絕對 URL）；
+ * theme.js 的 per-theme assets 走同一條消費鏈（見 body.has-theme-assets）。
+ * 無皮 fallback＝同一套 DOM、純 CSS 版。選擇器一律「無皮先寫、有皮覆寫」。
+ *
+ * hover 通則：所有可點元件都有 hover——透明熱區＝光暈浮現、實底圓鈕＝提亮＋
+ * 光暈＋微放大；transition 統一 0.25s cubic-bezier(.4,0,.2,1)。
+ *
+ * z 序：bg 0 ＜ 立繪 1 ＜ ADV 2 ＜ Chat Log／輸入列／品牌角／dock 3 ＜ 電話面板 20
+ * ＜ 選單 popover 25 ＜ 設定／外觀面板 30 ＜ 來電浮層 50（phone.css fixed）。
+ */
+
+:root {
+  /* 右欄幾何（桌機）：框 965×1146；理想高＝構圖的 79.6% 畫布高。
+   * 窄窗（16:10、4:3、半屏）寬度頂到 40vw 時高度自動讓步——框永遠完整、
+   * 比例恆定不變形。輸入列填框底到視窗底的剩餘（16:9 下 ≈13dvh）。 */
+  --rc-right: 4.5vw;   /* 整體內縮、別貼視窗邊 */
+  --rc-top: 5dvh;
+  --rc-gap: 0.7dvh;
+  --rc-bottom: 1.6dvh;
+  --clog-h: min(79.6dvh, calc(40vw * 1146 / 965));
+  --clog-w: calc(var(--clog-h) * 965 / 1146);
+  /* ADV 框：左緣與右欄對稱內縮；寬度聯動右欄——與輸入列的縫恆定 1.5vw
+   *（對話框跟輸入框要接近），任何視窗比例都不撞。 */
+  --adv-left: 4.5vw;
+  --adv-gap: 1.5vw;
+  /* 左上組（徽章／字線鎖組／側欄鈕）共用幾何：側欄鈕水平中心＝徽章中心
+   *（按鈕跟指南針對齊），任何視窗比例公式恆成立。 */
+  --orn-left: 2vw;
+  --orn-h: min(10.5dvh, 5.5vw);
+  --orn-w: calc(min(10.5dvh, 5.5vw) * 350 / 437);
+  --sidebtn-w: min(4.3vw, 7.7dvh);
+  --sidebtn-left: calc(var(--orn-left) + (var(--orn-w) - var(--sidebtn-w)) / 2);
+}
+
+/* html/body 鎖死三件套：iOS 鍵盤彈出時整頁會被「scroll focused input into
+ * view」推上去——輸入列疊到 Chat Log 標題上。position:fixed 的 body 讓
+ * window scroll 推不動（overflow:hidden 擋不住程式性捲動，是同一族陷阱）。 */
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  background: var(--bg-deep, #0c1c28);
+  overflow: hidden;
+}
+
+#stage-root {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── 背景層＋壓暗遮罩（背景蒙半透明黑，讓人物與 UI 跳出來）。
+ * 桌機手機同用一張房間圖（bg-room），cover 各自裁邊。 ── */
+#stage-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+}
+body.has-ui-skin #stage-bg,
+body.has-theme-assets #stage-bg { background-image: var(--ui-bg-room); }
+#stage-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 3, 12, 0.32);
+}
+
+/* ── CG 演出層：z 序在房間背景(0)與立繪(1)之間＝蓋背景、UI 全在上。
+ * 不加壓暗遮罩（CG 圖本身就是主角）；淡變 1s、reduced-motion 直切。 ── */
+#cg-layer { position: absolute; inset: 0; z-index: 1; }
+
+/* ── 家具層 ──────────────────────────────────────────────────────────────
+ * 全畫面座標、DOM 插在 #stage-bg 之後＝疊在房間背景上、CG／立繪／UI 之下
+ * （家具可以被視窗按鈕遮住——它是房間陳設不是前景）。每件的 left／height／
+ * bottom 由 config 原值直塞 inline style（擺位調整零改 code）；「露一半」＝
+ * bottom 負值下沉。pointer-events none＝永不擋點擊。 */
+.furniture-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0; /* 與 #stage-bg 同層、DOM 在後＝蓋於背景之上 */
+  pointer-events: none;
+  overflow: hidden; /* 下沉「露一半」的部分乾淨裁掉，不撐出捲軸 */
+}
+.furniture-item {
+  position: absolute;
+  bottom: 0;
+  width: auto;
+  user-select: none;
+}
+/* 手機：立繪滿版＋窄畫面，家具桌機限定（空間不夠、避免壓到 Chat Log）。 */
+@media (max-width: 899px) {
+  .furniture-layer { display: none; }
+}
+#cg-layer .cg-img {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 1s ease;
+}
+#cg-layer .cg-img.is-shown { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  #cg-layer .cg-img { transition: none; }
+}
+/* CG 演出中＝立繪讓位（圖裡已有角色）；#stage-col 原 transition 沿用。 */
+body.cg-active #stage-col { opacity: 0; }
+
+/* ── 立繪：C 位偏左。定位以「滿版畫布」為基準（人物頂天立地、上下留白
+ * 趨近 0 的差分畫布）：height 略小於視窗＝頭頂留呼吸空間，bottom 輕微
+ * 負值把畫布底緣的細透明邊推出畫面、人物真正貼底。畫布若帶大塊底部
+ * 透明帶，改由 manifest bottomGap 補償（見 sprite.js）。 ─────────── */
+#stage-col {
+  position: absolute;
+  left: 17%; /* 肩線探進 Chat Log 框後方＝層次感；＝無家具時的預設 C 位（家具讓位見下方 has-furniture 段） */
+  /* 「湊近鏡頭」檔：放大量往畫面底出血（下緣被畫面吃掉＝拉近感），
+   * 頭頂維持 ~3% 呼吸空間（-8 + 105×(1-topGap) ≈ 96.8）。 */
+  bottom: -8%;
+  height: 105%;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;
+}
+#stage-col #stage {
+  height: 100%;
+  /* 外觀畫布寬度不一（1024 基準／1300 寬版防袖擺裁切）——比例由 manifest
+   * 自報（sprite.js 設 --sprite-aspect），不再寫死；寬版另帶
+   * --sprite-canvas-shift（負百分比）把畫布中心對齊 1024 版中心＝人物不漂移。
+   * 手機段有 transform:none 歸零（stage 本就置中）。 */
+  aspect-ratio: var(--sprite-aspect, 1024 / 1536);
+  width: auto;
+  /* 位移走獨立 translate 屬性（非 transform）：呼吸動畫（.sprite-breathe）每幀
+   * 覆寫 transform、靜態 translateX 會被踩掉——translate 與 transform 動畫疊加
+   * 共存（探針實抓的坑）。 */
+  translate: var(--sprite-canvas-shift, 0%);
+}
+#stage-col { transition: opacity 0.25s ease, left 0.45s ease; }
+/* 「顯示立繪」開關桌機也要生效——原本桌機段 opacity:1 !important（早期
+ * 「桌機立繪恆顯」設計）把開關蓋死＝點了沒反應。開關全域生效；stage-col
+ * 本就 pointer-events:none，隱藏後零點擊攔截副作用。 */
+body.no-sprite #stage-col { opacity: 0; }
+
+/* ── 家具讓位：有放家具＝立繪自動側站、全收＝回 C 位 ────────────────────────
+ * class 由 furniture.js 依「畫面上真的渲染出來的件數 > 0」同步；left
+ * transition＝收放家具時立繪優雅滑步過去而不是瞬移。只給桌機——手機立繪是
+ * 50% 置中＋translateX 系統（下方 media 段），且家具層手機本就 display:none，
+ * 讓位在手機無意義；本規則特異性高於 media 段的 #stage-col，不包進桌機 media
+ * 會把手機置中拉歪。
+ * reduced-motion 不在這裡處理：本檔末「無障礙動效偏好」那段已經把 #stage-col
+ * 整條 transition 設成 none（同特異性、位置在後＝它贏），滑步與淡入淡出一起收
+ * 掉；在這裡再寫一條只收滑步的規則會是永遠生效不了的死碼。 */
+@media (min-width: 900px) {
+  body.has-furniture #stage-col { left: 22.5%; }
+}
+
+/* ── ADV 對話框（桌機戲台；素材已半透化——玻璃透出他） ──────────────────────── */
+#adv-root { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+
+/* 對話框由引擎自刻——半透明圓角矩形（素材退役），名牌自刻 pill 浮在框上緣
+ * （乙遊慣例）。半透深底→正文改淺色字；底緣貼齊視窗下緣（與右側輸入面板
+ * 同一條底線）、高度拉高。 */
+.adv-box {
+  position: absolute;
+  left: var(--adv-left);
+  top: 56%;
+  width: calc(100vw - var(--adv-left) - var(--adv-gap) - var(--clog-w) - var(--rc-right));
+  bottom: 1.6%;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-line);
+  border-radius: 1.2rem;
+  pointer-events: none;
+}
+
+/* Thinking 切換鈕（乙遊框角小鈕）——框上緣右側 pill，與名牌同一條浮線對稱；
+ * 這輪有思緒才現身（adv.js 控 hidden）。框本體 pointer-events none，鈕自己
+ * 開 auto。按下態（正顯示思緒）＝亮 primary。 */
+.adv-thinking-btn {
+  position: absolute;
+  right: 4.5%;
+  top: -1.1rem;
+  height: 2.2rem;
+  padding: 0 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--primary-soft) 40%, transparent);
+  border-radius: 999px;
+  background: var(--btn-bg);
+  color: var(--btn-ink);
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.adv-thinking-btn:hover { background: var(--btn-bg-hover); }
+.adv-thinking-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.adv-thinking-btn[hidden] { display: none; }
+/* 鈕常駐雙態——這輪沒思緒＝退階靜默（仍可點、切過去是一句淡說明）；有思緒
+ * ＝全亮（一眼知道這輪有貨）。opacity 過渡輕聲換態。 */
+.adv-thinking-btn { opacity: 0.55; transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+.adv-thinking-btn.has-thoughts { opacity: 1; }
+.adv-thinking-btn:hover { opacity: 1; }
+/* pending 第三態：轉寫在背景跑、卡還沒到——沿退階態的
+ * opacity 疊輕微呼吸（0.55↔0.9，低於亮態的 1＝「快亮未亮」），純 opacity
+ * 脈動、同 token 體系零新色。轉寫完成 updateThoughts 轉亮態／回退階即停。
+ * reduced-motion 靜態版收在檔尾既有無障礙區塊（同 .adv-indicator i 慣例）。 */
+.adv-thinking-btn.is-pending {
+  animation: adv-thinking-pending 2s ease-in-out infinite;
+}
+@keyframes adv-thinking-pending {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+.adv-box.adv-showing-thoughts .adv-thinking-btn {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* Thinking 開關：關閉＝思考鏈 UI 整組收起——桌機 ADV Thinking 鈕、手機
+ * THINKING 頁籤與思緒頁（正停在思緒頁時 app.js applyThoughtsUi 先撥回
+ * CHAT LOG，這裡的 display:none 是防禦第二層）。
+ * 晚到的 thoughts frame 照存不顯示＝「浮現中那張安靜作廢」。 */
+body.hide-thoughts .adv-thinking-btn { display: none; }
+body.hide-thoughts #tab-thoughts { display: none; }
+body.hide-thoughts #thoughts-pane { display: none; }
+/* 思緒頁：斜體、退一階的色——一眼分得出「這是他心裡的話，不是說出口的」 */
+.adv-box.adv-showing-thoughts .adv-text {
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+.adv-nameplate {
+  position: absolute;
+  left: 4.5%;
+  top: -1.35rem;
+  min-width: 8.5rem;
+  height: 2.5rem;
+  padding: 0 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--btn-bg);
+  border: 1px solid color-mix(in srgb, var(--primary-soft) 40%, transparent);
+  border-radius: 999px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(0.95rem, 1.3vw, 1.35rem);
+  letter-spacing: 0.04em;
+  color: var(--title-ink);
+}
+
+/* 正文：框內內縮；淺色字（自刻深半透底）。
+ * top 3rem＝起點句離框上緣（名牌）隔一行句子的空間。 */
+.adv-text {
+  position: absolute;
+  left: 5.5%;
+  right: 5.5%;
+  top: 3rem;
+  bottom: 1.1rem;
+  overflow-y: auto;
+  font-size: clamp(0.95rem, 1.3vw, 1.3rem);
+  line-height: 1.8;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--primary) 50%, transparent) transparent;
+}
+.adv-text::-webkit-scrollbar { width: 4px; }
+.adv-text::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--primary) 50%, transparent); border-radius: 999px; }
+.adv-text::-webkit-scrollbar-track { background: transparent; }
+
+/* 待機提示：非斜體、清楚 */
+.adv-text:empty::before {
+  content: attr(data-idle);
+  color: var(--text-dim);
+  opacity: 0.9;
+  font-size: 0.92em;
+}
+/* 思考中與待機字互斥：三點亮著時待機字不出現 */
+.adv-thinking .adv-text:empty::before { content: none; }
+
+/* 思考中三點：正文起點。
+ * 真 bug：hidden 屬性靠 UA 樣式 [hidden]{display:none} 生效，但
+ * .adv-indicator 的 display:flex 優先級更高——三點從未真正藏過、跟待機字
+ * 疊在一起。這行顯式規則讓 hidden 恢復效力。 */
+.adv-indicator[hidden] { display: none; }
+.adv-indicator {
+  position: absolute;
+  left: 5.5%;
+  top: 3.2rem; /* 跟正文起點（3rem）同下移——離名牌隔一行 */
+  display: flex;
+  gap: 0.45rem;
+}
+.adv-indicator i {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--text-dim);
+  animation: adv-dot 1.4s ease-in-out infinite;
+}
+.adv-indicator i:nth-child(2) { animation-delay: 0.2s; }
+.adv-indicator i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes adv-dot {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-0.2rem); }
+}
+
+/* ── Chat Log（滿版案：前景 SVG 框素材＋自刻玻璃底，錨視窗右欄） ──────────── */
+#chatlog {
+  position: absolute;
+  right: var(--rc-right);
+  top: var(--rc-top);
+  width: var(--clog-w);
+  height: var(--clog-h);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  /* 訊息流盒縮短到框件 content 安全區內（bottom 48/1146≈4.2%）——捲動內容
+   * 永不畫到框描邊外。用容器 padding 而非 #msgs 的 padding：捲動內容會出現
+   * 在自己的 padding 區、擋不住溢出視覺，容器 padding 才是硬邊界。 */
+  padding-bottom: 4.2%;
+}
+/* 玻璃底（框內那層薄紗）：內縮到框描邊內（SVG rect x=18/965≈1.9%），圓角
+ * 跟框 rx=30/965≈3.1% 寬走。框線本體由 chatlog-frame.svg 疊上。 */
+body.has-ui-skin #chatlog::before,
+body.has-theme-assets #chatlog::before {
+  content: "";
+  position: absolute;
+  inset: 1.6%;
+  background: var(--glass-bg);
+  border-radius: calc(var(--clog-w) * 0.031);
+  z-index: -1;
+}
+body.has-ui-skin #chatlog,
+body.has-theme-assets #chatlog {
+  background: var(--ui-chatlog-frame) center / 100% 100% no-repeat;
+}
+body:not(.has-ui-skin):not(.has-theme-assets) #chatlog {
+  background: rgba(var(--veil-rgb), 0.66);
+  border: 1px solid var(--line-2);
+  border-radius: 1rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* 標題與狀態：框 SVG 的裝飾分隔線在 126/1146≈11%——title 帶佔到線上為止；
+ * 框上無圖字，HTML 標題全尺寸顯示（Georgia serif）。 */
+.chatlog-head {
+  flex: 0 0 auto;
+  height: 11%;
+  display: flex;
+  align-items: flex-end; /* 標題往下沉、貼近分隔線 */
+  justify-content: center;
+  padding-bottom: 2.4%; /* 字再往上微調 */
+  pointer-events: none;
+}
+.chatlog-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1rem, 1.4vw, 1.45rem);
+  letter-spacing: 0.06em;
+  color: var(--title-ink);
+  text-shadow: 0 1px 8px rgba(var(--glow-rgb), 0.8);
+}
+#chat-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14.5%; /* 分隔線（11%）下再沉一點 */
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+  min-height: 1em;
+  pointer-events: none;
+}
+
+/* Chat Log 雙頁籤：手機限定——桌機藏 tabs 顯單一 title，思緒照舊（泡泡前
+ * 摺疊列＋ADV Thinking 鈕）；#thoughts-pane 桌機恆藏（app.js append 無害）。
+ * 手機規則全在下方 media 段＝桌機無論 class 怎麼掛都不受影響。 */
+.chatlog-tabs { display: none; }
+/* 滿版鈕手機限定（同 tabs pattern：桌機藏、手機段開）——桌機 Chat Log 是右欄
+ * SVG 框版式，滿版語意不適用。 */
+.chatlog-full-btn { display: none; }
+#thoughts-pane { display: none; }
+
+#msgs {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* 頂部版：捲動內容會畫進自己的 padding-top（捲動容器 padding 不是硬邊界），
+   * 捲到頂泡泡蓋分隔線＋頂到標題。頂 padding 轉 margin-top（margin 區不畫
+   * 內容＝真硬邊界）。值用 --clog-h 比例制而非純 rem：status 待機字掛 14.5%
+   * （百分比），rem 邊界在高視窗會被它追過（1440p 實測重疊 7px）；4.5% 框高
+   * （≈status 14.5% − head ~10%）＋1.5rem 字高緩衝＝任何視窗比例泡泡都停在
+   * status 之下、不蓋分隔線。 */
+  margin-top: calc(var(--clog-h) * 0.045 + 1.5rem);
+  padding: 0 5.6% 1.9rem; /* 框件內容安全區：左右 54/965≈5.6%、底 48/1146 */
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  background: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+#msgs::-webkit-scrollbar { width: 6px; }
+#msgs::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 999px; }
+#msgs::-webkit-scrollbar-track { background: transparent; }
+
+/* 傳照片狀態：獨立層（浮在框內底部） */
+.photo-status {
+  position: absolute;
+  right: var(--rc-right);
+  top: calc(var(--rc-top) + var(--clog-h) - 2.4dvh);
+  width: var(--clog-w);
+  z-index: 3;
+  text-align: center;
+}
+
+/* 立繪背景上的無底訊息文字可讀性 */
+.sys-msg,
+.thought {
+  text-shadow: 0 1px 4px var(--ink-shadow);
+}
+
+/* ── 輸入列（自刻；跟著右欄變數走——與框同右緣同寬，填框底到視窗底的剩餘
+ * （16:9 下 ≈13dvh），窄窗框讓步時自動變高） ──────────────────────────────── */
+#inputbar {
+  position: absolute;
+  right: var(--rc-right);
+  top: calc(var(--rc-top) + var(--clog-h) + var(--rc-gap));
+  width: var(--clog-w);
+  bottom: var(--rc-bottom); /* 與 ADV 框同一條底線 */
+  height: auto;
+  z-index: 3;
+  display: flex;
+  align-items: stretch;  /* 輸入欄位撐滿面板高，不再一條扁線 */
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-line);
+  border-radius: 1.1rem;
+}
+
+/* MENU 鍵（功能選單入口）＋迴紋針：統一按鈕色 flat 圓鈕（面板拉高後垂直置中） */
+.cmd-menu-btn,
+.attach-btn {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--btn-bg);
+  color: var(--btn-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cmd-menu-btn:hover,
+.attach-btn:hover { background: var(--btn-bg-hover); }
+.attach-btn:disabled { opacity: 0.5; cursor: default; }
+.cmd-menu-btn svg,
+.attach-btn svg { width: 1.25rem; height: 1.25rem; }
+.attach-btn.is-sending svg { animation: attach-spin 0.9s linear infinite; }
+@keyframes attach-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+#chat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: auto;        /* 撐滿面板高（多行輸入區的份量感） */
+  max-height: none;
+  resize: none;
+  padding: 0.7rem 0.95rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--btn-bg) 35%, transparent);
+  color: var(--text);
+  font-size: clamp(0.95rem, 1.1vw, 1.1rem);
+  font-family: inherit;
+  line-height: 1.45;
+  /* 捲軸＝深紫直立半透細線 */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--btn-bg) 55%, transparent) transparent;
+}
+#chat-input::-webkit-scrollbar { width: 4px; }
+#chat-input::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--btn-bg) 55%, transparent); border-radius: 999px; }
+#chat-input::-webkit-scrollbar-track { background: transparent; }
+#chat-input::placeholder { color: var(--text-faint); }
+#chat-input:focus { outline: none; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent); }
+
+/* Send：圓鈕（與附件鈕同家族；hover＝變底色，統一按鈕系統的 hover 規則） */
+#btn-send {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--btn-bg);
+  color: var(--btn-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#btn-send:hover { background: var(--btn-bg-hover); }
+#btn-send:active { opacity: 0.85; }
+#btn-send .send-label { display: none; }
+#btn-send .send-icon { display: block; width: 1.15rem; height: 1.15rem; }
+#btn-send:focus-visible,
+.cmd-menu-btn:focus-visible,
+.attach-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* 功能選單彈窗（深底直排 icon＋字），錨在輸入列上方左側 */
+#cmd-pop {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.5rem);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 9.5rem;
+  padding: 0.45rem;
+  background: rgba(var(--veil-rgb), 0.96);
+  border: 1px solid var(--line-2);
+  border-radius: 0.9rem;
+}
+#cmd-pop[hidden] { display: none; }
+/* MENU 項目 hidden 由 JS 動態切（沙盒模式下乾淨開始／忘記暫存兩鈕互換
+ * 顯隱）——#cmd-pop button 的 display:flex 蓋掉 hidden 屬性（UA [hidden]
+ * 規則 specificity 低，同一個坑在其他指示器／按鈕上也出現過）。這行讓
+ * applySandboxUi() 的 hidden 恢復效力（同時修「關沙盒後忘記暫存仍顯示」的
+ * 同根另一面）。 */
+#cmd-pop button[hidden] { display: none; }
+/* MENU 選單內功能群組的分隔細線 */
+#cmd-pop .cmd-divider {
+  height: 1px;
+  margin: 0.3rem 0.5rem;
+  background: var(--line-2);
+}
+#cmd-pop button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.92rem;
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#cmd-pop button:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+#cmd-pop button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+#cmd-pop button svg { width: 1.05rem; height: 1.05rem; flex: 0 0 auto; color: var(--btn-ink); }
+/* 手機 MENU 的 CG 相冊項：桌機藏——桌機已有側欄 CG 鈕，不重複入口；顯隱
+ * （cgAvailable）仍由 app.js initCg() 與側欄鈕同一句管。
+ * specificity 驗算（同一個 hidden／display:flex 坑的又一道防線）：
+ * #cmd-pop .js-menu-cg＝(1,1,0)＞#cmd-pop button＝(1,0,1) 的 display:flex
+ * ✅ 蓋得過；#cmd-pop button[hidden]＝(1,1,1) 更高＝hidden 顯隱不受本條影響
+ * （且兩者同為 display:none，無方向衝突）。 */
+@media (min-width: 900px) {
+  #cmd-pop .js-menu-cg { display: none; }
+}
+
+/* ── 品牌角＋☰＋桌機電話鈕＋選單 ─────────────────────────────────────────── */
+#brand { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+
+/* 品牌角：徽章（deco-compass）＋字線鎖組——品牌字垂直置中對齊徽章中心、
+ * 白底線緊貼字下方（flex column，線永遠跟著字）。有皮才顯示徽章與線（無皮
+ * fallback＝只有字）。 */
+.brand-ornament {
+  position: absolute;
+  left: var(--orn-left);
+  top: 2.4dvh;
+  height: var(--orn-h);
+  width: var(--orn-w);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 2px 10px rgba(var(--glow-rgb), 0.55));
+  display: none;
+}
+body.has-ui-skin .brand-ornament,
+body.has-theme-assets .brand-ornament {
+  display: block;
+  background-image: var(--ui-brand-ornament);
+}
+
+/* 字線鎖組：無皮＝只有字、位置沿舊 brand-title；有皮＝錨徽章右側。
+ * 鎖組高＝字高（線絕對定位垂在組底）——「字本身的中心」對齊徽章中心，
+ * 不被線高推偏（幾何驗證抓到 −5.7px 偏移的教訓）。 */
+.brand-lockup {
+  position: absolute;
+  left: 2%;
+  top: 3.2%;
+}
+body.has-ui-skin .brand-lockup,
+body.has-theme-assets .brand-lockup {
+  left: calc(var(--orn-left) + var(--orn-w) + 0.6vw);
+  top: calc(2.4dvh + var(--orn-h) / 2);
+  transform: translateY(-50%);
+}
+
+#brand-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: clamp(1.1rem, 2vw, 2rem);
+  letter-spacing: 0.04em;
+  color: var(--title-ink);
+  text-shadow: 0 2px 12px rgba(var(--glow-rgb), 0.9);
+}
+body.has-ui-skin #brand-title,
+body.has-theme-assets #brand-title { font-size: clamp(1rem, 1.5vw, 1.6rem); }
+
+/* 白底線：絕對掛鎖組正下方＝永遠緊貼字下；右端淡出在 SVG 漸層裡 */
+.brand-wave {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.25dvh);
+  width: min(13vw, 21dvh);
+  height: 0.8dvh;
+  color: #ffffff;
+  display: none;
+}
+body.has-ui-skin .brand-wave,
+body.has-theme-assets .brand-wave { display: block; }
+
+/* 左側欄五鈕：電話→外觀→CG→設定→眼睛，由上而下；水平中心對齊徽章
+ * （--sidebtn-left 公式）；尺寸 dvh 束縛防超寬爆大。 */
+.side-btn {
+  position: absolute;
+  left: var(--sidebtn-left);
+  width: var(--sidebtn-w);
+  aspect-ratio: 1;
+  height: auto;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--btn-bg) 55%, transparent);
+  color: var(--btn-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.side-btn:hover { background: var(--btn-bg-hover); }
+.side-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.side-btn svg { width: 46%; height: 46%; }
+/* 五顆等距序列（9.1% 節奏）：電話→外觀→CG→設定→眼睛 */
+.side-btn-1 { top: 14%; }
+.side-btn-2 { top: 23.1%; }
+.side-btn-3 { top: 32.2%; }
+.side-btn-4 { top: 41.3%; }
+.side-btn-5 { top: 50.4%; }
+body.hide-adv #adv-root { display: none; }
+
+/* ── 眼睛子鈕組（眼睛改 expander、兩顆圓形子鈕——隱藏人像／隱藏視窗；桌機
+ * 限定，手機 media 段整欄藏）。定位語言同 #call-pill（side-btn 右側偏移
+ * 公式）、top 對齊眼睛鈕（side-btn-5 50.4%）；水平排開。
+ * [hidden] 顯式規則＝display:flex 蓋 hidden 家族坑（同一族陷阱）。 */
+.eye-sub {
+  position: absolute;
+  left: calc(var(--sidebtn-left) + var(--sidebtn-w) + 0.55vw);
+  top: 50.4%;
+  display: flex;
+  gap: 0.45vw;
+  z-index: 4;
+}
+.eye-sub[hidden] { display: none; }
+.eye-sub-btn {
+  width: var(--sidebtn-w);
+  aspect-ratio: 1;
+  height: auto;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--btn-bg) 55%, transparent);
+  color: var(--btn-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.eye-sub-btn:hover { background: var(--btn-bg-hover); }
+.eye-sub-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.eye-sub-btn svg { width: 46%; height: 46%; }
+/* 展開中眼睛鈕亮底（明確標示目前是選單態） */
+.js-eye-menu.is-open { background: var(--btn-bg-hover); }
+/* 雙態 icon：off 變體依 body class 切（eye/eye-off 同款 pattern）——
+ * 人像鈕看 body.no-sprite、視窗鈕看 body.hide-adv */
+.eye-sub-btn .icon-figure-off,
+.eye-sub-btn .icon-window-off { display: none; }
+body.no-sprite .eye-sub-btn .icon-figure { display: none; }
+body.no-sprite .eye-sub-btn .icon-figure-off { display: block; }
+body.hide-adv .eye-sub-btn .icon-window { display: none; }
+body.hide-adv .eye-sub-btn .icon-window-off { display: block; }
+/* 手機：side-btn 欄整欄藏（1527 行），子鈕組同藏（media 段補） */
+
+/* 電話鈕雙態：通話中原地變掛斷樣——同一顆鈕、同款圓底，只換中間 icon
+ * （比照眼睛鈕 eye/eye-off 純 CSS pattern；桌機側欄與手機 dock 同一條
+ * 規則）。 */
+.js-open-phone .icon-hangup { display: none; }
+body.in-call .js-open-phone .icon-call { display: none; }
+body.in-call .js-open-phone .icon-hangup { display: block; }
+
+/* 通話計時 pill：電話鈕旁小玻璃膠囊——撥號中「接通中」、接通後 mm:ss 每秒
+ * 跳。桌機＝side-btn-1 右側同高；底色同 side-btn 玻璃底。 */
+#call-pill {
+  position: absolute;
+  left: calc(var(--sidebtn-left) + var(--sidebtn-w) + 0.55vw);
+  top: 14%; /* 與 .side-btn-1 同 top＝同容器等高對齊 */
+  height: var(--sidebtn-w);
+  display: flex;
+  align-items: center;
+  padding: 0 0.75em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--btn-bg) 55%, transparent);
+  color: var(--btn-ink);
+  font-size: clamp(0.72rem, 0.95vw, 0.95rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  z-index: 4;
+  pointer-events: none;
+}
+#call-pill[hidden] { display: none; }
+
+/* ── 手機底部工具列（桌機隱藏） ────────────────────────────────────────────── */
+#dock { display: none; }
+
+/* ── 電話面板：疊 Chat Log 區（同一組右欄變數） ──────────────────────────── */
+#phone-root {
+  position: absolute;
+  right: var(--rc-right);
+  top: var(--rc-top);
+  width: var(--clog-w);
+  height: var(--clog-h);
+  z-index: 20;
+  pointer-events: none;
+}
+/* 面板不再是互動遮罩層——pointer-events 放行給下方 Chat Log
+ * （通話中照樣捲動、點播放鍵），可點元件（掛斷等）在 phone.css 各自 auto。 */
+#phone-root .phone-panel { pointer-events: none; }
+
+/* ── 設定面板（素材框退役——桌機比照手機版內容樣式，素色玻璃、淺字浮在
+ * 暗幕上；舊版深色字／素材對位 hack（aspect 720/955、margin-right 17%、
+ * flex-end）全數作廢。素材檔留守 repo、UI_SKIN_VARS 已除名。） ──────────────── */
+.settings-sheet {
+  position: relative;
+  max-height: min(92%, 92dvh);
+  width: min(26rem, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.settings-sheet .settings-heading,
+.settings-sheet .settings-panel-body {
+  width: 100%;
+  max-width: 24rem;
+}
+.settings-sheet .settings-panel-body {
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--primary) 45%, transparent) transparent;
+}
+.settings-sheet .settings-panel-body::-webkit-scrollbar { width: 5px; }
+.settings-sheet .settings-panel-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: 999px;
+}
+.settings-sheet .settings-panel-body::-webkit-scrollbar-track { background: transparent; }
+
+/* ── 外觀面板（☰「外觀」——未來多套造型的家；「角色造型」＋「介面主題」
+ * 兩區同一面板，調色盤鈕退役） ──────────────────────────────────────────── */
+.appearance-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 22rem;
+  /* 內容不貼視窗上下緣——比照 CG 相冊固定高度框＋內部滾軸（滾軸貼內容右緣、
+   * 不再跑到瀏覽器邊邊）；上下留白由 max-height 與面板置中自然出來。 */
+  max-height: 74dvh;
+  overflow-y: auto;
+  padding: 0.2rem 0.9rem 1rem 0.2rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+.appearance-sheet::-webkit-scrollbar { width: 6px; }
+.appearance-sheet::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 999px; }
+.appearance-sheet::-webkit-scrollbar-track { background: transparent; }
+
+/* TAB 切換高度定錨（兩 TAB 內容高度不同、面板置中＝切換時頂端忽上忽下）
+ * ——外觀面板改頂端對齊＋固定起點，切 TAB 只有下緣伸縮；設定面板維持置中
+ * （內容靜態無此問題）。 */
+.settings-panel.appearance-panel {
+  /* 雙 class 提 specificity——本規則在檔案前段、後面的 .settings-panel
+   * justify-content:center 同分會後者勝（探針實抓 top 284→225 跳動）。 */
+  justify-content: flex-start;
+  padding-top: max(11dvh, calc(1.5rem + env(safe-area-inset-top)));
+}
+
+/* 外觀 TAB（角色造型｜介面主題 分頁，桌機手機同款）——設計語言沿 CG 管理態
+ * TAB／chatlog 頁籤（透明底＋is-active 亮字＋accent 底線），token 全跟
+ * 主題。 */
+.appearance-tabs {
+  display: flex;
+  gap: 1.7rem;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+.appearance-tab {
+  border: 0;
+  background: transparent;
+  padding: 0.2rem 0.1rem;
+  font: inherit;
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.appearance-tab.is-active {
+  color: var(--title-ink);
+  text-shadow: 0 1px 8px rgba(var(--glow-rgb), 0.8);
+}
+.appearance-tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -0.25rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--status-accent);
+}
+.appearance-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.appearance-section-label {
+  margin: 0.2rem 0 -0.55rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+.appearance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+/* 卡片用 <button>（可點換裝）——reset 原生鈕外觀＋hover 變底色通則 */
+.appearance-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  border: 1px solid var(--line-2);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.appearance-card:hover { background: color-mix(in srgb, var(--primary) 26%, transparent); }
+.appearance-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.appearance-card.is-active { border-color: var(--primary); cursor: default; }
+.appearance-card.is-active:hover { background: color-mix(in srgb, var(--primary) 14%, transparent); }
+.appearance-card-tag:empty { display: none; }
+.appearance-card-name {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+.appearance-card-tag {
+  font-size: 0.72rem;
+  color: var(--on-primary);
+  background: var(--primary);
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+}
+
+/* ── 自刻確認彈窗（原生 confirm 系統窗吃不到主題、iOS 又會露出網域抬頭）：
+ * veil 玻璃＋token 配色＝主題跟色；確定＝主色鈕、取消＝--btn-bg 家族 hover
+ * 變底色通則；z-index 80 蓋過所有面板（現行最高 30）。 */
+.confirm-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 5, 16, 0.55);
+}
+.confirm-card {
+  width: min(22rem, 86vw);
+  padding: 1.4rem 1.5rem 1.2rem;
+  border: 1px solid var(--line-2);
+  border-radius: 0.9rem;
+  background: rgba(var(--veil-rgb), 0.96);
+  color: var(--text);
+}
+.confirm-msg {
+  margin: 0 0 1.1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+/* 貼圖預覽縮圖（Ctrl+V → 先看見要傳什麼再確定）——高度封頂
+ * 38vh＝直圖不會把兩顆鈕擠出視窗；object-fit contain 不裁圖。 */
+.confirm-img {
+  display: block;
+  max-width: 100%;
+  max-height: 38vh;
+  object-fit: contain;
+  margin: 0 auto 0.9rem;
+  border: 1px solid var(--line-2);
+  border-radius: 0.7rem;
+}
+/* 多圖縮圖列（貼圖窗的縮圖一律住這個容器，窗開著繼續 Ctrl+V＝這裡 +1 顆）。
+ * 排列＝即時通訊軟體 media group 同款：
+ *   1 張＝滿寬大縮圖、contain 不裁（單張要看清楚傳什麼）；
+ *   2 張＝並排等高卡片、cover 裁切填滿格子（卡片感；預覽窗是確認用，
+ *         裁切邊緣換整齊）；
+ *   3 張＝第 1 張滿寬大圖＋第 2、3 張並排在下（:first-child:nth-last-child(3)
+ *         ＝「共 3 顆時的第 1 顆」純 CSS 判總數，零 JS）。
+ * 高度預算：3 張＝20vh＋14vh＋說明框＋兩鈕仍穩在視窗內。 */
+.confirm-imgs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0 0 0.9rem;
+}
+.confirm-imgs:empty { display: none; }
+/* 每顆縮圖＝.confirm-thumb（img＋右上 ✕）——排列屬性在 thumb 層 */
+.confirm-imgs .confirm-thumb {
+  position: relative;
+  flex: 1 1 calc(50% - 0.25rem);
+  max-width: calc(50% - 0.25rem);
+  height: 16vh;
+}
+.confirm-imgs .confirm-thumb .confirm-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  max-width: none;
+  max-height: none;
+  object-fit: cover; /* 卡片感：裁切填滿格子（預覽窗是確認用） */
+}
+/* 單張：滿寬、contain 不裁（單張要看清楚傳什麼）、高度自適應 */
+.confirm-imgs .confirm-thumb:only-child {
+  flex-basis: 100%;
+  max-width: 100%;
+  height: auto;
+}
+.confirm-imgs .confirm-thumb:only-child .confirm-img {
+  height: auto;
+  max-height: 38vh;
+  object-fit: contain;
+}
+/* 3 張：第 1 張滿寬大圖＋第 2、3 並排在下（即時通訊軟體同款「1 大＋2 小」；
+ * :first-child:nth-last-child(3)＝「共 3 顆時的第 1 顆」純 CSS 判總數） */
+.confirm-imgs .confirm-thumb:first-child:nth-last-child(3) {
+  flex-basis: 100%;
+  max-width: 100%;
+  height: 20vh;
+}
+.confirm-imgs .confirm-thumb:first-child:nth-last-child(3) ~ .confirm-thumb {
+  height: 14vh;
+}
+/* 縮圖右上 ✕：半透深圓底＋白線 SVG */
+.confirm-thumb-x {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(10, 6, 18, 0.62);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.25s ease;
+}
+.confirm-thumb-x:hover { background: rgba(10, 6, 18, 0.85); }
+.confirm-thumb-x:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.confirm-thumb-x svg { width: 0.85rem; height: 0.85rem; }
+/* 累積滿額提示（aria-live）：只在拒收時有字，空著就整行收起 */
+.confirm-hint {
+  margin: -0.4rem 0 0.7rem;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+.confirm-hint:empty { display: none; }
+/* 貼圖窗說明輸入框（圖＋文一起送；textarea 支援 Shift+Enter 換行）——
+ * model-dd trigger 同設計語言（--line-2 邊框＋primary 10% 底），token 全
+ * 跟主題。 */
+.confirm-input {
+  display: block;
+  width: 100%;
+  margin: 0 0 1.1rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line-2);
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  resize: none; /* textarea：高度交給 rows＋max-height，不開手動拉角 */
+  max-height: 26vh;
+  overflow-y: auto;
+  /* 自訂捲軸：textarea 打長換行後會冒出系統原生捲軸，白灰方塊撞深色主題——
+   * 照 #chat-input 同款細線自訂，token 化＝各主題自動跟色。 */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--btn-bg) 55%, transparent) transparent;
+}
+.confirm-input::-webkit-scrollbar { width: 4px; }
+.confirm-input::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--btn-bg) 55%, transparent); border-radius: 999px; }
+.confirm-input::-webkit-scrollbar-track { background: transparent; }
+.confirm-input::placeholder { color: var(--text-faint); }
+.confirm-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+.confirm-actions button {
+  padding: 0.45rem 1.1rem;
+  border: 0;
+  border-radius: 0.6rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.25s ease, filter 0.25s ease;
+}
+.confirm-ok { background: var(--primary); color: var(--on-primary); }
+.confirm-ok:hover { filter: brightness(1.08); }
+.confirm-cancel { background: var(--btn-bg); color: var(--text); }
+.confirm-cancel:hover { background: var(--btn-bg-hover); }
+.confirm-ok:focus-visible,
+.confirm-cancel:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ── CG 相冊彈窗（殼＝.settings-panel 暗幕慣例，見上方外觀面板同段）：
+ * appearance 面板同語言、卡片改 16:9 縮圖＋場景名。落點：跟
+ * `.appearance-card` 家族放同檔同段（chat.css 自己的檔頭已明講「本檔只管
+ * 訊息長什麼樣」，面板殼／卡片是版面殼不是訊息內容，不屬於 chat.css 管轄）。 ── */
+.cg-sheet {
+  width: min(56rem, 88vw);
+  max-height: 78dvh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+.cg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.9rem;
+}
+.cg-card {
+  border: 1px solid var(--panel-line);
+  background: var(--glass-bg);
+  border-radius: 0.9rem;
+  padding: 0.55rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.25s ease;
+}
+.cg-card:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.cg-card.is-active { outline: 2px solid var(--primary); }
+.cg-thumb {
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.6rem;
+  background-size: cover;
+  background-position: center;
+}
+.cg-card-name {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.cg-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* 送出失敗誠實提示：WS 斷線／重連中點卡送不出去時的面板內回饋——同
+ * chat.css `.photo-status` 既有 idiom（淡字＋空字串零高度收合），不新增
+ * 顏色，純沿用既有 --text-dim token。 */
+.cg-send-hint {
+  min-height: 1.1em;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.cg-send-hint:empty { display: none; }
+
+/* ── CG 管理態：sheet 右上扳手進管理態；管理態中扳手隱藏、heading 左側出
+ * 「<」返回鈕（單一返回語意），面板本身從頭到尾不關（兩顆都不是關閉鈕——
+ * 只禁「關面板」的叉叉，見 cg.js buildCgPanel 說明）。卡片改直式列（縮圖＋
+ * 欄位＋操作＋標記），視覺語言沿用 .settings-model-option／.appearance-card
+ * 既有 token（邊框／glass 底／hover 變底色／--error 危險色），不生新色系。 ── */
+.cg-sheet-head {
+  display: flex;
+  align-items: center;
+  /* 佈局用 flex-start＋heading margin-right auto（非 space-between）：
+   * 三元素 [back(hidden), heading, 扳手] 任一顆 hidden 時佈局都對：視圖態
+   * ＝heading 左、扳手右（同改版前視覺）；管理態＝「<」左、heading 緊跟。
+   * space-between 在「只剩 back＋heading」時會把 heading 推到最右＝錯位。 */
+  justify-content: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  /* 管理鈕離下方相冊卡片太近——head 給明確下間距（略大於 .cg-grid 的
+   * 0.9rem 卡片間距＝呼吸感）。只動 .cg-sheet-head＝hasManage 為真才存在的
+   * 包裹層，開源殼（無管理端點、heading 裸放）排版零影響。 */
+  margin: 0 0 1.1rem;
+}
+.cg-sheet-head .settings-heading { margin: 0 auto 0 0; }
+.cg-manage-btn,
+.cg-back-btn {
+  flex: 0 0 auto;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--btn-bg) 55%, transparent);
+  color: var(--btn-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* display:flex 蓋 UA [hidden]——沙盒藏項（#cmd-pop button[hidden]）同坑防線：
+ * 兩態切換（管理態藏扳手／視圖態藏返回鈕）靠 hidden 屬性，必須補回效力。 */
+.cg-manage-btn[hidden],
+.cg-back-btn[hidden] { display: none; }
+.cg-manage-btn svg,
+.cg-back-btn svg { width: 55%; height: 55%; }
+.cg-manage-btn:hover,
+.cg-back-btn:hover { background: var(--btn-bg-hover); }
+.cg-manage-btn:focus-visible,
+.cg-back-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cg-manage-btn.is-active { background: var(--primary); color: var(--on-primary); }
+
+/* 管理態分組 TAB（雙軌制）：桌機｜手機——設計語言沿手機 Chat Log 頁籤
+ * （.chatlog-tab：透明底＋is-active 亮字＋accent 底線），token 體系主題跟色。 */
+.cg-manage-tabs {
+  display: flex;
+  gap: 1.7rem;
+  align-items: center;
+  margin-bottom: 0.9rem;
+}
+.cg-manage-tab {
+  border: 0;
+  background: transparent;
+  padding: 0.2rem 0.1rem;
+  font: inherit;
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cg-manage-tab.is-active {
+  color: var(--title-ink);
+  text-shadow: 0 1px 8px rgba(var(--glow-rgb), 0.8);
+}
+.cg-manage-tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -0.25rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--status-accent);
+}
+.cg-manage-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* 上傳列：虛線框＝「新增」語意，跟下面實框的既有項目卡區分。 */
+.cg-manage-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  margin-bottom: 0.9rem;
+  border: 1px dashed var(--line-2);
+  border-radius: 0.9rem;
+}
+/* 上傳歸屬小字（雙軌制）：獨占一行（flex-basis 100%）壓在列首，明講
+ * 「上傳到：桌機組／手機組」——語言同 .appearance-section-label 小字慣例。 */
+.cg-manage-upload-target {
+  flex: 1 1 100%;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+/* 自刻選檔鈕（原生系統鈕的外觀無法客製）：label 隱式關聯開選擇器，原生 input
+ * sr-only 藏住（不可 display:none——會踢出 tab 序，鍵盤就選不了檔）；focus
+ * ring 走 :focus-within 慣例。配色＝--btn-bg 家族＋hover 變底色通則，主題
+ * 換色即全跟。 */
+.cg-manage-upload-pick {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--line-2);
+  border-radius: 0.6rem;
+  background: var(--btn-bg);
+  color: var(--text);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+.cg-manage-upload-pick:hover { background: var(--btn-bg-hover); }
+.cg-manage-upload-pick:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cg-manage-upload-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.cg-manage-upload-pick-name {
+  flex: 1 1 8rem;
+  min-width: 0;
+  align-self: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+.cg-manage-upload-name,
+.cg-manage-upload-desc {
+  flex: 1 1 10rem;
+  min-width: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 0.6rem;
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.6rem;
+}
+.cg-manage-upload-desc { flex-basis: 100%; min-height: 3.4rem; }
+.cg-manage-upload-name::placeholder,
+.cg-manage-upload-desc::placeholder { color: var(--text-faint); }
+.cg-manage-upload-name:focus-visible,
+.cg-manage-upload-desc:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+.cg-manage-upload-btn {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: var(--primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: filter 0.25s ease;
+}
+.cg-manage-upload-btn:hover { filter: brightness(1.08); }
+.cg-manage-upload-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* 項目卡列（管理態）：縮圖＋欄位＋操作／標記兩顆按鈕群。 */
+.cg-manage-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.cg-manage-card {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.65rem;
+  border: 1px solid var(--panel-line);
+  background: var(--glass-bg);
+  border-radius: 0.9rem;
+}
+.cg-manage-thumb { width: 5.5rem; flex: 0 0 auto; }
+/* 排序欄（↑↓ 移列首）：垂直兩鈕、對列高置中＝「抓著整列移」的視覺 */
+.cg-manage-reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.cg-manage-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.cg-manage-name,
+.cg-manage-desc {
+  width: 100%;
+  border: 1px solid var(--line-2);
+  border-radius: 0.6rem;
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.4rem 0.55rem;
+}
+.cg-manage-desc { min-height: 2.6rem; }
+/* 描述框（管理卡＋上傳列）：不開手動拉角——文字一長出現捲軸時，原生拉角會在右下角
+   變成一塊亮色原生方塊、跟沒溢出的其他卡不同（8/19 驗收回報）。高度交給內容：Chromium
+   123+ 的 field-sizing: content 隨字數長高到 max-height、多半不需要捲；不支援的瀏覽器
+   維持 min-height＋自刻細捲軸（同 #chat-input 樣式）。 */
+.cg-manage-desc,
+.cg-manage-upload-desc {
+  resize: none;
+  field-sizing: content;
+  max-height: 7.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--btn-bg) 55%, transparent) transparent;
+}
+.cg-manage-desc::-webkit-scrollbar,
+.cg-manage-upload-desc::-webkit-scrollbar { width: 4px; }
+.cg-manage-desc::-webkit-scrollbar-thumb,
+.cg-manage-upload-desc::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--btn-bg) 55%, transparent); border-radius: 999px; }
+.cg-manage-desc::-webkit-scrollbar-track,
+.cg-manage-upload-desc::-webkit-scrollbar-track { background: transparent; }
+.cg-manage-name:focus-visible,
+.cg-manage-desc:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+.cg-manage-actions,
+.cg-manage-flags {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+.cg-manage-save,
+.cg-manage-up,
+.cg-manage-down,
+.cg-manage-delete,
+.cg-flag-btn {
+  border: 1px solid var(--line-2);
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--btn-bg) 55%, transparent);
+  color: var(--btn-ink);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cg-manage-save:hover,
+.cg-manage-up:hover,
+.cg-manage-down:hover,
+.cg-manage-delete:hover,
+.cg-flag-btn:hover { background: var(--btn-bg-hover); }
+.cg-manage-save:focus-visible,
+.cg-manage-up:focus-visible,
+.cg-manage-down:focus-visible,
+.cg-manage-delete:focus-visible,
+.cg-flag-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* 就地二段確認武裝態（house 慣例）：借 --error 危險色，同 .photo-status.is-error
+ * 既有語意——不生新色。 */
+.cg-manage-delete.is-armed {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 24%, transparent);
+  color: var(--error);
+}
+.cg-flag-btn[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+  color: var(--text);
+}
+
+@media (max-width: 899px) {
+  .cg-manage-card { flex-wrap: wrap; }
+  .cg-manage-thumb { width: 4.6rem; }
+  .cg-manage-actions,
+  .cg-manage-flags { flex-direction: row; flex-wrap: wrap; }
+  .cg-manage-upload-btn { align-self: stretch; }
+}
+
+/* ══ 手機直屏（<900px）：由下而上——乾淨實色 dock（icon 列）→ 實色列輸入欄
+   → 立繪底部從這兩層之上起 → Chat Log 復刻桌機玻璃框（無模糊）疊立繪上。 ═══════ */
+@media (max-width: 899.98px) {
+  #stage-root {
+    width: 100%;
+    height: 100dvh;
+    aspect-ratio: auto;
+    margin: 0;
+  }
+
+  /* 品牌角：手機藏徽章與波浪（左上是立繪臉區），字回左上小字 */
+  .brand-ornament,
+  body.has-ui-skin .brand-ornament,
+  body.has-theme-assets .brand-ornament,
+  .brand-wave,
+  body.has-ui-skin .brand-wave,
+  body.has-theme-assets .brand-wave { display: none; }
+
+  /* 立繪：置中；底部起點＝輸入欄上緣（不被兩層 UI 蓋）。一律放大：頭頂
+   * 留白 2.2rem→0.8rem＝整體加高。 */
+  #stage-col {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(7.6rem + env(safe-area-inset-bottom));
+    height: calc(100dvh - 8.4rem - env(safe-area-inset-bottom) - env(safe-area-inset-top));
+    top: auto;
+  }
+  /* 寬畫布中心位移只給桌機（stage-col 錨左緣才需要）；手機 stage 本就置中＝
+   * X 歸零。Y＝畫布底部透明帶補償（「邊緣要貼底」：各套外觀底部透明帶
+   * 0-11%——manifest 自報 bottomGap、sprite.js 設變數，往下推同比例＝人物
+   * 真實下緣貼上輸入列上緣；透明帶被推出可視區、無感）。 */
+  #stage-col #stage { translate: 0 var(--sprite-bottom-push, 0%); }
+
+  /* ADV 框手機不用（中段是 Chat Log 的舞台） */
+  #adv-root { display: none; }
+
+  /* Chat Log：黑色半透遮罩、範圍固定（胸口以下到輸入欄上）、零 blur 零花俏
+   * ——訊息本身是主角。有皮同款（框 SVG 是桌機限定，手機蓋回黑遮罩）。 */
+  #chatlog,
+  body.has-ui-skin #chatlog,
+  body.has-theme-assets #chatlog {
+    left: 4%;
+    right: 4%;
+    width: auto;
+    top: 42%;
+    height: auto;
+    bottom: calc(8.2rem + env(safe-area-inset-bottom));
+    background: rgba(8, 5, 16, 0.55);
+    border: 0;
+    border-radius: 0.9rem;
+    z-index: 3;
+    padding-bottom: 0; /* 桌機 4.2% 是框件安全區——黑遮罩沒有框，歸零 */
+  }
+  body.has-ui-skin #chatlog::before,
+  body.has-theme-assets #chatlog::before { content: none; }
+  /* position:relative（full-bleed 配套）：分隔線 ::after／#chat-status／
+   * 滿版鈕三件 absolute 原錨 #chatlog——head 平時貼 #chatlog 頂＝兩種錨同位
+   * （零視覺變化），改錨 head 後滿版 padding-top 推下 head 時三件自動跟位。 */
+  .chatlog-head { position: relative; height: 1.9rem; align-items: center; padding-bottom: 0; }
+  .chatlog-title { font-size: 0.92rem; opacity: 0.85; }
+  .chatlog-head::after {
+    content: "";
+    position: absolute;
+    left: 7%;
+    right: 7%;
+    top: 1.9rem;
+    height: 1px;
+    background: color-mix(in srgb, var(--primary-soft) 18%, transparent);
+  }
+  #chat-status { top: 2.1rem; font-size: 0.7rem; }
+  /* 頂部硬邊界同桌機那課：padding-top 轉 margin-top，捲到頂不蓋 head 分隔線 */
+  #msgs { margin-top: 1.3rem; padding: 0 4.5% 0.9rem; }
+
+  /* ── Chat Log 雙頁籤：CHAT LOG｜THINKING ───────────────────────────────────
+   * 思緒與對話泡泡各自獨立顯示——思緒退出泡泡區（擠壓／被遮根治）、集中
+   * THINKING 頁。頁籤取代單一 title（head 佈局不變）；head 本身 pointer-events
+   * none（設計本就如此），tabs 自己開回來才點得到。 */
+  .chatlog-title { display: none; }
+  .chatlog-tabs {
+    display: flex;
+    gap: 1.7rem;
+    align-items: center;
+    pointer-events: auto;
+  }
+  .chatlog-tab {
+    border: 0;
+    background: transparent;
+    padding: 0.2rem 0.1rem;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.92rem;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    cursor: pointer;
+    position: relative;
+    transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .chatlog-tab.is-active {
+    color: var(--title-ink);
+    text-shadow: 0 1px 8px rgba(var(--glow-rgb), 0.8);
+  }
+  .chatlog-tab.is-active::after {
+    content: "";
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: -0.25rem;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--status-accent);
+  }
+  .chatlog-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  /* 思緒摺疊列退出泡泡區（DOM 照建＝桌機共用 renderFrame，手機純 CSS 藏） */
+  #msgs .thought { display: none; }
+  /* 頁面切換：.show-thoughts 由 app.js 掛在 #chatlog 上 */
+  #chatlog.show-thoughts #msgs { display: none; }
+  #thoughts-pane {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 1.3rem;
+    padding: 0 4.5% 0.9rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+  #chatlog.show-thoughts #thoughts-pane { display: block; }
+  #thoughts-pane:empty::before {
+    content: attr(data-empty-text);
+    display: block;
+    margin-top: 1.2rem;
+    text-align: center;
+    font-style: italic;
+    font-size: 0.82rem;
+    color: var(--text-faint);
+  }
+
+  /* 輸入欄：自繪列（實色、無 blur）——attach＋圓角輸入框＋圓形送出鈕一排 */
+  #inputbar {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: calc(3.8rem + env(safe-area-inset-bottom));
+    width: 100%;
+    aspect-ratio: auto;
+    height: 3.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.5rem 0.8rem;
+    background: var(--m-bar-bg);
+    border-top: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+    border-radius: 0;
+  }
+  body.has-ui-skin #inputbar { background: var(--m-bar-bg); } /* 手機不用素材框 */
+  /* MENU 鍵＋迴紋針手機裸 icon（輸入列上只有 send 是圓鈕） */
+  .cmd-menu-btn,
+  .attach-btn {
+    flex: 0 0 auto;
+    width: 2.3rem;
+    height: 2.3rem;
+    background: transparent;
+    color: var(--btn-ink);
+  }
+  .cmd-menu-btn:hover,
+  .attach-btn:hover { background: transparent; }
+  .cmd-menu-btn svg,
+  .attach-btn svg { width: 1.45rem; height: 1.45rem; }
+
+  /* 手機：設定內容整頁捲（全屏形態不需要面板內滾軸） */
+  .settings-sheet .settings-panel-body {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+  #chat-input {
+    position: static;
+    flex: 1 1 auto;
+    width: auto;
+    height: auto;
+    max-height: 2.8rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 1.4rem;
+    background: var(--m-field-bg);
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+  #chat-input::placeholder { color: var(--text-faint); }
+  #btn-send,
+  body.has-ui-skin #btn-send {
+    position: static;
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: var(--btn-bg);
+    color: var(--btn-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #btn-send .send-label,
+  body.has-ui-skin #btn-send .send-label { display: none; }
+  #btn-send .send-icon { display: block; }
+  #btn-send:hover { box-shadow: none; background: var(--btn-bg); filter: brightness(1.25); }
+
+  /* 傳照片狀態：輸入欄上方 */
+  .photo-status {
+    left: 4%;
+    right: 4%;
+    width: auto;
+    top: auto;
+    bottom: calc(7.9rem + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+
+  /* dock：乾淨實色列（不混濁、零 blur），icon 圓鈕統一按鈕色 */
+  #dock {
+    display: flex;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(3.8rem + env(safe-area-inset-bottom));
+    padding: 0.5rem 1.4rem calc(0.5rem + env(safe-area-inset-bottom));
+    align-items: center;
+    justify-content: space-between;
+    background: var(--m-dock-bg);
+    border-top: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
+    z-index: 3;
+  }
+  /* dock 鈕：裸 icon（無圓形輪廓、icon 放大清楚） */
+  .dock-btn {
+    width: 3rem;
+    height: 3rem;
+    border: 0;
+    border-radius: 0.6rem;
+    background: transparent;
+    color: var(--btn-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dock-btn:hover,
+  .dock-btn:active { color: var(--title-ink); }
+  .dock-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .dock-btn svg { width: 1.55rem; height: 1.55rem; }
+
+  /* 收起對話 eye／eye-off（eye 鈕改藏 Chat Log、立繪恆留）：
+   * 依 body.hide-chatlog 純 CSS 切換圖示；Chat Log 本體同 class 隱藏——
+   * 欣賞模式＝立繪滿版，輸入列與 dock 保留（打字照常、再按 eye 回來）。 */
+  .dock-btn .icon-eye-off { display: none; }
+  body.hide-chatlog .dock-btn .icon-eye { display: none; }
+  body.hide-chatlog .dock-btn .icon-eye-off { display: block; }
+  body.hide-chatlog #chatlog { display: none; }
+
+  /* ── Chat Log 滿版切換 ─────────────────────────────────────────────────
+   * 右上滿版鈕（head 內、absolute 錨 #chatlog；head pointer-events:none 的
+   * 例外同 tabs 開回）：平時中段遮罩現狀＝不遮立繪；點鈕展開滿版——top 頂
+   * 到 safe-area、底改近實色深底（加讀性）、立繪整個隱藏（不透出
+   * ＝比壓半透乾淨）。bottom 不動＝輸入列與 dock 照常打字。
+   * 與眼睛鍵零互鎖：滿版中按眼睛＝hide-chatlog 藏掉 Chat Log（display:none
+   * 蓋 geometry）、:not(.hide-chatlog) 讓立繪同步回來＝賞立繪優先；再按
+   * 眼睛回滿版。兩鍵狀態各自記憶、每步語意自洽。 */
+  .chatlog-full-btn {
+    display: flex;
+    position: absolute;
+    top: 0.95rem;
+    right: 2.5%;
+    transform: translateY(-50%);
+    width: 2.1rem;
+    height: 2.1rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0.55rem;
+    background: transparent;
+    color: var(--btn-ink);
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 1;
+    transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .chatlog-full-btn:hover,
+  .chatlog-full-btn:active { color: var(--title-ink); }
+  .chatlog-full-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .chatlog-full-btn svg { width: 1.15rem; height: 1.15rem; }
+  .chatlog-full-btn .icon-collapse { display: none; }
+  body.chatlog-full .chatlog-full-btn .icon-expand { display: none; }
+  body.chatlog-full .chatlog-full-btn .icon-collapse { display: block; }
+  /* 滿版態（full-bleed，取代早期「更大圓角框」方案）：不再是一塊浮著的圓角
+   * 矩形——整片半透遮罩鋪滿畫面（top 0 到輸入列上緣、左右出血、零圓角），
+   * 顏色比照平時 0.55（泡泡自己是實色、遮罩只負責壓底加讀性）。模型名浮
+   * 遮罩上（#brand 同 z-index、DOM 序在後
+   * ＝天然在上層）；內容用 padding-top 讓開模型名（head 高度不夠塞兩行＝
+   * tabs 置中會撞左上字，實測 85px < 102px）。有皮同款雙 selector＝蓋過
+   * body.has-ui-skin #chatlog 的同層規則（has-theme-assets 同理併入）。 */
+  body.chatlog-full #chatlog,
+  body.chatlog-full.has-ui-skin #chatlog,
+  body.chatlog-full.has-theme-assets #chatlog {
+    top: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0;
+    background: rgba(8, 5, 16, 0.55);
+    padding-top: calc(2.6rem + env(safe-area-inset-top));
+    /* 平時圓角框懸浮縫（bottom 8.2rem）在 full-bleed 下＝謎之縫隙露背景——
+     * 遮罩底貼死輸入列頂（inputbar bottom 3.8rem＋高 3.8rem）。 */
+    bottom: calc(7.6rem + env(safe-area-inset-bottom));
+  }
+  /* 立繪隱藏限「滿版且未被眼睛收起」——眼睛收起 Chat Log 時立繪讓回來 */
+  body.chatlog-full:not(.hide-chatlog) #stage-col { display: none; }
+
+  /* 桌機專屬入口手機藏起來（dock 承擔全部功能）；眼睛子鈕組同藏 */
+  .side-btn { display: none; }
+  .eye-sub { display: none; }
+
+  /* 通話計時 pill：手機改掛畫面右上角（原本窩在左下 MENU 鈕旁太憋屈）——與
+   * 左上模型顯示（.brand-lockup left:3%／top 同式）鏡像平行，字級拉大＝
+   * 一眼知道通話中。fixed＝不受 header 盒形限制。 */
+  #call-pill {
+    position: fixed;
+    left: auto;
+    right: 3%;
+    top: calc(0.9% + env(safe-area-inset-top));
+    bottom: auto;
+    height: 2.1rem;
+    padding: 0 0.9em;
+    font-size: 1.02rem;
+    z-index: 4;
+  }
+
+  /* 品牌角（有皮同款——桌機的徽章旁定位是桌機限定；鎖組回左上、字級回大） */
+  .brand-lockup,
+  body.has-ui-skin .brand-lockup,
+  body.has-theme-assets .brand-lockup {
+    left: 3%;
+    top: calc(0.9% + env(safe-area-inset-top));
+    transform: none;
+  }
+  #brand-title,
+  body.has-ui-skin #brand-title,
+  body.has-theme-assets #brand-title {
+    font-size: clamp(1.1rem, 2vw, 2rem);
+  }
+
+  /* 電話面板：全舞台 */
+  #phone-root { left: 0; top: 0; width: 100%; height: 100%; }
+  #phone-root .phone-panel { border-radius: 0; }
+
+  /* 設定面板：手機全寬（桌機素色樣式已通用，這裡只差版式寬度） */
+  .settings-sheet { max-height: none; width: 100%; }
+}
+
+/* ── 設定／外觀面板殼（全屏暗幕沿用） ─────────────────────────────────────── */
+.settings-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  padding-top: calc(1.5rem + env(safe-area-inset-top));
+  background: rgba(var(--veil-rgb), 0.88);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--text);
+  overflow-y: auto;
+  overflow-x: hidden; /* 全屏面板只直捲；視窗寬度帶小數（縮放／視覺視口 390.4）時內容量到 391 會露一條橫捲軸（CG 管理態 8/19 量到） */
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .settings-panel { background: rgba(var(--veil-rgb), 0.98); }
+}
+.settings-panel[hidden] { display: none; }
+/* 面板滾軸主題化（外觀／設定內容變長後會露出瀏覽器預設胖滾軸——比照 CG
+ * 相冊的 --scroll-thumb 細滾軸，主題全跟色）。兩面板（設定＋外觀）共用
+ * .settings-panel 殼＝一處全蓋。 */
+.settings-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+.settings-panel::-webkit-scrollbar { width: 6px; }
+.settings-panel::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 999px; }
+.settings-panel::-webkit-scrollbar-track { background: transparent; }
+
+/* （.settings-close 右上叉叉整組退役——點暗幕即關是唯一關法。） */
+
+.settings-heading { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem; }
+
+.settings-panel-body {
+  width: 100%;
+  max-width: 24rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.settings-row label { font-size: 0.95rem; }
+
+.settings-note {
+  margin: -0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.appearance-sheet .settings-note { margin: 0; }
+
+/* Toggle 開關 */
+.settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 2.6rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  cursor: pointer; /* label 化後整顆可點，游標一致 */
+}
+.settings-toggle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.settings-toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--line-2);
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+.settings-toggle-thumb {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.15s ease;
+}
+.settings-toggle input:checked + .settings-toggle-track { background: var(--primary); }
+.settings-toggle input:checked + .settings-toggle-track + .settings-toggle-thumb {
+  transform: translateX(1.1rem);
+}
+.settings-toggle input:hover + .settings-toggle-track { filter: brightness(1.12); }
+.settings-toggle input:focus-visible + .settings-toggle-track {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* 嘴型速度拉桿（range 給定、速度使用者自己調）——原生 range 上 token 色
+ * （accent-color 走 --primary＝主題自動跟）；左右「慢／快」小字。 */
+.settings-speed-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  max-width: 13rem;
+}
+.settings-speed-tag {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  flex: 0 0 auto;
+}
+.settings-speed-slider,
+.settings-blink-slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.settings-speed-slider:focus-visible,
+.settings-blink-slider:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* 模型切換 radio 群組（設定裡換腦） */
+.settings-model-group {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: -0.6rem;
+}
+.settings-model-option {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  cursor: pointer;
+  font-size: 0.92rem;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-model-option:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.settings-model-option:has(input:checked) {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+.settings-model-option input {
+  accent-color: var(--primary);
+  margin: 0;
+}
+.settings-model-option input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* 手機版模型下拉（自刻）：原生 <select> 的展開清單吃不到 CSS（系統藍選中條
+ * 樣式醜、iOS 整個系統滾輪）——自刻 dropdown，
+ * 設計語言對齊 MENU 浮層（#cmd-pop 族：veil 玻璃底＋--line-2 邊框＋圓角矩形
+ * 清單＋項 hover 變底色），全 token＝五套主題自動跟色。桌機藏（維持 radio）；
+ * 日後桌機要下拉＝放行 media 即可，禁再用原生 select。 */
+.settings-model-dd {
+  display: none;
+  position: relative;
+  margin-top: -0.6rem;
+}
+.settings-model-dd-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-model-dd-trigger:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.settings-model-dd-trigger:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.settings-model-dd-trigger.is-open { border-color: var(--primary); }
+.settings-model-dd-chevron {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  color: var(--btn-ink);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-model-dd-trigger.is-open .settings-model-dd-chevron { transform: rotate(180deg); }
+.settings-model-dd-list {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.45rem;
+  border: 1px solid var(--line-2);
+  border-radius: 0.9rem;
+  background: rgba(var(--veil-rgb), 0.96);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+}
+.settings-model-dd-list[hidden] { display: none; }
+.settings-model-dd-item {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-model-dd-item:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.settings-model-dd-item:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.settings-model-dd-item.is-current {
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+  color: var(--focus);
+}
+@media (max-width: 899px) {
+  .settings-model-group { display: none; }
+  .settings-model-dd { display: block; }
+}
+/* （主題手機下拉退役——TAB 分頁後手機也直接展示卡片列。） */
+
+/* 語言下拉（設定頁第一列，永遠存在——不像模型／沙盒／Thinking 受 config
+ * 旗標限制，殼本身固有三語可切）。視覺沿用手機版模型下拉同一套語言（trigger／
+ * chevron／listbox 量體與配色一致），但 class 獨立成 settings-dd 系列、
+ * 不跟 .settings-model-dd 共用選擇器——兩者的顯示條件不同：這個桌機手機都要
+ * 看得到，不是只在手機展開，共用會被上面 .settings-model-dd 的「預設
+ * display:none、桌機才蓋掉」規則波及。跟標籤共享同一個 .settings-row（flex
+ * space-between），所以寬度走內容自撐（min-width 防止選項間文字長短不同時
+ * 跳動），不像模型下拉獨佔一整列可以 width:100%。 */
+.settings-dd { position: relative; flex: 0 0 auto; }
+.settings-dd-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: auto;
+  min-width: 8.75rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-dd-trigger:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.settings-dd-trigger:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.settings-dd-trigger.is-open { border-color: var(--primary); }
+.settings-dd-chevron {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  color: var(--btn-ink);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-dd-trigger.is-open .settings-dd-chevron { transform: rotate(180deg); }
+.settings-dd-list {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.45rem;
+  border: 1px solid var(--line-2);
+  border-radius: 0.9rem;
+  background: rgba(var(--veil-rgb), 0.96);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+}
+.settings-dd-list[hidden] { display: none; }
+.settings-dd-item {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-dd-item:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.settings-dd-item:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.settings-dd-item.is-current {
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+  color: var(--focus);
+}
+
+/* ── 色系主題 ─────────────────────────────────────────────────────────────
+ * 設計：預設主題＝最終樣式外觀，其他主題＝純換色系——同一套框件／版式／
+ * 玻璃透明度，只有顏色跟主題走。
+ * 機制：theme.js 把 config.themes[].vars 注入 chat.css 的底層 token
+ * （--primary／--btn-bg／--panel-bg／--text 等）＝全站元件（ADV 框／輸入列／
+ * 捲軸／面板／選單）自動跟色，本檔不需要逐元件覆寫；Chat Log 框＝per-theme
+ * 換色版框件素材（--ui-chatlog-frame，tools/gen_theme_frames.py 生成），
+ * 框內薄紗共用 var(--glass-bg)＝「邊框跟主題、中間透明」。
+ * 預設主題（body 無 data-theme）＝vars／data-theme 零覆寫＝現況（L1 天然
+ * 成立）；若預設主題帶 assets（開源殼 default 情境），theme.js 仍會注入
+ * 素材變數並掛 body.has-theme-assets，見下方消費鏈。
+ *
+ * 素材消費鏈：body.has-ui-skin（部署者配置的真實皮，開機後恆定）與
+ * body.has-theme-assets（theme.js 隨每次 apply() 重新計算是否掛上——換到
+ * 沒有 assets 的主題會真的拿掉，不是只加不減）兩者擇一即觸發，讓
+ * --ui-bg-room／--ui-brand-ornament／--ui-chatlog-frame 生效；下面的自刻
+ * 框只給「兩者都沒有」的情境（body:not(.has-ui-skin):not(.has-theme-assets)）
+ * ——有真實框件素材時這段整個不生效；限桌機（手機統一黑遮罩版式）。 */
+.chatlog-ornament { display: none; }
+@media (min-width: 900px) {
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] .chatlog-ornament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    flex: 0 0 auto;
+    height: 18px;
+    margin: 0 46px;
+    pointer-events: none;
+  }
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] .chatlog-ornament::before,
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] .chatlog-ornament::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: calc(50% - 42px);
+    height: 1px;
+    transform: translateY(-50%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--th-line-soft) 12%,
+      var(--th-line) 55%,
+      var(--th-line-soft) 88%,
+      transparent
+    );
+    box-shadow: 0 0 8px var(--th-glow);
+  }
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] .chatlog-ornament::before { left: 0; }
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] .chatlog-ornament::after { right: 0; }
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] .chatlog-ornament-diamond {
+    width: 9px;
+    height: 9px;
+    border: 1px solid var(--th-accent);
+    transform: rotate(45deg);
+    background: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 10px var(--th-glow);
+    flex: 0 0 auto;
+  }
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] .chatlog-ornament-diamond-center { width: 13px; height: 13px; }
+
+  /* 無皮自刻框：28px 圓角、外框線＋inset 內框線、glow、blur 玻璃；底＝透明
+   * 玻璃 var(--glass-bg)（frameBg 填色制已退役）。有 theme.js 素材（見上方
+   * has-theme-assets）時本段整個不生效，改由真實框件 SVG 接手。 */
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] #chatlog {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 22%),
+      var(--glass-bg);
+    border: 1px solid var(--th-line, rgba(255, 255, 255, 0.7));
+    border-radius: 28px;
+    box-shadow:
+      0 0 0 1px var(--th-line-soft, rgba(255, 255, 255, 0.22)) inset,
+      0 0 18px var(--th-glow, rgba(255, 255, 255, 0.24)),
+      0 18px 50px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(12px) saturate(118%);
+    -webkit-backdrop-filter: blur(12px) saturate(118%);
+    isolation: isolate;
+    overflow: hidden;
+  }
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] #chatlog::before {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 20px;
+    border: 1px solid var(--th-line-soft, rgba(255, 255, 255, 0.22));
+    background: none;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] #chatlog::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(110deg, transparent 0 40%, rgba(255, 255, 255, 0.06) 49%, transparent 58%),
+      radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.08), transparent 22%),
+      radial-gradient(circle at 88% 92%, rgba(255, 255, 255, 0.05), transparent 24%);
+    mix-blend-mode: screen;
+    opacity: 0.78;
+    z-index: 0;
+  }
+  /* 內容層提到光斑之上（::after absolute 會畫在 normal-flow 內容上面） */
+  body:not(.has-ui-skin):not(.has-theme-assets)[data-theme] #chatlog > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* 主題面板卡片（復用 appearance-card 家族）＋三色點 swatch 預覽 */
+.theme-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.theme-swatch-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* ── 無障礙動效偏好 ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  #stage-col,
+  .settings-toggle-track,
+  .settings-toggle-thumb,
+  .attach-btn,
+  .side-btn,
+  .dock-btn,
+  #btn-send,
+  .adv-thinking-btn {
+    transition: none;
+  }
+  .adv-indicator i { animation: none; opacity: 0.7; }
+  /* pending 呼吸靜態版（思緒轉寫案）：不脈動、定在兩態中間值——仍與退階
+   * 0.55 有區別（看得出「這輪還在轉寫」），只是不動。 */
+  .adv-thinking-btn.is-pending { animation: none; opacity: 0.75; }
+}
