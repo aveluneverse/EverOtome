@@ -50,7 +50,7 @@ EverOtome itself is a pure front-end layer built in vanilla JS. It ships no AI m
 
 ### 💫 Bring your sprites to life
 
-<!-- [video 01-Bring-your-sprites-to-life] right under the heading: paste the video URL here -->
+https://github.com/user-attachments/assets/d372d1d6-b900-4694-b619-47bd6e254b66
 
 You bring the sprites. The shell brings them to life: blinking, breathing, talking.
 
@@ -62,7 +62,7 @@ One image works too. Static portrait mode looks just as good.
 
 ### 🎭 Expressions and blush
 
-<!-- [video 02-Expressions-and-blush] right under the heading: paste the video URL here -->
+https://github.com/user-attachments/assets/f9c0d84b-dbbc-4810-b563-1ee328446652
 
 Two more layers can ride on the nine frames: a blush that fades in over the cheeks, and expression patches that swap the eyes, the mouth, or both, while the character keeps blinking and talking underneath.
 
@@ -74,13 +74,13 @@ Your AI reaches for them on its own. `[blush]` in a reply brings up the flush, `
 
 ### 🎨 Five interface themes, or make your own
 
-<!-- [video 03-Five-interface-themes] right under the heading: paste the video URL here -->
+https://github.com/user-attachments/assets/21095216-909c-4861-a137-e3bc343c2700
 
 Crystal Swan, Rose Vow, Crimson Nocturne, Verdant Dawnsong, Snow Palace: switch between the five with one click, and the room background, dialogue box, bubbles, and buttons all change together. A custom theme is one set of CSS variables plus three art assets, added as one entry in the configuration file. For deeper restyling, the CSS source is right there. Edit it directly.
 
 ### 🛋️ Room agency
 
-<!-- [video 04-Room-agency] right under the heading: paste the video URL here -->
+https://github.com/user-attachments/assets/734f6074-21df-43cc-9d38-1208e3e2fb0e
 
 The room is not only yours to arrange. Your AI can switch the interface theme, change the character's outfit, and put furniture out or away, by marking what it wants inside its own reply. Your backend reads the marker, saves the new state, and pushes it back as one `room_state` message; the interface applies it wherever your backend sends it, so a second device stays in step.
 
@@ -88,7 +88,7 @@ Furniture is a list you write in the configuration file: an image, where it stan
 
 ### 📖 Upload and manage your CGs
 
-<!-- [video 05-Upload-and-manage-your-CGs] right under the heading: paste the video URL here -->
+https://github.com/user-attachments/assets/e3703b04-7575-4921-8c50-52f0f8b0f14f
 
 A CG isn't just a keepsake. It can be where a new story starts.
 
@@ -96,7 +96,7 @@ Upload and manage the CGs you share with your AI: the album keeps desktop and mo
 
 ### 🌙 Scene agency
 
-<!-- [video 06-Scene-agency] right under the heading: paste the video URL here -->
+https://github.com/user-attachments/assets/3ffa2d4c-0748-4eaf-8f4a-a5ba31f5aadf
 
 Your AI picks the scene. It marks the card it wants inside its own reply, your backend turns that into one `cg_state` command, and the interface fades into the CG, switches scenes as the story moves, then returns to the room. The conversation never breaks, so **what they want to do with you becomes the scene before your eyes**.
 
