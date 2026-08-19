@@ -20,6 +20,8 @@ EverOtome itself is a pure front-end layer built in vanilla JS. It ships no AI m
 
 ## At a glance
 
+> Everything below is what you get once your backend is wired in. Before that, the sample character, the demo album and the tour are there to look around.
+
 **What you can do**
 
 - Move your companion into an otome-game room and chat with them there.
@@ -39,8 +41,8 @@ EverOtome itself is a pure front-end layer built in vanilla JS. It ships no AI m
 
 - A PWA: add it to your desktop or phone home screen.
 - Five interface themes: Crystal Swan, Rose Vow, Crimson Nocturne, Verdant Dawnsong, Snow Palace.
-- No server and no telemetry: your assets and conversations stay with you.
-- MIT licensed. Remix as you like; if you make something with it and feel like showing me, I'd love to see it.
+- No server of its own and no telemetry: your assets and conversations go only to the backend you choose.
+- MIT licensed code. Remix as you like (the sample art has its own terms); if you make something with it and feel like showing me, I'd love to see it.
 
 ---
 

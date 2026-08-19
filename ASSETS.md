@@ -15,7 +15,7 @@ These assets are original artwork. **All rights reserved (c) 2026 aveluneverse.*
 
 ## What you may do
 
-- Run and view these assets as bundled with this project (including forks of it), for preview and evaluation purposes.
+- Run and view these assets as bundled with this project, including inside forks of this repository, for preview and evaluation purposes. Keeping them in a fork is fine; lifting them out of it is not.
 
 ## What you may not do
 

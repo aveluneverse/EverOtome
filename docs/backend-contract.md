@@ -78,14 +78,14 @@ Every downstream frame is JSON and is dispatched on its **`role`** field. Frames
 
 | `role` | Meaning | Fields the shell reads |
 |---|---|---|
-| `assistant` | Full reply for the turn (single shot, not a token stream) | `text`; optional `thoughts`, `audio` (array of URLs), `timestamp`, `thoughts_pending` |
+| `assistant` | Full reply for the turn (single shot, not a token stream) | `text`; optional `thoughts`, `audio` (array of URLs), `timestamp`, `thoughts_pending`. `timestamp` becomes required when `thoughts_pending` is `true`: the later `thoughts` frame is matched to this turn by `for_ts === timestamp` (string compare) |
 | `partial` | In-progress preview of the reply being typed | `text` (the full text so far, not a delta) |
 | `thoughts` | Late-arriving thoughts backfill | `text` (string or `null`), `for_ts` |
 | `status` | Transient status line (replaced by the next frame) | `text` |
 | `system` | Persistent system line (kept in the Chat Log) | `text` |
 | `call` | One sentence spoken during a phone call | `text`, `audio` (single URL), `final` |
 | `incoming_call` | Character-initiated call is ringing | `call_id` (required; a frame without it is dropped) |
-| `incoming_call_end` | The caller gave up or the call was canceled | `call_id`, `status` |
+| `incoming_call_end` | The caller gave up or the call was canceled | `call_id` (must match the ringing call), `status` (free-form, informational; the shell does not interpret it) |
 | `cg_state` | CG stage direction | `intimate` (bool: enter/exit CG mode), `scene` (item id, or `null` for the opening scene) |
 | `sandbox_state` | Sandbox mode changed (broadcast to all connected tabs) | `on` (bool); optional `forgot` (bool: sandbox buffer was destroyed, shell reloads history) |
 | `room_state` | Current room state, pushed by the backend | `theme` (string), `outfit` (string), `furniture` (`{ "<id>": bool }`); each optional and independent |
@@ -105,7 +105,7 @@ Examples:
 - **`assistant.thoughts`** is the character's inner monologue or aside, provided explicitly by your backend for display. It is not the model's hidden reasoning trace; the shell never asks for or infers one. A reply that carries `thoughts` gets the Thinking button; a reply without it keeps the interface clean.
 - **`assistant.audio`** is an **array** of audio URLs (the history ledger uses the same shape). `call.audio` is a **single** URL string. Any voice URL the shell plays is also fetched once in the background, to work out the mouth movement for that line, so your server can see two GETs for the same file. Results are cached per URL, the most recent 60, so a long session with many distinct voice URLs can fetch one again later. A failed analysis is not kept, so that URL can be retried.
 - **Thoughts backfill anchoring:** if producing the thoughts takes longer than the reply, send the reply with `thoughts_pending: true` plus a `timestamp`, then later send a `{ "role": "thoughts", "text": "...", "for_ts": "<same timestamp>" }` frame on the same socket. The shell accepts the backfill only when `for_ts` exactly matches the pending reply's `timestamp`; anything else is discarded. If the socket disconnects in between, do not resend the backfill on the new connection: the shell clears the pending state on disconnect.
-- **`partial`** frames are only honored between the user sending a message and the turn's closing frame; `partial` frames received outside that window are ignored.
+- **`partial`** frames are only honored between the user sending a message and the turn's closing frame, which is that turn's `assistant` frame; `partial` frames received outside that window are ignored.
 - **`call.final: true`** closes the character's speaking turn in a call. Extra fields (e.g. a sentence counter) are ignored by the shell.
 - **`room_state` is applied, never echoed.** The three tracks are independent, and a missing track means "leave that one alone". Each is compared against what the tab is currently showing and applied only if it differs, so the same frame arriving twice costs nothing. Nothing applied from a frame is reported back to `roomEndpoint` or `themeEndpoint`. Answering a POST with a `room_state` broadcast is therefore safe: the tab that sent the POST compares the frame against what it already shows, finds nothing different, and reports nothing back, so broadcast it if you want other devices to follow live. The reference backend persists the value and stops there, and pushes `room_state` only when the character or another device moved the state. An id the shell does not know, such as an outfit this build has no entry for, is a safe no-op on that track alone.
 - **`thoughts_visible_state`** is a one-way sync, server to client. `on: false` hides the Thinking button and the THINKING tab; any other value, a missing field included, shows them. The shell applies it whether or not `thoughtsToggleEndpoint` is configured, and never reports back. Only push it if you also serve that endpoint: without it the settings row does not exist, and the user has no way to bring Thinking back.
@@ -198,7 +198,7 @@ Management operations (`POST {cgEndpoint}/manage`, JSON):
 
 `edit` sends `name` and `desc` back in the shape they arrived: a plain string comes back as a plain string; per-language names come back as the same object with the language in use updated, and a language the card did not carry is added only when the text was actually changed.
 
-`set_opening` must act as a mutually exclusive selection (radio behavior) within the item's `target` group: setting one opening scene unsets the group's previous one. Exactly one opening scene per group at all times.
+`set_opening` must act as a mutually exclusive selection (radio behavior) within the item's `target` group: setting one opening scene unsets the group's previous one. Keep exactly one opening scene per group. If the current opening scene gets deleted, promote another item before you return `2xx`; the shell tolerates a group with no flag by falling back to the group's first item, but the album then looks arbitrary.
 
 ### modelEndpoint (+ models)
 
@@ -231,7 +231,7 @@ It fires when the user picks a theme card, and once at startup, restoring the sa
 
 ### roomEndpoint
 
-One endpoint, two methods, holding the room state shared across devices: which interface theme is on, which outfit the character wears, and which furniture is out.
+One endpoint, two methods, holding the room state shared across devices: which interface theme is on, which outfit the character wears, and which furniture is out. Theme travels one way here: `GET` may return it so a fresh device applies it, but the shell never writes theme through this endpoint. To keep a user-picked theme in sync across devices, implement `themeEndpoint` as well and store what it reports into the same record.
 
 `GET` at startup:
 
