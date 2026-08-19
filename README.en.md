@@ -50,6 +50,8 @@ EverOtome itself is a pure front-end layer built in vanilla JS. It ships no AI m
 
 ### 💫 Bring your sprites to life
 
+<!-- [video 01-Bring-your-sprites-to-life] right under the heading: paste the video URL here -->
+
 You bring the sprites. The shell brings them to life: blinking, breathing, talking.
 
 For full animation, provide nine frames, A through I: 3 eye states × 3 mouth states. The [frame spec and generation guide](docs/sprite-guide.md) works for hand-drawn and AI-generated art alike. The sprite blinks and breathes at idle. While a reply types out, its mouth moves in **otome-style flaps (pakupaku)** at a steady tempo. Both tempos, blink and mouth, are sliders in settings.
@@ -58,9 +60,9 @@ While a voice line plays, the mouth follows the audio instead: open on sound, cl
 
 One image works too. Static portrait mode looks just as good.
 
-<!-- [media slot] can reuse the overview video (the talking close-up stretch of the chat segment). -->
-
 ### 🎭 Expressions and blush
+
+<!-- [video 02-Expressions-and-blush] right under the heading: paste the video URL here -->
 
 Two more layers can ride on the nine frames: a blush that fades in over the cheeks, and expression patches that swap the eyes, the mouth, or both, while the character keeps blinking and talking underneath.
 
@@ -72,11 +74,13 @@ Your AI reaches for them on its own. `[blush]` in a reply brings up the flush, `
 
 ### 🎨 Five interface themes, or make your own
 
+<!-- [video 03-Five-interface-themes] right under the heading: paste the video URL here -->
+
 Crystal Swan, Rose Vow, Crimson Nocturne, Verdant Dawnsong, Snow Palace: switch between the five with one click, and the room background, dialogue box, bubbles, and buttons all change together. A custom theme is one set of CSS variables plus three art assets, added as one entry in the configuration file. For deeper restyling, the CSS source is right there. Edit it directly.
 
-<!-- [media slot] demo-appearance-desktop-*.webm — panel overview, then the five-theme carousel. -->
-
 ### 🛋️ Room agency
+
+<!-- [video 04-Room-agency] right under the heading: paste the video URL here -->
 
 The room is not only yours to arrange. Your AI can switch the interface theme, change the character's outfit, and put furniture out or away, by marking what it wants inside its own reply. Your backend reads the marker, saves the new state, and pushes it back as one `room_state` message; the interface applies it wherever your backend sends it, so a second device stays in step.
 
@@ -84,19 +88,19 @@ Furniture is a list you write in the configuration file: an image, where it stan
 
 ### 📖 Upload and manage your CGs
 
+<!-- [video 05-Upload-and-manage-your-CGs] right under the heading: paste the video URL here -->
+
 A CG isn't just a keepsake. It can be where a new story starts.
 
 Upload and manage the CGs you share with your AI: the album keeps desktop and mobile art in separate groups, so each screen gets a composition that fits, and the built-in manager handles uploading, reordering, editing scene info, and picking each group's opening scene. Open a scene from any CG you like; the story doesn't have to start in the same room every time.
 
-<!-- [media slot: screenshot] CG album in manage mode: docs/media/cg-manage-en.webp is ready to use. -->
-
 ### 🌙 Scene agency
+
+<!-- [video 06-Scene-agency] right under the heading: paste the video URL here -->
 
 Your AI picks the scene. It marks the card it wants inside its own reply, your backend turns that into one `cg_state` command, and the interface fades into the CG, switches scenes as the story moves, then returns to the room. The conversation never breaks, so **what they want to do with you becomes the scene before your eyes**.
 
 The same CG can return at different points in the story, and scenes can keep changing as the story unfolds. The markers never reach the screen: the interface strips them out of every line. The [backend contract](docs/backend-contract.md) lists the marker families and the messages that carry them.
-
-<!-- [media slot] Scene agency: demo-cg-desktop-*.webm (mid-chat fade into CG, automatic scene switch, exit), or the GIF docs/media/hero.gif. -->
 
 ### 📞 Voice and phone calls
 
@@ -110,9 +114,9 @@ A visual-novel-style dialogue box: nameplate, typewriter text, and a **Thinking*
 
 ### 📱 Desktop and mobile
 
-One character experience across devices: desktop runs a two-column layout with a large sprite; mobile switches to a half-body composition with a collapsible Chat Log. It's also a PWA, installable as a standalone app in compatible browsers.
+![Desktop two-column layout next to the mobile half-body composition](docs/media/readme-devices-en.webp)
 
-<!-- [media slot] demo-mobile-chat-mobile-*.webm + demo-mobile-cg-mobile-*.webm, portrait, side by side — everyday chat, and the character lighting up a CG on their own. -->
+One character experience across devices: desktop runs a two-column layout with a large sprite; mobile switches to a half-body composition with a collapsible Chat Log. It's also a PWA, installable as a standalone app in compatible browsers.
 
 ### 🔌 Optional integrations
 
