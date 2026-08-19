@@ -86,7 +86,7 @@ A CG isn't just a keepsake. It can be where a new story starts.
 
 Upload and manage the CGs you share with your AI: the album keeps desktop and mobile art in separate groups, so each screen gets a composition that fits, and the built-in manager handles uploading, reordering, editing scene info, and picking each group's opening scene. Open a scene from any CG you like; the story doesn't have to start in the same room every time.
 
-![CG album in manage mode: desktop and mobile sets, upload row, and per-scene name, description, and opening-scene toggle](docs/media/cg-manage-en.webp)
+<!-- [media slot: screenshot] CG album in manage mode: docs/media/cg-manage-en.webp is ready to use. -->
 
 ### 🌙 Scene agency
 
@@ -94,7 +94,7 @@ Your AI picks the scene. It marks the card it wants inside its own reply, your b
 
 The same CG can return at different points in the story, and scenes can keep changing as the story unfolds. The markers never reach the screen: the interface strips them out of every line. The [backend contract](docs/backend-contract.md) lists the marker families and the messages that carry them.
 
-<p align="center"><img src="docs/media/hero.gif" width="800" alt="A chat turns into a CG scene: the dialogue box folds away as the scene lights up"></p>
+<!-- [media slot] Scene agency: demo-cg-desktop-*.webm (mid-chat fade into CG, automatic scene switch, exit), or the GIF docs/media/hero.gif. -->
 
 ### 📞 Voice and phone calls
 
