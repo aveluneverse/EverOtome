@@ -495,7 +495,11 @@ async function segPhone(stage) {
 // 開面板一覽（造型＋主題兩區）→關面板→主畫面五套主題輪播→回預設；面板 DOM
 // 比照 app.js 輕複製、主題注入走真產品碼 initThemes）──────────────────────────
 async function segAppearance(stage) {
-  const { config, ctx, msgsEl, sprite, adv, appearances, themeMgr } = stage;
+  const { config, ctx, msgsEl, sprite, adv, appearances, themeMgr, furniture } = stage;
+  // 主題段只看房間：示範家具先收起（8/19 回饋：五套主題輪播不要帶留聲機；room 段自己會演它現身）。
+  if (furniture && Array.isArray(config.furniture)) {
+    for (const item of config.furniture) furniture.setOn(item.id, false);
+  }
   const root = document.getElementById("appearance-root");
   const panel = document.createElement("div");
   panel.className = "settings-panel appearance-panel";
