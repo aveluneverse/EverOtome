@@ -104,7 +104,7 @@ Connect an existing AI voice or call flow to the otome interface. It handles dia
 
 ### 💭 Dialogue box and the Thinking button
 
-A visual-novel-style dialogue box: nameplate, typewriter text, and a **Thinking** button. One tap shows what they didn't say out loud; another switches back. The content comes from your backend (replies carrying a `thoughts` field get the button; without it, the interface stays clean). Full history lives in a separate Chat Log panel with its own THINKING tab, and the eye button folds every panel away, leaving just the sprite in view.
+A visual-novel-style dialogue box: nameplate, typewriter text, and a **Thinking** button. One tap shows what they didn't say out loud; another switches back. The content comes from your backend (replies carrying a `thoughts` field get the button; without it, the interface stays clean). Full history lives in a separate Chat Log panel (on phones it has its own THINKING tab; on desktop the thoughts sit inline in the log). To look at the sprite alone: on desktop the eye button opens display options (hide the dialogue box, hide the sprite); on phones it folds the Chat Log away.
 
 ### 📱 Desktop and mobile
 
@@ -114,7 +114,7 @@ One character experience across devices: desktop runs a two-column layout with a
 
 ### 🔌 Optional integrations
 
-Wire in whatever your backend supports. Beyond the core chat, built-in integration points cover **text-to-speech, phone calls, CG scene control, photo sending, model switching, a sandbox chat mode, message favorites, and a TTS usage meter**. The interface stays tidy either way: anything you haven't configured simply never renders, with no half-dead buttons left behind. Start minimal and enable more as your backend grows.
+Wire in whatever your backend supports. Beyond the core chat, built-in integration points cover **text-to-speech, phone calls, CG scene control, photo sending, model switching, a sandbox chat mode, message favorites, and a TTS usage meter**. The interface stays tidy either way: CG, model switching, sandbox mode and favorites never render unless you configure them, with no half-dead buttons left behind (text-to-speech, phone calls and photo sending are always on and use built-in default paths; set `ttsEndpoint` to an empty string if you don't want the play buttons). Start minimal and enable more as your backend grows.
 
 ---
 
@@ -152,7 +152,7 @@ Features that need a backend (sending and receiving messages, calls, CG push) wo
 
 The interface ships in Traditional Chinese and English, and follows the visitor's browser by default. Switch any time from **Settings → Language** (remembered on that device), pin one for everyone with `"locale": "zh-Hant"` or `"en"` in `config.json`, or force one page load with `?lang=en` in the URL. Names you write in `config.json` (themes, outfits, furniture), and the `name` and `desc` of the CG album cards your backend serves, can each be a single string or one per language: `"label": { "zh-Hant": "水晶天鵝", "en": "Crystal Swan" }`.
 
-To add a language, copy `engine/js/locales/en.js` to `engine/js/locales/<code>.js`, translate the values, and register the code in `SUPPORTED_LOCALES` and `LOCALE_NAMES` inside `engine/js/i18n.js`. The test suite checks that every language has the same keys, and that the sample album carries a name in each of them.
+To add a language, copy `engine/js/locales/en.js` to `engine/js/locales/<code>.js`, translate the values, then, at the top of `engine/js/i18n.js`, import the dictionary into `DICTS` and register the code in `SUPPORTED_LOCALES` and `LOCALE_NAMES`. The test suite checks that every language has the same keys, and that the sample album carries a name in each of them.
 
 ---
 

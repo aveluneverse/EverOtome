@@ -9,16 +9,16 @@ Every claim below is verified against the engine source. When in doubt, the sour
 A backend integration falls into three categories:
 
 1. **Required: live chat** over a WebSocket (`wsEndpoint`). This is the only required config key.
-2. **Optional, config-gated REST**: history, TTS, photos, CG, model switching, sandbox mode, favorites, room state, Thinking visibility. Each is enabled by its own config key, and a missing key means the matching UI never renders. No errors, no dead buttons.
+2. **Optional, config-gated REST**: history, CG, model switching, sandbox mode, favorites, room state, Thinking visibility. Each is enabled by its own config key, and a missing key means the matching UI never renders. No errors, no dead buttons. Three features are always on and fall back to built-in default paths when their key is absent: text-to-speech (`ttsEndpoint`, default `/api/v4/tts`), photo attachments (`photoEndpoint`, default `/api/photo`) and phone calls (fixed `/api/call/*` paths). To hide the TTS play buttons, set `"ttsEndpoint": ""` (an empty string); the paperclip and the phone button are always rendered.
 3. **Optional, fixed-path REST**: the phone-call endpoints and the chat-clear sync endpoint use fixed paths (`/api/call/*`, `/api/v4/chat-clear`) rather than config keys in this version. See [Fixed-path endpoints](#fixed-path-endpoints).
 
-The shell ignores unknown WebSocket roles and unknown JSON fields, so a richer backend can send more than the shell reads and nothing breaks.
+The shell ignores unknown WebSocket roles and unknown JSON fields, so a richer backend can send more than the shell reads and nothing breaks. One exception: a frame carrying a truthy `room` field is dropped entirely (that field is reserved), so do not reuse `room` as your own room or thread id.
 
 ## config.json keys
 
 | Key | Purpose |
 |---|---|
-| `characterName` | Backend-facing character identifier (protocol and history ledger name). |
+| `characterName` | Fallback display name for the nameplate when `displayName` is absent. Never transmitted to the backend. |
 | `displayName` | Name shown in the UI (name plate, brand corner). |
 | `brandTitle` | The label in the top-left corner. Once `modelEndpoint` reports a model, the corner shows that model name instead. The sample ships `AI Model` as a placeholder that says what belongs there; change it to anything you like. |
 | `pwaTitle` | Browser tab title, and the home-screen name iOS uses for a page added from Safari. Falls back to `brandTitle`, then to `displayName`. The sample sets it to `EverOtome` so the tab keeps the product name while the corner says `AI Model`; both are yours to change. On other platforms the installed name comes from `manifest.webmanifest`. |
@@ -26,7 +26,7 @@ The shell ignores unknown WebSocket roles and unknown JSON fields, so a richer b
 | `assetsPath` | Folder for the active character's sprite frames and manifest. |
 | `appearances` | List of `{ id, label, assetsPath }` outfits to switch between. `label` is a string, or one per language: `{ "zh-Hant": "…", "en": "…" }`. |
 | `furniture` | List of furniture pieces the room can display; absent or empty means no furniture layer and no furniture tab. See [roomEndpoint](#roomendpoint). |
-| `wsEndpoint` | WebSocket endpoint for live chat. **Required.** |
+| `wsEndpoint` | WebSocket endpoint for live chat. **Required.** A same-origin path such as `/ws`: the shell builds `ws(s)://<current host><path>`, so a full URL to another host is not supported; put the backend behind the same origin with a reverse proxy. |
 | `historyEndpoint` | REST endpoint for chat scrollback; absent = chat opens blank. |
 | `ttsEndpoint` | Text-to-speech endpoint (also used during phone calls). |
 | `ttsUsageEndpoint` | Optional TTS usage/quota meter; the meter row is hidden if unset. |
@@ -70,6 +70,7 @@ The **first theme listed in `config.json` is the default** on load. Each theme i
 | Message with photos | JSON: `{ "text": "<caption>", "photos": ["<photoId>", "..."] }` (ids from `photoEndpoint` uploads) |
 | In-call message (mic transcript or typed) | JSON: `{ "call": true, "text": "..." }` |
 | Menu commands | Bare strings `/new` (start a new conversation) and `/status` (status query), sent by built-in MENU items |
+| Scene pick | Bare string `/cg <item id>`, sent when the user taps a card in the CG album. Answer with a `cg_state` frame to actually switch the scene |
 
 ## WebSocket: server to client
 
@@ -169,11 +170,11 @@ Assistant bubbles that carry no archived `audio` also get a play button: clickin
 
 Audio synthesized here is analyzed for mouth movement straight from the response body, so it costs no extra request; audio delivered as a URL does (see `assistant.audio` above).
 
-If your backend does not implement TTS, remove `ttsEndpoint` from your `config.json`; with the key present, every assistant bubble renders a play button that cannot produce sound.
+If your backend does not implement TTS, set `"ttsEndpoint": ""` (an empty string) in your `config.json`. Removing the key is not enough: a missing key falls back to the built-in default path `/api/v4/tts`, and every assistant bubble renders a play button that cannot produce sound.
 
 ### photoEndpoint (+ photoMaxCount)
 
-`POST` multipart form, field `photo` (one file per request) → JSON containing `photoId`. Multiple attachments upload sequentially, one request each; the shell then sends the WS message `{ "text": ..., "photos": [ids] }`. `photoMaxCount` caps attachments per message (sample default: 3).
+`POST` multipart form, field `photo` (one file per request) → JSON `{ "photo_id": "<id>" }` (snake_case; the shell reads `photo_id` only). On a non-2xx response the shell shows `detail` from the JSON body if present; a `404` is shown as "feature not enabled". Multiple attachments upload sequentially, one request each; the shell then sends the WS message `{ "text": ..., "photos": [ids] }`. `photoMaxCount` caps attachments per message (sample default: 3).
 
 ### cgEndpoint (album base URL)
 
@@ -205,8 +206,9 @@ Management operations (`POST {cgEndpoint}/manage`, JSON):
 
 ### sandboxEndpoint
 
-- `GET` → `200` with `{ "on": <bool> }` when the feature exists; **`404` means the feature is off** and the whole sandbox UI stays hidden (two gates: config key present, and this probe succeeding).
-- `POST { "on": <bool> }` → `200` to toggle. Cross-device sync happens via the `sandbox_state` WS broadcast.
+- `GET` → `200` with `{ "on": <bool> }` when the feature exists; **any non-2xx response, or no answer within 8 seconds, means the feature is off** and the whole sandbox UI stays hidden (two gates: config key present, and this probe succeeding).
+- `POST { "on": <bool> }` → `2xx` with `{ "on": <bool> }` in the body; the shell takes the returned value as the new state, so a `200` with no JSON body rolls the toggle back. Cross-device sync happens via the `sandbox_state` WS broadcast.
+- `POST {sandboxEndpoint}/forget` → `2xx`. Sent by the MENU item "Clear sandbox": discard the sandbox's temporary memory while leaving the mode on, then broadcast `sandbox_state` with `forgot: true`.
 
 ### roseEndpoint + roseFlagsEndpoint
 

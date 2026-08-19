@@ -9,6 +9,7 @@ The following **assets are NOT covered by the MIT License**:
 - Character Lab backdrop: `engine/demo/lab-bg.webp`
 - Demo CG album: all images under `engine/api/v4/cg/file/`
 - Project brand visuals: logo, key visual, favicon and icon files
+- README media under `docs/`: the key visuals (`docs/readme-kv-*.webp`) and the GIFs and screenshots in `docs/media/`, which show the assets above
 
 These assets are original artwork. **All rights reserved (c) 2026 aveluneverse.**
 
