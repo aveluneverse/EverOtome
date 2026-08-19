@@ -14,7 +14,7 @@ EverOtome 是一個**開源的乙女遊戲／視覺小說風 AI 伴侶聊天前�
 
 EverOtome 本身是以 vanilla JS 製作的純前端介面層，不含 AI 模型、後端服務與素材生成，這些由你自備。還沒接後端也能先看：內建範例角色與示範相冊，clone 下來一行指令就能預覽。
 
-https://github.com/user-attachments/assets/6a927036-275d-4233-83ad-424f64aa6070
+https://github.com/user-attachments/assets/687e388c-a506-464f-bcb6-87ef4440a8aa
 
 （這支影片有配樂。GitHub 預設靜音播放，想聽的話可以點播放器上的喇叭喔。）
 
