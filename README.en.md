@@ -16,6 +16,8 @@ EverOtome itself is a pure front-end layer built in vanilla JS. It ships no AI m
 
 https://github.com/user-attachments/assets/6a927036-275d-4233-83ad-424f64aa6070
 
+(This video has background music. GitHub plays it muted by default; click the speaker on the player to hear it.)
+
 ---
 
 ## At a glance

@@ -16,6 +16,8 @@ EverOtome 本身是以 vanilla JS 製作的純前端介面層，不含 AI 模型
 
 https://github.com/user-attachments/assets/6a927036-275d-4233-83ad-424f64aa6070
 
+（這支影片有配樂。GitHub 預設靜音播放，想聽的話點播放器上的喇叭。）
+
 ---
 
 ## 一眼看懂
