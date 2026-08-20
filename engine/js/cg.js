@@ -455,9 +455,15 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
   }
 
   /** 重新 fetch 管理清單＋重繪——reorder／edit／delete／set_opening
-   * 成功後共用同一條路，永遠以 server 回傳的清單為準，不本地拼湊。 */
+   * 成功後共用同一條路，永遠以 server 回傳的清單為準，不本地拼湊。
+   * 落地 guard（open() 背景重抓的鏡像）：操作進行中使用者可能已按「<」回
+   * 視圖態、或點暗幕關掉——fetch 落地時已不在管理態＝不回寫不重繪，否則
+   * 會把視圖態畫面蓋回管理畫面；也保住「視圖態 ⇒ manageItems 空」的既有
+   * 不變量。 */
   async function refreshManage() {
-    manageItems = await fetchManageItems();
+    const items = await fetchManageItems();
+    if (mode !== "manage") return;
+    manageItems = items;
     renderManage();
   }
 
@@ -499,6 +505,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
         btn.disabled = false;
         btn.classList.remove("is-busy");
         btn.removeAttribute("aria-busy");
+        btn.focus(); // disabled 曾把鍵盤焦點踢到 body——復原時還回原鈕
       }
     }
   }
@@ -742,6 +749,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
           uploadBtn.disabled = false;
           uploadBtn.classList.remove("is-busy");
           uploadBtn.removeAttribute("aria-busy");
+          uploadBtn.focus(); // disabled 曾把鍵盤焦點踢到 body——復原時還回原鈕
         }
       }
     });

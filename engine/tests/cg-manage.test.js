@@ -693,6 +693,43 @@ describe("CG 管理態", () => {
       expect(fresh.disabled).toBe(false);
       expect(fresh.classList.contains("is-busy")).toBe(false);
     });
+
+    it("操作進行中按「<」回視圖態：落地的 refreshManage 不把畫面蓋回管理態（mode guard）", async () => {
+      const d = deferredPostFetch([mkItem("cg-1", "月夜床帳", { opening: true })]);
+      const panel = await openManageWith(d.fn);
+      document.querySelector(".cg-manage-down").click(); // POST 掛起中
+      await panel.exitManage();                          // 先回視圖態
+      expect(document.querySelector(".cg-card")).not.toBe(null);
+      d.resolve();                                       // POST 才落地，接著重抓清單也落地
+      await flush();
+      expect(document.querySelector(".cg-manage-card")).toBe(null); // 沒被蓋回管理畫面
+      expect(document.querySelector(".cg-card")).not.toBe(null);    // 視圖態卡片還在
+    });
+
+    it("POST 成功但重抓清單失敗：按鈕復原＋鍵盤焦點還回原鈕＋照實提示（不謊報沒成功）", async () => {
+      let postSeen = false;
+      const fetchImpl = vi.fn(async (url, opts = {}) => {
+        const method = (opts.method || "GET").toUpperCase();
+        if (method === "GET" && url.endsWith("/manage")) {
+          if (postSeen) return { ok: false, status: 500 }; // POST 之後的重抓失敗
+          return { ok: true, status: 200, json: async () => ({ items: [mkItem("cg-1", "月夜床帳", { opening: true })] }) };
+        }
+        if (method === "POST" && url.endsWith("/manage")) {
+          postSeen = true;
+          return { ok: true, status: 200, json: async () => ({ ok: true }) };
+        }
+        return { ok: false, status: 404 };
+      });
+      await openManageWith(fetchImpl);
+      const downBtn = document.querySelector(".cg-manage-down");
+      downBtn.click();
+      await flush();
+      expect(downBtn.disabled).toBe(false);                       // 操作已成功、只是畫面沒跟上＝不重繪，同一節點復原
+      expect(downBtn.classList.contains("is-busy")).toBe(false);
+      expect(document.activeElement).toBe(downBtn);               // 焦點還回原鈕
+      expect(document.querySelector(".cg-send-hint").textContent)
+        .toBe("（改好了，但畫面更新沒跟上——關掉重開面板看最新）"); // 全字串釘住：不可與「沒有成功」訊息互換
+    });
   });
 
   // ── 多語卡名／描述（backend 契約：name／desc 是字串，或每語系一個的物件；同
