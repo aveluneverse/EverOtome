@@ -509,7 +509,8 @@ describe("CG 管理態", () => {
     expect(document.querySelector(".cg-manage-desc")).not.toBe(null);
 
     await panel.exitManage();
-    expect(presenter.init).toHaveBeenCalledTimes(1);
+    // 2 次＝open() 背景重抓＋exitManage 的 await 重抓
+    expect(presenter.init).toHaveBeenCalledTimes(2);
     expect(document.querySelector(".cg-manage-desc")).toBe(null);
     expect(document.body.textContent).not.toContain("只有管理態看得到");
     expect(document.querySelectorAll(".cg-card").length).toBe(presenter.items.length); // 回到視圖態卡片
@@ -531,6 +532,59 @@ describe("CG 管理態", () => {
     panel.open();      // 重開
     expect(document.querySelector(".cg-manage-desc")).toBe(null);
     expect(document.querySelectorAll(".cg-card").length).toBe(1);
+  });
+
+  // ── open() 背景重抓相冊 ────────────────────────────────────────────────────
+  // 已知洞：管理態排序／刪除 → 點暗幕直接關（不走「<」的 exitManage）→ 重開
+  // → 相冊還停在頁面載入時的舊快照（舊順序、已刪的還在）。exitManage 有
+  // re-fetch、open() 沒有——修法＝open() 先用手上資料即時重繪（不等網路），再
+  // 背景 presenter.init() 落地後以 server 新真相重繪一次。
+  it("管理態改完點暗幕關掉再重開：open() 背景重抓相冊，排序／刪除以 server 新真相重繪", async () => {
+    const albumBefore = [
+      { id: "cg-a", name: "甲", file: "a.png", opening: true, target: "desktop" },
+      { id: "cg-b", name: "乙", file: "b.png", opening: false, target: "desktop" },
+      { id: "cg-c", name: "丙", file: "c.png", opening: false, target: "desktop" },
+    ];
+    // server 端已發生：乙移到最前＋丙被刪除
+    const albumAfter = [albumBefore[1], albumBefore[0]];
+    const presenter = makePresenter(albumBefore.slice());
+    // deferred mock：resolve 前不碰 items——「新順序上屏」只能來自背景落地後
+    // 的重繪，不能是 open() 既有的同步重繪撿到被同步污染的 items（async 函式
+    // 體無 await＝呼叫瞬間同步跑完，那種寫法測不到重繪機制本身）。
+    let resolveInit = null;
+    presenter.init = vi.fn(() => new Promise((r) => {
+      resolveInit = () => { presenter.items = albumAfter; r(true); };
+    }));
+    const panel = buildCgPanel(document.getElementById("cg-root"), presenter, {
+      send: () => {}, endpointBase: "/api/v4/cg",
+    });
+    panel.open();
+    panel.el.click(); // 點暗幕直接關（沒走 exitManage）
+    panel.open();      // 重開
+    const namesOf = () => Array.from(document.querySelectorAll(".cg-card-name")).map((n) => n.textContent);
+    expect(namesOf()).toEqual(["甲", "乙", "丙"]); // 背景還沒落地＝先畫手上的舊資料，開面板不等網路
+    resolveInit();     // 背景 re-fetch 落地
+    await flush();
+    expect(namesOf()).toEqual(["乙", "甲"]); // 落地後以 server 新真相重繪：新順序＋丙已消失
+    expect(presenter.init).toHaveBeenCalled();
+  });
+
+  it("open() 背景重抓落地時已在管理態＝不覆蓋管理畫面（mode guard）", async () => {
+    const presenter = makePresenter();
+    let resolveInit = null;
+    presenter.init = vi.fn(() => new Promise((r) => { resolveInit = () => r(true); }));
+    global.fetch = fetchStub({
+      "GET /api/v4/cg/manage": { items: [mkItem("cg-1", "月夜床帳", { opening: true })] },
+    });
+    const panel = buildCgPanel(document.getElementById("cg-root"), presenter, {
+      send: () => {}, endpointBase: "/api/v4/cg",
+    });
+    panel.open();               // 背景 init 掛起中
+    await panel.enterManage();  // 背景 re-fetch 還沒回來就先進了管理態
+    resolveInit();              // 這時背景 re-fetch 才落地
+    await flush();
+    expect(document.querySelector(".cg-manage-card")).not.toBe(null); // 管理畫面還在
+    expect(document.querySelector(".cg-card")).toBe(null);            // 沒被視圖態蓋掉
   });
 
   // ── 多語卡名／描述（backend 契約：name／desc 是字串，或每語系一個的物件；同

@@ -783,6 +783,15 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     manageItems = [];
     renderView();
     el.hidden = false;
+    // 背景重抓相冊：管理態排序／刪除後點暗幕直接關（不走「<」的 exitManage）
+    // 再重開，相冊會停在頁面載入時的舊快照——舊順序、已刪的還在。這裡先用
+    // 手上資料即時重繪（開面板不等網路），再背景 re-fetch，落地後以 server
+    // 新真相重繪一次。guard：落地時已進管理態／面板已關＝不重繪（不覆蓋
+    // 管理畫面）；fetch 失敗＝init() 回 false、保持現狀（同 init 既有的安靜
+    // 休眠語意，開面板不該因斷網跳錯）。
+    Promise.resolve(presenter.init()).then((ok) => {
+      if (ok && mode === "view" && !el.hidden) renderView();
+    }).catch(() => {});
   }
 
   // 換語系：卡名走 pickLabel 不是 data-i18n，applyDom() 翻不到——面板可見且在

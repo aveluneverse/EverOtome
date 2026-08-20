@@ -182,7 +182,7 @@ Four channels under one base:
 
 | Channel | Method | Purpose |
 |---|---|---|
-| `{cgEndpoint}/album` | GET | Display list: `{ "items": [...] }`. Never includes `desc`. `name` is a string, or one per language: `{ "zh-Hant": "…", "en": "…" }`; the shell shows the visitor's current interface language. See the [CG guide](cg-guide.md) for the item format. |
+| `{cgEndpoint}/album` | GET | Display list: `{ "items": [...] }`. Never includes `desc`. The shell fetches this at startup, again when leaving manage mode, and in the background each time the album panel opens (a failed refetch keeps the list it already has). `name` is a string, or one per language: `{ "zh-Hant": "…", "en": "…" }`; the shell shows the visitor's current interface language. See the [CG guide](cg-guide.md) for the item format. |
 | `{cgEndpoint}/file/{id}` | GET | The image file for an item. |
 | `{cgEndpoint}/manage` | GET / POST | Management channel. GET returns the same list **plus `desc`** (the only channel that carries it); `name` and `desc` are each a string, or one per language: `{ "zh-Hant": "…", "en": "…" }`, and the shell shows the visitor's current interface language. POST takes the operations below. |
 | `{cgEndpoint}/upload` | POST | Multipart form: `file` (png/jpg/webp), `name` and `desc` (plain strings here, whatever was typed), `target` (`desktop` or `mobile`; defaults to desktop if omitted). Respond `400` for a rejected file type and `413` for oversize (the shell shows matching hints; its own limit message assumes 20MB). |

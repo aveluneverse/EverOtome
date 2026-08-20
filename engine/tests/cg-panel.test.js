@@ -23,6 +23,7 @@ describe("CG 相冊彈窗（視圖態）", () => {
       fileUrl: (id) => `/api/v4/cg/file/${id}`,
       isActive: () => false,
       _currentId: null,
+      init: vi.fn(async () => true), // open() 背景重抓相冊走這裡
     };
   });
 
