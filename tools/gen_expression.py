@@ -509,7 +509,7 @@ def main() -> int:
 
     for o in outs:
         (o / f"{args.name}.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"json → {o / (args.name + '.json')}")
+        print(f"json -> {o / (args.name + '.json')}")
     # manifest 合併：expressions.<id>＝{label, mode, [blush], [static], eyes:{state: "expr/<file>"}, mouth:{…}}
     # （路徑相對 assetsPath；blush／static 沒有就不寫這個鍵——引擎兩個鍵都是可選的）
     for mp in args.manifest:
@@ -525,7 +525,7 @@ def main() -> int:
             "mouth": {k: f"expr/{v}" for k, v in result["mouth"].items()},
         }
         mpath.write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(f"manifest ← expressions.{args.name}: {mpath}")
+        print(f"manifest <- expressions.{args.name}: {mpath}")
     print("RESULT:", "FAIL" if failed else "PASS")
     return 1 if failed else 0
 

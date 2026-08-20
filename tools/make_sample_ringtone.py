@@ -27,7 +27,7 @@ def build() -> AudioSegment:
     gap = AudioSegment.silent(duration=GAP_MS)
     tail = AudioSegment.silent(duration=TAIL_SILENCE_MS)
     ring = tone + gap + tone + tail
-    assert len(ring) == 2000, f"總長度應為 2000ms，實得 {len(ring)}ms"
+    assert len(ring) == 2000, f"total length should be 2000ms, got {len(ring)}ms"
     return ring
 
 
