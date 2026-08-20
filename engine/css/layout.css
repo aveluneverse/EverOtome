@@ -49,6 +49,7 @@ html {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+  touch-action: manipulation;
 }
 body {
   position: fixed;
@@ -59,6 +60,7 @@ body {
   display: flex;
   background: var(--bg-deep, #0c1c28);
   overflow: hidden;
+  touch-action: manipulation;
 }
 
 #stage-root {
@@ -1608,7 +1610,9 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
     border-radius: 1.4rem;
     background: var(--m-field-bg);
     color: var(--text);
-    font-size: 0.95rem;
+    /* 16px 是 iOS「聚焦輸入框自動放大」的門檻——低於它，聚焦即觸發頁面級
+     * 縮放＝視覺視口小於佈局視口＝整頁可平移、fixed 底部列被推出可視區。 */
+    font-size: 1rem;
   }
   #chat-input::placeholder { color: var(--text-faint); }
   #btn-send,

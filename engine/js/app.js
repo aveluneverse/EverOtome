@@ -80,6 +80,11 @@ import { initThemes } from "./theme.js";
 import { createAdvVisibility } from "./adv-visibility.js";
 import { initI18n, applyConfigLocale, t, tEl, tAttr, pickLabel, onLocaleChange } from "./i18n.js";
 import { bindLocaleRelabel } from "./appearance-labels.js";
+import { installViewportLock } from "./viewport-lock.js";
+
+// iOS 頁面級捏合鎖在模組層級就掛（不等 main）：頁面一被放大，視覺視口小於
+// 佈局視口＝整頁可平移、fixed 底部列被推出可視區——app 式介面開機即擋。
+installViewportLock();
 
 // config.json 撈不到（開源使用者本機、或尚未疊上私有角色覆蓋層）時的最後防線：即使
 // 兩份 config 都讀不到，也不能讓整頁掛掉——退回這組跟 config.example.json 同形狀的值。
