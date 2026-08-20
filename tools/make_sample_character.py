@@ -40,7 +40,7 @@ def main():
         "eyeStates": 3,
         "moods": {"neutral": {n: f"{n}.webp" for n in spec}}
     }, indent=2), encoding="utf-8")
-    print(f"OK: 9 張＋manifest → {OUT}")
+    print(f"OK: 9 frames + manifest -> {OUT}")
 
 if __name__ == "__main__":
     main()

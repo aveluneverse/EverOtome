@@ -172,25 +172,21 @@ def roles_from_name(name: str):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--name", required=True, help="表情 id（英文，如 laugh）")
-    ap.add_argument("--label", default="", help="表情顯示名（寫進 json，語言不限）")
-    ap.add_argument("--base", required=True, help="現役差分底圖夾（A-I png）")
-    ap.add_argument("--src", required=True, nargs="+", help="表情全身圖（1 張或多張）")
-    ap.add_argument("--out", required=True, nargs="+", help="輸出夾（可多個＝同內容各寫一份，例如多個部署位置鏡射）")
+    ap.add_argument("--name", required=True, help="expression id (ASCII, e.g. laugh)")
+    ap.add_argument("--label", default="", help="display name written into the json (any language; edit the manifest afterwards to give one name per language)")
+    ap.add_argument("--base", required=True, help="folder of the appearance's current frames (A-I png)")
+    ap.add_argument("--src", required=True, nargs="+", help="full-body image(s) of the expression (one or more)")
+    ap.add_argument("--out", required=True, nargs="+", help="output folder(s); several = the same files written to each, e.g. mirrored deploy locations")
     ap.add_argument("--mode", choices=("auto", "flash", "sustain"), default="auto",
-                    help="auto＝嘴區只有 any 且眼區≤1 態→flash（兩區都凍住只能一瞬），否則 sustain")
+                    help="auto = flash when the mouth has only 'any' and the eyes have at most one state (both regions frozen, so only a moment), otherwise sustain")
     ap.add_argument("--blush", choices=("none", "builtin"), default="none",
-                    help="builtin＝這個表情自帶紅暈（json／manifest 標記 blush:builtin，引擎亮著期間壓下臉紅層）")
-    ap.add_argument("--manifest", nargs="*", default=[], help="要合併 expressions.<id> 的 manifest.json（可多份）")
-    ap.add_argument("--png", action="store_true", help="輸出 PNG（預設 webp lossless；PNG 體積大，通常只給檢視用）")
+                    help="builtin = this expression carries its own flush (json/manifest get blush:builtin; the engine holds the blush layer down while it is up)")
+    ap.add_argument("--manifest", nargs="*", default=[], help="manifest.json file(s) to merge expressions.<id> into (several allowed)")
+    ap.add_argument("--png", action="store_true", help="write PNG (default: lossless webp; PNG is larger, usually only for inspection)")
     ap.add_argument("--eyes-only", action="store_true",
-                    help="表情只換眉眼（嘴沿用平常那組口型）：嘴區與底色的差異視為生成工具的"
-                         "整臉微抖，不切嘴貼片、不切 static、覆蓋保險絲豁免（逐張印出忽略量）；還原殘差上限"
-                         "照算不放水（忽略量若大到像真的換了嘴＝殘差超標＝FAIL）")
+                    help="the expression changes the eyes only (the mouth keeps the regular frames): differences in the mouth region and the face tint count as generator jitter: no mouth patch, no static patch, coverage fuse waived (the ignored amount is printed per image); the rebuild residual limit still applies (ignoring enough to look like a real mouth change fails the residual check)")
     ap.add_argument("--src-offset", nargs=2, type=int, metavar=("DX", "DY"), default=None,
-                    help="源圖畫布比底圖小時（生成工具畫布可能漂移，例如 1024→1300），把每張源圖"
-                         "原樣貼進底圖尺寸的透明畫布 (DX, DY) 再比對；尺寸相同時忽略。實測值範例 138 0"
-                         "（1024 畫布貼進 1300 之後 vs 底圖 A 逐像素 >24 差 0）")
+                    help="when the source canvas is smaller than the base frames (generator canvases drift, e.g. 1024 to 1300), paste each source image as-is onto a transparent canvas of the base size at (DX, DY) before comparing; ignored when the sizes match. Measured example: 138 0 (a 1024 canvas pasted into 1300 vs base A: zero pixels over 24)")
     args = ap.parse_args()
 
     base_dir = Path(args.base)
@@ -203,14 +199,14 @@ def main() -> int:
             p = base_dir / f"{n}.{ext}"
             if p.exists():
                 return Image.open(p)
-        print(f"FAIL: 底圖缺 {n}.png/.webp"); sys.exit(1)
+        print(f"FAIL: base frame {n}.png/.webp missing"); sys.exit(1)
 
     A_rgba = base("A").convert("RGBA")
     W, H = A_rgba.size
     A = flat(A_rgba)
     eye_base = ImageChops.lighter(diff_mask(A, flat(base("D"))), diff_mask(A, flat(base("G"))))
     mouth_base = ImageChops.lighter(diff_mask(A, flat(base("B"))), diff_mask(A, flat(base("C"))))
-    print(f"底圖 {W}x{H}｜眼基準區 bbox {eye_base.getbbox()}｜嘴基準區 bbox {mouth_base.getbbox()}")
+    print(f"base {W}x{H} | eye reference bbox {eye_base.getbbox()} | mouth reference bbox {mouth_base.getbbox()}")
 
     # 鼻子分界：眼區硬切避開「嘴基準區外擴 GUARD」、嘴區避開「眼基準區外擴 GUARD」。
     # 兩區在這張臉只隔 ~10px，外擴 MARGIN 會互相咬到；硬切邊落在「表情圖＝底圖」
@@ -233,7 +229,7 @@ def main() -> int:
                 min(W, max(eb[2], mb[2]) + FACE_PAD), min(H, max(eb[3], mb[3]) + FACE_PAD))
     face_mask = Image.new("L", (W, H), 0)
     face_mask.paste(255, face_box)
-    print(f"臉框 {face_box}（眼嘴基準區 bbox 聯集外擴 {FACE_PAD}）")
+    print(f"face box {face_box} (union of the eye and mouth reference bboxes, padded by {FACE_PAD})")
 
     srcs = []
     failed = False
@@ -250,10 +246,10 @@ def main() -> int:
                 dx, dy = args.src_offset
                 canvas = Image.new("RGBA", (W, H), (0, 0, 0, 0))
                 canvas.paste(im, (dx, dy))
-                print(f"  {p.name}: 源圖 {im.size[0]}x{im.size[1]} 貼進 {W}x{H} 畫布 offset ({dx},{dy})")
+                print(f"  {p.name}: source {im.size[0]}x{im.size[1]} pasted onto the {W}x{H} canvas at offset ({dx},{dy})")
                 im = canvas
             else:
-                print(f"FAIL: {p.name} 尺寸 {im.size} ≠ 底圖 {W}x{H}（畫布漂了？量好對位後用 --src-offset DX DY）")
+                print(f"FAIL: {p.name} is {im.size}, base is {W}x{H} (canvas drifted? measure the offset and pass --src-offset DX DY)")
                 failed = True
                 continue
         d = diff_mask(flat(im), A)
@@ -268,13 +264,13 @@ def main() -> int:
                 tint += count(comp)   # 臉框內、離眼嘴基準區都遠＝臉上的底色（紅暈）→ 交給 static 區
             else:
                 stray += count(comp)
-                print(f"  FAIL: {p.name} 臉外變動 bbox {b}（{count(comp)} px）——請確認只動眉眼／嘴／臉部底色")
+                print(f"  FAIL: {p.name} changed outside the face, bbox {b} ({count(comp)} px); only the eyes, the mouth and the face tint may change")
                 failed = True
         eye_n, mouth_n = count(eye_hit), count(mouth_hit)
         eye_role, mouth_role = roles_from_name(p.name)
         letter = ROLE_LETTER.get((eye_role or "open", mouth_role or "0"), "A")
-        print(f"  {p.name}: 眼區差 {eye_n} px｜嘴區差 {mouth_n} px｜臉部底色 {tint} px｜臉外 {stray} px｜"
-              f"角色 eye={eye_role} mouth={mouth_role}（對應底圖 {letter}）")
+        print(f"  {p.name}: eye diff {eye_n} px | mouth diff {mouth_n} px | face tint {tint} px | outside face {stray} px | "
+              f"role eye={eye_role} mouth={mouth_role} (base frame {letter})")
         eye_union = ImageChops.lighter(eye_union, eye_hit)
         mouth_union = ImageChops.lighter(mouth_union, mouth_hit)
         srcs.append(Src(p, im, eye_n, mouth_n, eye_role, mouth_role, letter))
@@ -295,8 +291,8 @@ def main() -> int:
     REF_PRIORITY = (("open", "0"), ("open", None), (None, "0"), (None, None))
     ref = next((s for role in REF_PRIORITY for s in srcs if (s.eye_role, s.mouth_role) == role), None)
     if ref is None and len(srcs) > 1:
-        print("FAIL: 沒有基準張（眼開＋嘴閉那張）——多張套組請用字母 A–I 命名（A＝眼開嘴閉），"
-              "或至少交一張 _眼開_嘴閉")
+        print("FAIL: no reference image (eyes open, mouth closed). Name a multi-image set A to I (A = eyes open, mouth closed), "
+              "or include at least one image whose name marks it as eyes open and mouth closed")
         return 1
     if ref is not None and len(srcs) > 1:
         eye_motion = Image.new("L", (W, H), 0)
@@ -320,8 +316,8 @@ def main() -> int:
         eye_motion = ImageChops.multiply(eye_motion, dilate(dilate(eye_base, half), MOTION_REACH - half))
         mouth_motion = ImageChops.multiply(mouth_motion, dilate(dilate(mouth_base, half), MOTION_REACH - half))
         if eye_motion_all - count(eye_motion) or mouth_motion_all - count(mouth_motion):
-            print(f"  運動限界（基準區外擴 {MOTION_REACH}）：眼軸捨遠處 {eye_motion_all - count(eye_motion)} px｜"
-                  f"嘴軸捨遠處 {mouth_motion_all - count(mouth_motion)} px（生成微抖，不進區）")
+            print(f"  motion reach (reference box padded by {MOTION_REACH}): eye axis dropped {eye_motion_all - count(eye_motion)} px far away | "
+                  f"mouth axis dropped {mouth_motion_all - count(mouth_motion)} px far away (generator jitter, not part of the region)")
         eye_union = ImageChops.lighter(eye_union, ImageChops.multiply(eye_motion, allowed_eye))
         mouth_union = ImageChops.lighter(mouth_union, ImageChops.multiply(mouth_motion, allowed_mouth))
         # 眼區讓位：嘴自己會動的地方（外擴 MARGIN、且在嘴區的允許範圍內）交給嘴貼片接手，眼區
@@ -329,7 +325,7 @@ def main() -> int:
         # 只讓「嘴區確實吃得下」的像素（∩ allowed_mouth ∧ 在 mouth_union 外擴 MARGIN 內），不留破洞。
         allowed_eye = ImageChops.multiply(
             allowed_eye, ImageChops.invert(ImageChops.multiply(dilate(mouth_motion, MARGIN), allowed_mouth)))
-        print(f"表情自身運動：眼軸 {count(eye_motion)} px｜嘴軸 {count(mouth_motion)} px（各自併進對應區）")
+        print(f"expression's own motion: eye axis {count(eye_motion)} px | mouth axis {count(mouth_motion)} px (each merged into its region)")
 
     eye_zone = ImageChops.multiply(feather(close_and_dilate(eye_union)), allowed_eye)
     # 嘴區再扣掉眼區已佔像素（兩區中間那幾像素帶兩邊都「允許」，得有人讓）：
@@ -339,7 +335,7 @@ def main() -> int:
     overlap = count(ImageChops.multiply(eye_zone.point(lambda v: 255 if v > 0 else 0),
                                         mouth_zone.point(lambda v: 255 if v > 0 else 0)))
     if overlap:
-        print(f"FAIL: 眼區與嘴區仍重疊 {overlap} px（不應發生，請回報此問題）")
+        print(f"FAIL: the eye and mouth regions still overlap by {overlap} px (should not happen; please report it)")
         return 1
 
     result = {"id": args.name, "label": args.label, "size": [W, H], "eyes": {}, "mouth": {},
@@ -366,12 +362,12 @@ def main() -> int:
                 patch.save(o / fn, "WEBP", lossless=True, quality=100, method=6)
         # 底色區沒有「基準區」要蓋（它蓋的是底圖各幀都一模一樣的臉頰），跳過蓋滿檢查
         if tag == "static":
-            print(f"  → {fn}  alpha bbox {alpha.getbbox()}  （底色區不做基準區蓋滿檢查）")
+            print(f"  -> {fn}  alpha bbox {alpha.getbbox()}  (tint patch: no coverage check against a reference box)")
             return fn, 0
         # 蓋滿檢查：基準區每個像素在貼片裡都必須不透明（≥240 視為不透明）
         base_zone = eye_base if tag.startswith("eye") else mouth_base
         holes = count(ImageChops.multiply(base_zone, alpha.point(lambda v: 255 if v < 240 else 0)))
-        print(f"  → {fn}  alpha bbox {alpha.getbbox()}  基準區未蓋滿像素 {holes}  {'PASS' if holes == 0 else 'FAIL'}")
+        print(f"  -> {fn}  alpha bbox {alpha.getbbox()}  reference-box pixels left uncovered {holes}  {'PASS' if holes == 0 else 'FAIL'}")
         return fn, holes
 
     # 只交一張＝這個表情就只有一態（不管檔名帶不帶角色），鍵一律 any——引擎退化鏈的最後
@@ -396,9 +392,9 @@ def main() -> int:
     static_fn = None
     static_zone = None
     if args.eyes_only:
-        print("底色區：--eyes-only＝只換眉眼，跳過（嘴區／底色差異視為整臉微抖、不凍住）")
+        print("tint region: --eyes-only, skipped (mouth and tint differences count as whole-face jitter and are not frozen)")
     elif ref is None:
-        print("底色區：沒有基準張（眼開＋嘴 0 那張），跳過")
+        print("tint region: no reference image (eyes open, mouth 0), skipped")
     else:
         static_raw = ImageChops.multiply(diff_mask(flat(ref.im), A, STATIC_THRESH), face_mask)
         static_raw = ImageChops.subtract(static_raw, eye_zone.point(lambda v: 255 if v > 0 else 0))
@@ -411,14 +407,14 @@ def main() -> int:
             static_raw = ImageChops.subtract(static_raw, dilate(mouth_base, MARGIN))
         n_static = count(static_raw)
         if n_static >= STATIC_MIN_PX:
-            print(f"底色區：{ref.path.name} vs 底圖 A 在臉框內有 {n_static} px 低門檻(>{STATIC_THRESH}) 差異 → 切 static 貼片")
+            print(f"tint region: {ref.path.name} vs base A differs by {n_static} px inside the face box at the low threshold (>{STATIC_THRESH}); cutting a static patch")
             static_zone = static_raw.filter(ImageFilter.MaxFilter(25)).filter(ImageFilter.MinFilter(25))
             static_zone = ImageChops.multiply(feather(dilate(static_zone, MARGIN)), face_mask)
             static_fn, _ = cut(ref.im, static_zone, "static")
             result["static"] = static_fn
             result["zoneStatic"] = static_zone.getbbox()
         else:
-            print(f"底色區：臉框內低門檻(>{STATIC_THRESH}) 差異只有 {n_static} px（< {STATIC_MIN_PX}）＝沒有底色區，不出貼片")
+            print(f"tint region: only {n_static} px differ inside the face box at the low threshold (>{STATIC_THRESH}) (< {STATIC_MIN_PX}); no tint region, no patch")
     if args.blush == "builtin":
         result["blush"] = "builtin"
 
@@ -435,7 +431,7 @@ def main() -> int:
     if static_zone is not None:
         covered = ImageChops.lighter(covered, static_zone.point(lambda v: 255 if v > 0 else 0))
     if not result["eyes"] and not result["mouth"] and not static_fn:
-        print("FAIL: 這個表情一張貼片都沒切出來（眼 0 態／嘴 0 態／無底色區）——空表情不寫進 manifest")
+        print("FAIL: this expression produced no patch at all (0 eye states, 0 mouth states, no tint region); an empty expression is not written to the manifest")
         return 1
     for s in srcs:
         miss = ImageChops.subtract(diff_mask(flat(s.im), A), covered)
@@ -445,7 +441,7 @@ def main() -> int:
             ignored = ImageChops.subtract(miss, eye_reach.point(lambda v: 255 if v > 0 else 0))
             n_ign = count(ignored)
             if n_ign:
-                print(f"  --eyes-only 忽略 {s.path.name} 眼區外差異 {n_ign} px bbox {ignored.getbbox()}（不切不接、算進還原殘差）")
+                print(f"  --eyes-only: ignoring {s.path.name} differences outside the eye region, {n_ign} px, bbox {ignored.getbbox()} (not cut, not covered, counted into the rebuild residual)")
             miss = ImageChops.subtract(miss, ignored)
         n_miss = count(miss)
         if n_miss:
@@ -454,11 +450,11 @@ def main() -> int:
             # < STATIC_MIN_PX ＝印警告放行、算進還原殘差（殘差上限仍是最後一道門）。
             core = miss.filter(ImageFilter.MinFilter(SPECK_CORE))
             if count(core) == 0 and n_miss < STATIC_MIN_PX:
-                print(f"  WARN: {s.path.name} 零星未接住 {n_miss} px bbox {miss.getbbox()}（無 ≥{SPECK_CORE}×{SPECK_CORE} 成塊＝生成微抖，"
-                      f"不切不接、算進還原殘差）")
+                print(f"  WARN: {s.path.name} has {n_miss} px of scattered uncovered change, bbox {miss.getbbox()} (no solid block of {SPECK_CORE}x{SPECK_CORE} or more = generator jitter, "
+                      f"not cut, not covered, counted into the rebuild residual)")
                 continue
-            print(f"FAIL: {s.path.name} 臉框內變動未被任何貼片接住 bbox {miss.getbbox()}（{n_miss} px，成塊 {count(core)} px）"
-                  f"——那塊會直接露出底圖原樣；請確認改動落在眉眼／嘴，或底色區量夠大（≥ {STATIC_MIN_PX} px）")
+            print(f"FAIL: {s.path.name} has change inside the face box that no patch covers, bbox {miss.getbbox()} ({n_miss} px, solid {count(core)} px); "
+                  f"that area would show the base frame through. Check that the change sits on the eyes or the mouth, or that the tint region is large enough (>= {STATIC_MIN_PX} px)")
             return 1
 
     eyes_n, mouth_n = len(result["eyes"]), len(result["mouth"])
@@ -487,8 +483,8 @@ def main() -> int:
         return m.get(state) or (m.get("2") if state == "1" else None) or m.get("any")
 
     limit = 0.0005 * W * H
-    print(f"逐張還原驗證（眼 {eyes_n} 態／嘴 {mouth_n} 態／底色 {'有' if static_fn else '無'}｜"
-          f">24 殘差上限 {int(limit)} px）：")
+    print(f"rebuilding each source image (eyes {eyes_n} states / mouth {mouth_n} states / tint {'yes' if static_fn else 'no'} | "
+          f"residual limit over 24: {int(limit)} px):")
     for s in srcs:
         comp = flat(base(s.letter)).convert("RGBA")
         for fn in (static_fn, pick_eye(s.eye_role or "open"), pick_mouth(s.mouth_role or "0")):
@@ -498,7 +494,7 @@ def main() -> int:
         r24 = count(dr.point(lambda v: 255 if v > THRESH else 0))
         r8 = count(dr.point(lambda v: 255 if v > 8 else 0))
         ok = r24 <= limit
-        print(f"  還原 {s.path.name}：殘差 {r24} px（>24）／{r8} px（>8）  {'PASS' if ok else 'FAIL'}")
+        print(f"  rebuild {s.path.name}: residual {r24} px (>24) / {r8} px (>8)  {'PASS' if ok else 'FAIL'}")
         if not ok:
             failed = True
 
@@ -508,7 +504,7 @@ def main() -> int:
     # 拿一批沒過驗證的貼片上場；json 一寫，試妝間也會把壞掉的狀態當正式資料。宣告不寫＝引擎
     # 看不到這個表情，跟沒切過一樣安全；貼片檔留在 --out 資料夾給人工檢視根因，不影響安全性。
     if failed:
-        print("RESULT: FAIL——不寫 json／不合併 manifest（貼片檔已落地可檢視，宣告未寫＝引擎看不到）")
+        print("RESULT: FAIL. json not written, manifest not merged (the patch files are on disk for inspection; with no declaration the engine never sees them)")
         return 1
 
     for o in outs:

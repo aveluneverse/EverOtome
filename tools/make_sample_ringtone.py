@@ -34,7 +34,7 @@ def build() -> AudioSegment:
 def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     build().export(OUT, format="mp3", bitrate="64k")
-    print(f"OK: 2 秒合成鈴聲佔位檔 → {OUT}")
+    print(f"OK: 2-second synthetic placeholder ringtone -> {OUT}")
 
 
 if __name__ == "__main__":

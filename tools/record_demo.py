@@ -156,20 +156,20 @@ def parse_args(argv):
     while i < len(argv):
         if argv[i] == "--lang":
             if i + 1 >= len(argv):
-                raise SystemExit("[abort] --lang 需要接語系代碼，如 --lang en")
+                raise SystemExit("[abort] --lang needs a locale code, e.g. --lang en")
             lang = argv[i + 1]
             i += 2
             continue
         if argv[i] == "--out":
             if i + 1 >= len(argv):
-                raise SystemExit("[abort] --out 需要接資料夾路徑，如 --out recordings/0819")
+                raise SystemExit("[abort] --out needs a folder path, e.g. --out recordings/0819")
             out = argv[i + 1]
             i += 2
             continue
         rest.append(argv[i])
         i += 1
     if lang is not None and lang not in LANG_ALLOWLIST:
-        raise SystemExit(f"[abort] 不支援的語系代碼 {lang!r}（可用：{'/'.join(LANG_ALLOWLIST)}）")
+        raise SystemExit(f"[abort] unsupported locale code {lang!r} (available: {'/'.join(LANG_ALLOWLIST)})")
     only = rest[0] if rest else None
     return only, only == "--shots", lang, out
 
@@ -213,7 +213,7 @@ def main():
     if shots_only:
         only = None
     if only is not None and only not in SEGMENTS:
-        raise SystemExit(f"[abort] 未知段名 {only!r}（可用：{'/'.join(SEGMENTS)} 或 --shots）")
+        raise SystemExit(f"[abort] unknown segment {only!r} (available: {'/'.join(SEGMENTS)} or --shots)")
     targets = {} if shots_only else {k: v for k, v in SEGMENTS.items() if only is None or k == only}
 
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -228,7 +228,7 @@ def main():
     try:
         time.sleep(1.5)
         if serve.poll() is not None:
-            raise SystemExit(f"[abort] serve.py 起不來（port {PORT} 被占？）")
+            raise SystemExit(f"[abort] serve.py did not start (is port {PORT} in use?)")
 
         results = []
         with sync_playwright() as p:
@@ -295,7 +295,7 @@ def main():
                     print(f"[{seg}/{tag}] FAILED: {e}")
                     continue
 
-        print("\n=== 錄影完成 ===")
+        print("\n=== recording done ===")
         for seg, tag, path, size, noise in results:
             if path is None:
                 print(f"[{seg}/{tag}] FAILED  {noise}")
@@ -304,7 +304,7 @@ def main():
             if noise:
                 print(f"  ⚠ console errors ({len(noise)}): {noise[:3]}")
             else:
-                print("  console 乾淨")
+                print("  console clean")
     finally:
         serve.terminate()
         try:

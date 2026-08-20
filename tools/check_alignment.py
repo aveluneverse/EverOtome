@@ -39,11 +39,11 @@ def load_set(d: Path, names: list):
     for n in names:
         matches = [p for ext in ("png", "webp") for p in [d / f"{n}.{ext}"] if p.exists()]
         if not matches:
-            print(f"FAIL: 缺 {n}.png/.webp"); sys.exit(1)
+            print(f"FAIL: missing {n}.png/.webp"); sys.exit(1)
         imgs[n] = Image.open(matches[0]).convert("RGBA")
     sizes = {im.size for im in imgs.values()}
     if len(sizes) != 1:
-        print(f"FAIL: 尺寸不一致 {sizes}"); sys.exit(1)
+        print(f"FAIL: frame sizes differ: {sizes}"); sys.exit(1)
     return imgs
 
 def diff_mask(a: Image.Image, b: Image.Image):
@@ -71,7 +71,7 @@ def main():
             m = diff_mask(imgs["A"], imgs[n])
             outside = ImageChops.subtract(m, legal)
             rate = sum(1 for v in outside.getdata() if v) / total
-            print(f"{n} vs A 區外差異率: {rate:.4%}")
+            print(f"{n} vs A, change outside the eye and mouth boxes: {rate:.4%}")
             if rate > threshold:
                 failed.append(n)
     else:
@@ -89,15 +89,14 @@ def main():
             legal = legal.filter(ImageFilter.MaxFilter(5))  # 膨脹 2px 吃掉邊緣抗鋸齒
             outside = ImageChops.subtract(diffs[n], legal)
             rate = sum(1 for v in outside.getdata() if v) / total
-            print(f"{n} vs A 區外差異率: {rate:.4%}")
+            print(f"{n} vs A, change outside the eye and mouth boxes: {rate:.4%}")
             if rate > threshold:
                 failed.append(n)
 
     if failed:
-        print(f"FAIL: {'、'.join(failed)} 眼嘴區外有變動，這幾張要重生")
+        print(f"FAIL: {', '.join(failed)} changed outside the eye and mouth boxes; regenerate these frames")
         sys.exit(1)
-    count_word = {6: "六", 9: "九"}.get(len(names), str(len(names)))
-    print(f"PASS: {count_word}張對齊乾淨")
+    print(f"PASS: all {len(names)} frames aligned")
     sys.exit(0)
 
 if __name__ == "__main__":

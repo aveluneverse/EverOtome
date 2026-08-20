@@ -71,8 +71,8 @@ def main() -> int:
     svg = SRC.read_text(encoding="utf-8")
     for role, color in SRC_COLORS.items():
         if color not in svg:
-            print(f"[FAIL] 原框件找不到 {role} 色 {color}——框件被改過？"
-                  f"先更新 SRC_COLORS 再跑。")
+            print(f"[FAIL] source frame does not contain the {role} color {color}; was the frame edited? "
+                  f"Update SRC_COLORS first, then rerun.")
             return 1
     for theme_id, colors in THEMES.items():
         out_svg = svg
