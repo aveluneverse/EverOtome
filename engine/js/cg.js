@@ -510,7 +510,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     }
   }
 
-  function buildManageCard(item) {
+  function buildManageCard(item, isFirst, isLast) {
     // 語系以卡片建構當下為準：預填值（shownName／shownDesc）跟儲存時寫入的鍵是同
     // 一個語系——管理態中切語系不重繪（見 onLocaleChange 訂閱），輸入框裡仍是建構
     // 當下語系的字，儲存就該寫回那個語系，不能改用儲存瞬間的 getLocale()。
@@ -523,6 +523,9 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
 
     // 排序欄（↑↓ 移到每列最前面＝「抓著整列上下移」的直覺；
     // 原本混在右側動作欄裡、跟儲存/刪除擠一起沒有調順序的感覺）
+    // 組內邊界熄鈕：組內第一張的 ↑、最後一張的 ↓ 直接 disabled——「不能再上
+    // ／下了」看得見，不必按了等半秒換一句失敗提示（backend 對邊界回 404 仍
+    // 在，當程式性呼叫的防線）。
     const reorder = document.createElement("div");
     reorder.className = "cg-manage-reorder";
 
@@ -530,6 +533,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     upBtn.type = "button";
     upBtn.className = "cg-manage-up";
     upBtn.textContent = "↑";
+    upBtn.disabled = !!isFirst;
     upBtn.setAttribute("aria-label", t("cg.moveUp", { name: label }));
     upBtn.addEventListener("click", () => {
       runManageOp({ op: "reorder", id: item.id, direction: "up" }, upBtn);
@@ -540,6 +544,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     downBtn.type = "button";
     downBtn.className = "cg-manage-down";
     downBtn.textContent = "↓";
+    downBtn.disabled = !!isLast;
     downBtn.setAttribute("aria-label", t("cg.moveDown", { name: label }));
     downBtn.addEventListener("click", () => {
       runManageOp({ op: "reorder", id: item.id, direction: "down" }, downBtn);
@@ -673,6 +678,12 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
       // 會把已經換上的真檔名蓋回「（未選擇）」（同 app.js markActive 既有慣例）。
       if (f) { pickName.textContent = f.name; delete pickName.dataset.i18n; }
       else tEl(pickName, "cg.noFile");
+      // 防呆：未選圖＝上傳鈕熄著不可按（disabled 半透明），選了才亮——「按了
+      // 沒反應」的原路徑（提示渲染在清單底端可視區外＋自動消失）物理上拆除。
+      // handler 內 if (!file) 防禦保留，當程式性呼叫的最後一道防線。uploadBtn
+      // 宣告在下方——這裡是事件 handler、觸發時它早已存在（closure），不是
+      // 建構期取用。
+      uploadBtn.disabled = !f;
     });
     row.appendChild(pickName);
 
@@ -693,6 +704,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     uploadBtn.type = "button";
     uploadBtn.className = "cg-manage-upload-btn";
     tEl(uploadBtn, "cg.upload");
+    uploadBtn.disabled = true; // 防呆初始態：未選圖不可按（見上方 change handler）
     uploadBtn.addEventListener("click", async () => {
       clearHint();
       const file = fileInput.files && fileInput.files[0];
@@ -804,7 +816,8 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     list.className = "cg-manage-list";
     manageItems
       .filter((it) => it.target === manageTab) // 清單只列當前 TAB 組（雙軌制）
-      .forEach((item) => list.appendChild(buildManageCard(item)));
+      .forEach((item, i, arr) =>
+        list.appendChild(buildManageCard(item, i === 0, i === arr.length - 1)));
     stage.appendChild(list);
   }
 

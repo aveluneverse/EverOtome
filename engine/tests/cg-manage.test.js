@@ -362,6 +362,7 @@ describe("CG 管理態", () => {
     const fileInput = document.querySelector(".cg-manage-upload-file");
     const file = new File([new Uint8Array(4)], "bad.txt", { type: "text/plain" });
     Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fileInput.dispatchEvent(new Event("change"));
     document.querySelector(".cg-manage-upload-name").value = "新場景";
     document.querySelector(".cg-manage-upload-btn").click();
     await flush();
@@ -413,6 +414,7 @@ describe("CG 管理態", () => {
     const fileInput = document.querySelector(".cg-manage-upload-file");
     const file = new File([new Uint8Array(4)], "huge.png", { type: "image/png" });
     Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fileInput.dispatchEvent(new Event("change"));
     document.querySelector(".cg-manage-upload-btn").click();
     await flush();
     expect(document.querySelector(".cg-send-hint").textContent).toBe("（檔案超過 20MB）");
@@ -434,12 +436,13 @@ describe("CG 管理態", () => {
     const fileInput = document.querySelector(".cg-manage-upload-file");
     const file = new File([new Uint8Array(4)], "ok.png", { type: "image/png" });
     Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fileInput.dispatchEvent(new Event("change"));
     document.querySelector(".cg-manage-upload-btn").click();
     await flush();
     expect(document.querySelector(".cg-send-hint").textContent).toBe("（上傳沒有成功，稍後再試一次）");
   });
 
-  it("上傳：沒選檔案就按上傳＝誠實提示，完全不打 fetch", async () => {
+  it("未選圖＝上傳鈕熄著（防呆）：click 無效、無提示、完全不打 fetch", async () => {
     const presenter = makePresenter();
     global.fetch = fetchStub({
       "GET /api/v4/cg/manage": { items: [] },
@@ -449,10 +452,12 @@ describe("CG 管理態", () => {
     });
     panel.open();
     await panel.enterManage();
+    const uploadBtn = document.querySelector(".cg-manage-upload-btn");
+    expect(uploadBtn.disabled).toBe(true); // 還沒選圖＝不可按（handler 內 if (!file) 防禦仍在，當程式性呼叫最後防線）
     const callsBefore = global.fetch.mock.calls.length;
-    document.querySelector(".cg-manage-upload-btn").click();
+    uploadBtn.click(); // disabled 鈕：瀏覽器不派發 click handler
     await flush();
-    expect(document.querySelector(".cg-send-hint").textContent).toBe("（請先選一張圖片）");
+    expect(document.querySelector(".cg-send-hint").textContent).toBe(""); // 沒有「請先選圖」提示——路徑物理上不存在
     expect(global.fetch.mock.calls.length).toBe(callsBefore);
   });
 
@@ -476,6 +481,7 @@ describe("CG 管理態", () => {
     const fileInput = document.querySelector(".cg-manage-upload-file");
     const file = new File([new Uint8Array(4)], "new.png", { type: "image/png" });
     Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fileInput.dispatchEvent(new Event("change"));
     document.querySelector(".cg-manage-upload-name").value = "新場景";
     document.querySelector(".cg-manage-upload-desc").value = "新描述";
     document.querySelector(".cg-manage-upload-btn").click();
@@ -682,6 +688,7 @@ describe("CG 管理態", () => {
       const fileInput = document.querySelector(".cg-manage-upload-file");
       const file = new File([new Uint8Array(4)], "m.png", { type: "image/png" });
       Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+      fileInput.dispatchEvent(new Event("change"));
       const uploadBtn = document.querySelector(".cg-manage-upload-btn");
       uploadBtn.click();
       await Promise.resolve(); // 讓 handler 走進 fetch await
@@ -690,12 +697,12 @@ describe("CG 管理態", () => {
       resolveUpload();
       await flush();
       const fresh = document.querySelector(".cg-manage-upload-btn");
-      expect(fresh.disabled).toBe(false);
+      expect(fresh.disabled).toBe(true); // 整列重建＝回防呆初始態（未選圖熄著），不是 busy 殘留
       expect(fresh.classList.contains("is-busy")).toBe(false);
     });
 
     it("操作進行中按「<」回視圖態：落地的 refreshManage 不把畫面蓋回管理態（mode guard）", async () => {
-      const d = deferredPostFetch([mkItem("cg-1", "月夜床帳", { opening: true })]);
+      const d = deferredPostFetch([mkItem("cg-1", "月夜床帳", { opening: true }), mkItem("cg-2", "窗邊", { order: 1 })]);
       const panel = await openManageWith(d.fn);
       document.querySelector(".cg-manage-down").click(); // POST 掛起中
       await panel.exitManage();                          // 先回視圖態
@@ -712,7 +719,7 @@ describe("CG 管理態", () => {
         const method = (opts.method || "GET").toUpperCase();
         if (method === "GET" && url.endsWith("/manage")) {
           if (postSeen) return { ok: false, status: 500 }; // POST 之後的重抓失敗
-          return { ok: true, status: 200, json: async () => ({ items: [mkItem("cg-1", "月夜床帳", { opening: true })] }) };
+          return { ok: true, status: 200, json: async () => ({ items: [mkItem("cg-1", "月夜床帳", { opening: true }), mkItem("cg-2", "窗邊", { order: 1 })] }) };
         }
         if (method === "POST" && url.endsWith("/manage")) {
           postSeen = true;
@@ -729,6 +736,43 @@ describe("CG 管理態", () => {
       expect(document.activeElement).toBe(downBtn);               // 焦點還回原鈕
       expect(document.querySelector(".cg-send-hint").textContent)
         .toBe("（改好了，但畫面更新沒跟上——關掉重開面板看最新）"); // 全字串釘住：不可與「沒有成功」訊息互換
+    });
+
+    it("上傳防呆三態：初始 disabled、選檔亮起、清空退回熄滅", async () => {
+      await openManageWith(fetchStub({ "GET /api/v4/cg/manage": { items: [] } }));
+      const uploadBtn = document.querySelector(".cg-manage-upload-btn");
+      const fileInput = document.querySelector(".cg-manage-upload-file");
+      expect(uploadBtn.disabled).toBe(true); // 未選圖＝熄著不可按
+      const file = new File([new Uint8Array(4)], "ok.png", { type: "image/png" });
+      Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+      fileInput.dispatchEvent(new Event("change"));
+      expect(uploadBtn.disabled).toBe(false); // 選了才亮
+      Object.defineProperty(fileInput, "files", { value: [], configurable: true });
+      fileInput.dispatchEvent(new Event("change"));
+      expect(uploadBtn.disabled).toBe(true); // 清掉退回熄滅
+    });
+
+    it("組內排序邊界熄鈕：第一張 ↑ 熄、最後一張 ↓ 熄、中間全亮；單張兩顆全熄", async () => {
+      await openManageWith(fetchStub({ "GET /api/v4/cg/manage": { items: [
+        mkItem("cg-1", "第一張", { opening: true }),
+        mkItem("cg-2", "中間張", { order: 1 }),
+        mkItem("cg-3", "最後張", { order: 2 }),
+      ] } }));
+      const ups = document.querySelectorAll(".cg-manage-up");
+      const downs = document.querySelectorAll(".cg-manage-down");
+      expect(Array.from(ups).map((b) => b.disabled)).toEqual([true, false, false]);
+      expect(Array.from(downs).map((b) => b.disabled)).toEqual([false, false, true]);
+
+      // 單張＝組內既是第一也是最後：↑↓ 全熄
+      document.body.innerHTML = '<div id="cg-root"></div>';
+      global.fetch = fetchStub({ "GET /api/v4/cg/manage": { items: [mkItem("cg-9", "獨張", { opening: true })] } });
+      const panel = buildCgPanel(document.getElementById("cg-root"), makePresenter(), {
+        send: () => {}, endpointBase: "/api/v4/cg",
+      });
+      panel.open();
+      await panel.enterManage();
+      expect(document.querySelector(".cg-manage-up").disabled).toBe(true);
+      expect(document.querySelector(".cg-manage-down").disabled).toBe(true);
     });
   });
 
@@ -953,6 +997,7 @@ describe("CG 管理態", () => {
       const fileInput = document.querySelector(".cg-manage-upload-file");
       const file = new File([new Uint8Array(4)], "m.png", { type: "image/png" });
       Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+      fileInput.dispatchEvent(new Event("change"));
       document.querySelector(".cg-manage-upload-btn").click();
       await flush();
       expect(uploadCall.body.get("target")).toBe("mobile");

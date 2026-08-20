@@ -196,6 +196,8 @@ Management operations (`POST {cgEndpoint}/manage`, JSON):
 { "op": "set_opening", "id": "..." }
 ```
 
+`reorder` swaps the item with its nearest neighbor **in the same `target` group**, scanning past items of the other group so their relative order never changes (a global adjacent swap would silently trade places with an invisible item from the other group). When the item is already at its group's edge in that direction, respond `404`; the shell disables the edge buttons, so only programmatic calls reach that case.
+
 `edit` sends `name` and `desc` back in the shape they arrived: a plain string comes back as a plain string; per-language names come back as the same object with the language in use updated, and a language the card did not carry is added only when the text was actually changed.
 
 `set_opening` must act as a mutually exclusive selection (radio behavior) within the item's `target` group: setting one opening scene unsets the group's previous one. Keep exactly one opening scene per group. If the current opening scene gets deleted, promote another item before you return `2xx`; the shell tolerates a group with no flag by falling back to the group's first item, but the album then looks arbitrary.
