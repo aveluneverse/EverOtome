@@ -587,6 +587,114 @@ describe("CG 管理態", () => {
     expect(document.querySelector(".cg-card")).toBe(null);            // 沒被視圖態蓋掉
   });
 
+  // ── 管理操作按鈕回饋 ──────────────────────────────────────────────────────
+  // server-confirm 設計（POST＋GET 兩趟往返）下按鈕零回饋，部署遠端時看起來
+  // 像按了沒反應。觸發鈕 disabled＋is-busy＋aria-busy 直到操作結束；資料流
+  // 不動（不做樂觀 UI）。附帶單飛（opBusy）：一次一單，busy 中點其他操作鈕
+  // 忽略——防兩單併發賽出交錯的 refreshManage。
+  describe("管理操作按鈕回饋", () => {
+    // POST 可手動放行的假伺服器：驗「進行中」的按鈕態需要卡住 POST 不讓它秒回。
+    function deferredPostFetch(items) {
+      let resolvePost = null;
+      const fn = vi.fn(async (url, opts = {}) => {
+        const method = (opts.method || "GET").toUpperCase();
+        if (method === "GET" && url.endsWith("/manage")) {
+          return { ok: true, status: 200, json: async () => ({ items }) };
+        }
+        if (method === "POST" && url.endsWith("/manage")) {
+          return new Promise((r) => {
+            resolvePost = () => r({ ok: true, status: 200, json: async () => ({ ok: true }) });
+          });
+        }
+        return { ok: false, status: 404 };
+      });
+      return { fn, resolve: () => resolvePost && resolvePost() };
+    }
+
+    async function openManageWith(fetchImpl) {
+      const presenter = makePresenter();
+      global.fetch = fetchImpl;
+      const panel = buildCgPanel(document.getElementById("cg-root"), presenter, {
+        send: () => {}, endpointBase: "/api/v4/cg",
+      });
+      panel.open();
+      await panel.enterManage();
+      return panel;
+    }
+
+    it("排序進行中：觸發鈕 disabled＋is-busy＋aria-busy；成功後整團重繪、新鈕復原", async () => {
+      const d = deferredPostFetch([mkItem("cg-1", "月夜床帳", { opening: true }), mkItem("cg-2", "窗邊", { order: 1 })]);
+      await openManageWith(d.fn);
+      const downBtn = document.querySelectorAll(".cg-manage-down")[0];
+      downBtn.click();
+      expect(downBtn.disabled).toBe(true);
+      expect(downBtn.classList.contains("is-busy")).toBe(true);
+      expect(downBtn.getAttribute("aria-busy")).toBe("true");
+      d.resolve();
+      await flush();
+      const fresh = document.querySelectorAll(".cg-manage-down")[0];
+      expect(fresh.disabled).toBe(false);
+      expect(fresh.classList.contains("is-busy")).toBe(false);
+    });
+
+    it("操作單飛：busy 中點其他操作鈕＝忽略，整輪只發一單 POST", async () => {
+      const d = deferredPostFetch([mkItem("cg-1", "月夜床帳", { opening: true }), mkItem("cg-2", "窗邊", { order: 1 })]);
+      await openManageWith(d.fn);
+      document.querySelectorAll(".cg-manage-down")[0].click();
+      document.querySelectorAll(".cg-manage-up")[1].click();     // busy 中＝忽略
+      document.querySelector(".cg-flag-opening").click();         // busy 中＝忽略
+      const postCalls = d.fn.mock.calls.filter(([, o]) => o && o.method === "POST");
+      expect(postCalls.length).toBe(1);
+      d.resolve();
+      await flush();
+    });
+
+    it("操作失敗：同一顆鈕復原 enabled、is-busy／aria-busy 移除＋誠實提示", async () => {
+      await openManageWith(sequencedManageFetch(
+        [[mkItem("cg-1", "月夜床帳", { opening: true }), mkItem("cg-2", "窗邊", { order: 1 })]],
+        { postOk: false, postStatus: 500 },
+      ));
+      const downBtn = document.querySelectorAll(".cg-manage-down")[0];
+      downBtn.click();
+      await flush();
+      expect(downBtn.disabled).toBe(false);            // 失敗不重繪＝還是同一節點
+      expect(downBtn.classList.contains("is-busy")).toBe(false);
+      expect(downBtn.getAttribute("aria-busy")).toBe(null);
+      expect(document.querySelector(".cg-send-hint").textContent).not.toBe("");
+    });
+
+    it("上傳進行中：上傳鈕 disabled＋is-busy；成功後整列重建復原", async () => {
+      let resolveUpload = null;
+      const items = [mkItem("cg-1", "月夜床帳", { opening: true })];
+      const fetchImpl = vi.fn(async (url, opts = {}) => {
+        const method = (opts.method || "GET").toUpperCase();
+        if (method === "GET" && url.endsWith("/manage")) {
+          return { ok: true, status: 200, json: async () => ({ items }) };
+        }
+        if (method === "POST" && url.endsWith("/upload")) {
+          return new Promise((r) => {
+            resolveUpload = () => r({ ok: true, status: 200, json: async () => ({ ok: true }) });
+          });
+        }
+        return { ok: false, status: 404 };
+      });
+      await openManageWith(fetchImpl);
+      const fileInput = document.querySelector(".cg-manage-upload-file");
+      const file = new File([new Uint8Array(4)], "m.png", { type: "image/png" });
+      Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+      const uploadBtn = document.querySelector(".cg-manage-upload-btn");
+      uploadBtn.click();
+      await Promise.resolve(); // 讓 handler 走進 fetch await
+      expect(uploadBtn.disabled).toBe(true);
+      expect(uploadBtn.classList.contains("is-busy")).toBe(true);
+      resolveUpload();
+      await flush();
+      const fresh = document.querySelector(".cg-manage-upload-btn");
+      expect(fresh.disabled).toBe(false);
+      expect(fresh.classList.contains("is-busy")).toBe(false);
+    });
+  });
+
   // ── 多語卡名／描述（backend 契約：name／desc 是字串，或每語系一個的物件；同
   // config 主題／造型／家具 label 的既有做法）。殼用 pickLabel 依當前介面語系
   // 挑來顯示；儲存時保形送回——物件形＝原物件展開＋當前語系換新值（其他語系

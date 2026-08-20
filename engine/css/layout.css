@@ -1406,6 +1406,20 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
 .cg-manage-down:focus-visible,
 .cg-manage-delete:focus-visible,
 .cg-flag-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* 操作進行中：server-confirm 兩趟往返期間，觸發鈕半透明＋呼吸微滅＝「在忙」
+ * 的訊號（零回饋看起來像按了沒反應）。disabled 擋重點擊；動畫純視覺，
+ * reduced-motion 關動畫、留靜態半透明仍可辨識。 */
+.cg-manage-card button:disabled,
+.cg-manage-upload-btn:disabled { opacity: 0.55; cursor: progress; }
+.cg-manage-card button.is-busy,
+.cg-manage-upload-btn.is-busy { animation: cg-busy-pulse 0.9s ease-in-out infinite; }
+@keyframes cg-busy-pulse {
+  50% { opacity: 0.3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cg-manage-card button.is-busy,
+  .cg-manage-upload-btn.is-busy { animation: none; }
+}
 /* 就地二段確認武裝態（house 慣例）：借 --error 危險色，同 .photo-status.is-error
  * 既有語意——不生新色。 */
 .cg-manage-delete.is-armed {

@@ -462,14 +462,44 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
   }
 
   /** 編輯／刪除／排序／標記共用的執行器：先清舊提示、POST、成功才重新整團刷新，
-   * 失敗＝本地狀態不動＋誠實提示（no optimistic UI）。 */
-  async function runManageOp(body) {
+   * 失敗＝本地狀態不動＋誠實提示（no optimistic UI）。
+   *
+   * 按鈕回饋：server-confirm 兩趟往返（POST＋GET）期間按鈕零回饋，部署遠端時
+   * 看起來像按了沒反應。觸發鈕 disabled＋.is-busy＋aria-busy 直到操作結束——
+   * 資料流不動（不做樂觀 UI）。成功路徑 refreshManage 整團重繪＝觸發鈕節點
+   * 被丟棄，天然復原；失敗路徑節點還在，手動復原。opBusy 單飛：一次一單，
+   * busy 中點其他操作鈕直接忽略——防兩單併發賽出交錯的 refreshManage（跟
+   * enterManage/exitManage 的 switching 同款防重入慣例，分開兩顆 flag 是因為
+   * 生命週期不同：switching 管換態、opBusy 管管理態內的單筆操作）。 */
+  let opBusy = false;
+  async function runManageOp(body, btn) {
+    if (opBusy) return;
+    opBusy = true;
     clearHint();
-    const res = await postManage(body);
-    if (res && res.ok) {
-      await refreshManage();
-    } else {
-      showHint(t("cg.opFailed"));
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add("is-busy");
+      btn.setAttribute("aria-busy", "true");
+    }
+    let settled = false; // true＝成功且畫面已重繪（按鈕節點已是新的）
+    try {
+      const res = await postManage(body);
+      if (res && res.ok) {
+        await refreshManage(); // 這行 throw（POST 成功、GET 失敗）走 catch 復原
+        settled = true;
+      } else {
+        showHint(t("cg.opFailed"));
+      }
+    } catch (e) {
+      // 操作其實已成功、只是清單沒抓回來——訊息照實講，不謊報「沒成功」。
+      showHint(t("cg.opStale"));
+    } finally {
+      opBusy = false;
+      if (!settled && btn) {
+        btn.disabled = false;
+        btn.classList.remove("is-busy");
+        btn.removeAttribute("aria-busy");
+      }
     }
   }
 
@@ -495,7 +525,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     upBtn.textContent = "↑";
     upBtn.setAttribute("aria-label", t("cg.moveUp", { name: label }));
     upBtn.addEventListener("click", () => {
-      runManageOp({ op: "reorder", id: item.id, direction: "up" });
+      runManageOp({ op: "reorder", id: item.id, direction: "up" }, upBtn);
     });
     reorder.appendChild(upBtn);
 
@@ -505,7 +535,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     downBtn.textContent = "↓";
     downBtn.setAttribute("aria-label", t("cg.moveDown", { name: label }));
     downBtn.addEventListener("click", () => {
-      runManageOp({ op: "reorder", id: item.id, direction: "down" });
+      runManageOp({ op: "reorder", id: item.id, direction: "down" }, downBtn);
     });
     reorder.appendChild(downBtn);
 
@@ -549,7 +579,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
         id: item.id,
         name: mergeLabel(item.name, nameInput.value, loc, shownName),
         desc: mergeLabel(item.desc, descInput.value, loc, shownDesc),
-      });
+      }, saveBtn);
     });
     actions.appendChild(saveBtn);
 
@@ -561,7 +591,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     delBtn.addEventListener("click", () => {
       if (delBtn.classList.contains("is-armed")) {
         disarmDelete();
-        runManageOp({ op: "delete", id: item.id });
+        runManageOp({ op: "delete", id: item.id }, delBtn);
       } else {
         armDelete(delBtn);
       }
@@ -585,7 +615,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     openingBtn.setAttribute("aria-pressed", item.opening ? "true" : "false");
     openingBtn.setAttribute("aria-label", t("cg.setOpening", { name: label, group: groupLabel }));
     openingBtn.addEventListener("click", () => {
-      runManageOp({ op: "set_opening", id: item.id });
+      runManageOp({ op: "set_opening", id: item.id }, openingBtn);
     });
     flags.appendChild(openingBtn);
 
@@ -663,6 +693,15 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
         showHint(t("cg.pickFirst"));
         return;
       }
+      // 按鈕回饋＋單飛（同 runManageOp）：上傳是管理態最慢的一單，最需要
+      // 「它在忙」的訊號；共用同一顆 opBusy＝上傳中點排序（或反過來）一律
+      // 忽略，不賽。
+      if (opBusy) return;
+      opBusy = true;
+      uploadBtn.disabled = true;
+      uploadBtn.classList.add("is-busy");
+      uploadBtn.setAttribute("aria-busy", "true");
+      let settled = false; // true＝成功且整列已重建（上傳鈕節點已是新的）
       const fd = new FormData();
       fd.append("file", file, file.name || "cg.png");
       fd.append("name", nameInput.value);
@@ -670,25 +709,40 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
       // 雙軌制：上傳自動帶當前 TAB 的組別——backend 契約 target 可省
       //（預設 desktop），但明送讓歸屬顯式、不吃預設值的巧合。
       fd.append("target", manageTab);
-      let res;
       try {
-        res = await fetch(`${endpointBase}/upload`, {
-          method: "POST",
-          credentials: "same-origin",
-          body: fd,
-        });
-      } catch (e) {
-        showHint(t("cg.uploadFailed"));
-        return;
-      }
-      if (res.ok) {
-        await refreshManage(); // 重繪會連帶重建這個上傳列＝欄位天然清空
-      } else if (res.status === 400) {
-        showHint(t("cg.badType"));
-      } else if (res.status === 413) {
-        showHint(t("cg.tooLarge"));
-      } else {
-        showHint(t("cg.uploadFailed"));
+        let res;
+        try {
+          res = await fetch(`${endpointBase}/upload`, {
+            method: "POST",
+            credentials: "same-origin",
+            body: fd,
+          });
+        } catch (e) {
+          showHint(t("cg.uploadFailed"));
+          return;
+        }
+        if (res.ok) {
+          try {
+            await refreshManage(); // 重繪會連帶重建這個上傳列＝欄位天然清空
+            settled = true;
+          } catch (e) {
+            // 上傳其實已成功、清單沒抓回來——照實講（同 runManageOp）。
+            showHint(t("cg.uploadStale"));
+          }
+        } else if (res.status === 400) {
+          showHint(t("cg.badType"));
+        } else if (res.status === 413) {
+          showHint(t("cg.tooLarge"));
+        } else {
+          showHint(t("cg.uploadFailed"));
+        }
+      } finally {
+        opBusy = false;
+        if (!settled) {
+          uploadBtn.disabled = false;
+          uploadBtn.classList.remove("is-busy");
+          uploadBtn.removeAttribute("aria-busy");
+        }
       }
     });
     row.appendChild(uploadBtn);
