@@ -20,7 +20,7 @@
   "blush": "blush.webp",
   "expressions": {
     "smile": {
-      "label": "Smile",
+      "label": { "zh-Hant": "微笑", "en": "Smile" },
       "mode": "flash",
       "eyes": { "any": "expr/smile_eye_any.webp" },
       "mouth": {}

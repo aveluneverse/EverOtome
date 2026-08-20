@@ -551,7 +551,7 @@
   import { SpritePlayer } from "../js/sprite.js";
   import { ExpressionController } from "../js/expression.js";
   import { BlushController } from "../js/blush.js";
-  import { initI18n, t } from "../js/i18n.js";
+  import { initI18n, t, pickLabel } from "../js/i18n.js";
 
   // 語系判定越早跑越好：initI18n() 讀 ?lang=／localStorage／瀏覽器語言，設好 <html lang>
   // 並把上面標好 data-i18n／data-i18n-html／data-i18n-attr 的靜態字串套一次——此時
@@ -603,7 +603,7 @@
   blush.syncFrom(manifest, SET_PATH);
 
   // 表情鈕：manifest.expressions 有幾個就長幾顆（工具寫進去這頁就看得到，不用改這支）。
-  // 主標＝def.label || id，副標＝id 本身——那串 id 就是後端回覆要夾的 [expr:ID]。
+  // 主標＝pickLabel(def.label) || id（label 可為字串或 { "zh-Hant", "en" } 物件，同 config label），副標＝id 本身——那串 id 就是後端回覆要夾的 [expr:ID]。
   const defs = (!isStatic && manifest && manifest.expressions) || {};
   const rowExpr = document.getElementById("row-expr");
   for (const [id, def] of Object.entries(defs)) {
@@ -614,7 +614,7 @@
     b.setAttribute("aria-pressed", "false");
     const main = document.createElement("span");
     main.className = "choice-main";
-    main.textContent = (def && def.label) || id;
+    main.textContent = pickLabel(def && def.label) || id;
     const sub = document.createElement("span");
     sub.className = "choice-sub";
     sub.textContent = id;
@@ -675,7 +675,7 @@
     // 離開靜止態時亮。技術事實（模式在聊天室的時長／眼幾態／嘴幾態／底色／自帶紅暈）寫進
     // title，滑過去看得到，不擠單行。
     const mode = def ? (def.mode === "flash" ? "flash" : "sustain") : null;
-    const exprLabel = def ? (def.label || cur) : t("lab.neutral");
+    const exprLabel = def ? (pickLabel(def.label) || cur) : t("lab.neutral");
     const talkLabel = t(talking ? "lab.talking" : "lab.quiet");
     const blushLabel = t(blushLv === "2" ? "lab.blushDeep" : (blushLv === "1" ? "lab.blushMid" : "lab.blushNone"));
     const exprPart = mode ? t("lab.statusExpr", { label: exprLabel, mode }) : exprLabel;

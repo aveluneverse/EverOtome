@@ -149,7 +149,7 @@ Expressions are declared per appearance under `expressions`, keyed by id:
 Key by key:
 
 - The id of each entry (`smile`, `shy`) is what the backend refers to. It reaches the interface as `[expr:smile]` in the reply text, and is stripped before display like the blush marker.
-- `label` is a display name for the preview page. The engine itself does not read it.
+- `label` is a display name for the preview page: a string, or one per language, `{ "zh-Hant": "…", "en": "…" }`, the same shape as the labels in `config.json`. The engine itself does not read it.
 - `mode` is `"flash"` or `"sustain"`. Any other value, a misspelling and a missing key included, counts as `"sustain"`.
 - `eyes` and `mouth` map a face state to one patch file each. Paths are relative to `assetsPath`.
 - `static` is optional: a patch that stays on for as long as the expression does, drawn underneath the eye and mouth patches. Use it for a change that covers the rest of the face, such as a tint across both cheeks.
