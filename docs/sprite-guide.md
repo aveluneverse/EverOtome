@@ -194,6 +194,8 @@ python tools/gen_expression.py --name smile --label Smile \
 
 What it does: it measures which pixels the base frames actually move (A against D and G for the eyes, A against B and C for the mouth), derives the patch regions from that, cuts the eye and mouth pieces out of your image with a feathered edge, writes them into `--out`, and merges the `expressions.<name>` entry into every `--manifest` you list.
 
+The tool writes `label` as the plain string you pass; if the manifest entry already carries a per-language label object (like the bundled sample), re-running the tool overwrites it, so restore the object or edit the manifest afterwards.
+
 Point `--out` at a folder named `expr` inside the appearance folder. The manifest entry always writes file names with an `expr/` prefix, so that is where the engine will look for them. Alongside the patches the tool drops a `<name>.json` sidecar, a record of what it cut and where. The engine never reads it.
 
 The tool checks its own work. Each source image is rebuilt from its base frame plus the patches and compared against the original, and any change landing outside the eyes, the mouth and the face is reported by file name.

@@ -41,3 +41,8 @@ def test_lang_filter_writes_only_that_pair(tmp_path):
     assert _run("--out", str(tmp_path), "--lang", "en").returncode == 0
     names = sorted(p.name for p in tmp_path.iterdir())
     assert names == ["cg-safe-zone-desktop.png", "cg-safe-zone-mobile.png"]
+
+def test_explicit_missing_font_path_aborts(tmp_path):
+    r = _run("--out", str(tmp_path), "--font-cjk", str(tmp_path / "nope.ttf"))
+    assert r.returncode != 0
+    assert "[abort]" in (r.stdout + r.stderr)

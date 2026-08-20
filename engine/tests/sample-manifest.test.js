@@ -12,6 +12,7 @@ describe("sample manifest expression labels", () => {
     const entries = Object.entries(manifest.expressions || {});
     expect(entries.length).toBeGreaterThan(0);
     for (const [id, def] of entries) {
+      expect(def.label, `${id}.label must not be null`).not.toBeNull();
       expect(def.label, `${id}.label should be a per-language object`).toBeTypeOf("object");
       for (const loc of SUPPORTED_LOCALES) {
         expect(def.label[loc], `${id}.label.${loc}`).toBeTypeOf("string");

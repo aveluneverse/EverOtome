@@ -9,7 +9,9 @@ Usage:
   python tools/make_cg_safe_zone.py                   # all four files into docs/
   python tools/make_cg_safe_zone.py --out some/dir    # somewhere else
   python tools/make_cg_safe_zone.py --lang en         # only the English pair ("zh-Hant" for the Chinese pair)
-  python tools/make_cg_safe_zone.py --font-cjk C:/Windows/Fonts/msjh.ttc --font-latin C:/Windows/Fonts/arial.ttf
+  python tools/make_cg_safe_zone.py --font-cjk C:/Windows/Fonts/msjh.ttc --font-latin C:/Windows/Fonts/segoeui.ttf
+
+The committed PNGs in docs/ were rendered with segoeui.ttf (Latin) and msjh.ttc (CJK) on Windows; other fonts reproduce the layout but not the exact pixels.
 
 Output (into --out):
   cg-safe-zone-desktop.png, cg-safe-zone-mobile.png        English (the files docs/cg-guide.md embeds)
@@ -69,7 +71,7 @@ DESKTOP = {
     "labels": [
         ("side", "la", 200, 70, INK_PINK, 40),
         ("band", "la", 700, 70, INK_YELLOW, 38),
-        ("sweet", "ma", 832, 104, INK_GREEN, 44),
+        ("sweet", "ma", 832, 112, INK_GREEN, 44),
         ("dot", "la", 410, 468, INK_GREEN, 38),
         ("chatlog", "ma", 1962, 108, INK_PINK, 44),
         ("adv", "la", 350, 840, INK_ORANGE, 44),
@@ -171,7 +173,11 @@ LATIN_FONTS = [
 
 
 def find_font(explicit, candidates):
-    for p in ([explicit] if explicit else []) + candidates:
+    if explicit:
+        if not os.path.exists(explicit):
+            raise SystemExit(f"[abort] font not found: {explicit}")
+        return explicit
+    for p in candidates:
         if p and os.path.exists(p):
             return p
     return None
@@ -224,12 +230,12 @@ def main(argv=None):
     out.mkdir(parents=True, exist_ok=True)
     cjk = find_font(args.font_cjk, CJK_FONTS)
     latin = find_font(args.font_latin, LATIN_FONTS) or cjk
-    if cjk is None:
-        print("warning: no CJK font found; Chinese labels will use Pillow's default font (pass --font-cjk)", file=sys.stderr)
-    if latin is None:
-        print("warning: no font found; labels will use Pillow's default font (pass --font-latin)", file=sys.stderr)
 
     langs = ["en", "zh-Hant"] if args.lang == "all" else [args.lang]
+    if "zh-Hant" in langs and cjk is None:
+        raise SystemExit("[abort] no CJK font found; pass --font-cjk PATH (the zh-Hant labels would render blank)")
+    if latin is None:
+        raise SystemExit("[abort] no usable font found; pass --font-latin PATH")
     for lang in langs:
         font = cjk if lang == "zh-Hant" else latin
         for device, spec in (("desktop", DESKTOP), ("mobile", MOBILE)):
