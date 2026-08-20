@@ -1088,7 +1088,17 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
 .cg-sheet {
   width: min(56rem, 88vw);
   max-height: 78dvh;
+  /* 捲動範圍限制在頂排以下：sheet 本身不捲、改 flex 直欄，捲動交給
+   * .cg-stage——head／TAB 物理上在捲動區外，內容永遠捲不到字後面＝頂排
+   * 不需要鋪任何底（遮蔽底殺美感，任何情況不放）。提示（.cg-send-hint）
+   * 也因此天然固定在 sheet 底部可視區。 */
+  display: flex;
+  flex-direction: column;
+}
+.cg-stage {
   overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0; /* flex 子元素要能縮到內容以下，捲軸才會出現 */
   scrollbar-width: thin;
   scrollbar-color: var(--scroll-thumb) transparent;
 }
@@ -1107,7 +1117,10 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   transition: background 0.25s ease;
 }
 .cg-card:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
-.cg-card.is-active { outline: 2px solid var(--primary); }
+/* is-active 框畫在卡緣內側：外側 outline 在捲動容器 .cg-stage 邊界會被裁掉
+ * 邊——inset 框完整可見、跟著 border-radius 走、壓在原 1px border 上＝乾淨
+ * 的選中態；零布局變動。focus 框同理。 */
+.cg-card.is-active { outline: 2px solid var(--primary); outline-offset: -2px; }
 .cg-thumb {
   display: block;
   aspect-ratio: 16 / 9;
@@ -1121,7 +1134,7 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   color: var(--text);
   font-size: 0.95rem;
 }
-.cg-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cg-card:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 /* 送出失敗誠實提示：WS 斷線／重連中點卡送不出去時的面板內回饋——同
  * chat.css `.photo-status` 既有 idiom（淡字＋空字串零高度收合），不新增
  * 顏色，純沿用既有 --text-dim token。 */
@@ -1129,6 +1142,10 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   min-height: 1.1em;
   font-size: 0.78rem;
   color: var(--text-dim);
+  /* 提示可視性：hint 在捲動容器（.cg-stage）之外＝天然固定在 sheet 底部
+   * 可視區，捲到哪都看得到（可視性由結構保證、不靠 sticky／鋪底樣式）。
+   * :empty 收合照舊＝沒提示時零高度。 */
+  flex: 0 0 auto;
 }
 .cg-send-hint:empty { display: none; }
 
@@ -1151,6 +1168,7 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
    * 0.9rem 卡片間距＝呼吸感）。只動 .cg-sheet-head＝hasManage 為真才存在的
    * 包裹層，開源殼（無管理端點、heading 裸放）排版零影響。 */
   margin: 0 0 1.1rem;
+  flex: 0 0 auto; /* 頂排常駐：flex 直欄 sheet 的固定首排，捲動發生在 .cg-stage */
 }
 .cg-sheet-head .settings-heading { margin: 0 auto 0 0; }
 .cg-manage-btn,
@@ -1188,6 +1206,7 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   align-items: center;
   margin-bottom: 0.9rem;
 }
+.cg-pinned { flex: 0 0 auto; } /* 頂排固定槽：不參與捲動、不被壓縮 */
 .cg-manage-tab {
   border: 0;
   background: transparent;
@@ -1406,11 +1425,12 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
 .cg-manage-down:focus-visible,
 .cg-manage-delete:focus-visible,
 .cg-flag-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-/* 操作進行中：server-confirm 兩趟往返期間，觸發鈕半透明＋呼吸微滅＝「在忙」
- * 的訊號（零回饋看起來像按了沒反應）。disabled 擋重點擊；動畫純視覺，
- * reduced-motion 關動畫、留靜態半透明仍可辨識。 */
+/* 操作進行中：server-confirm 往返期間觸發鈕半透明＋呼吸微滅＝「在忙」的
+ * 訊號。滑鼠游標不變系統忙碌態（cursor 一律不動）。disabled 樣式獨立且
+ * 兼任「防呆熄鈕」（未選圖的上傳鈕、排序邊界鈕）＝靜態 0.55 半透明；
+ * reduced-motion：關動畫、留靜態半透明仍可辨識。 */
 .cg-manage-card button:disabled,
-.cg-manage-upload-btn:disabled { opacity: 0.55; cursor: progress; }
+.cg-manage-upload-btn:disabled { opacity: 0.55; }
 .cg-manage-card button.is-busy,
 .cg-manage-upload-btn.is-busy { animation: cg-busy-pulse 0.9s ease-in-out infinite; }
 @keyframes cg-busy-pulse {

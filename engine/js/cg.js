@@ -267,6 +267,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
   // renderView／renderManage 知道要不要碰它。
   let manageBtn = null;
   let backBtn = null;
+  let pinned = null; // 頂排固定槽（TAB 住這、在捲動容器外）——hasManage 才建
   let switching = false; // 換態進行中不收第二單
   // （enterManage/exitManage 都是 async——同 app.js 外觀面板既有的 switching
   // 慣例，防連點兩下賽出兩個併發 fetch）。
@@ -309,6 +310,14 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
         switching = false;
       }
     });
+
+    // 頂排固定槽（捲動範圍限制在頂排以下）：管理態 TAB 住這裡＝物理上在捲動
+    // 容器（.cg-stage）外，內容永遠捲不到頂排字的後面——不需要鋪任何底
+    // （遮蔽底殺美感；正解＝拆掉「需要底」的前提本身）。視圖態槽空、
+    // renderManage 放 TAB、renderView 清空。
+    pinned = document.createElement("div");
+    pinned.className = "cg-pinned";
+    sheet.appendChild(pinned);
   } else {
     sheet.appendChild(heading);
   }
@@ -387,6 +396,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     }
     if (backBtn) backBtn.hidden = true;        // 「<」只在管理態現身
     tEl(heading, "cg.title");
+    if (pinned) clearChildren(pinned);         // 視圖態＝固定槽清空（TAB 不殘留）
     clearChildren(stage);
     const grid = document.createElement("div");
     grid.className = "cg-grid";
@@ -809,8 +819,14 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     }
     if (backBtn) backBtn.hidden = false;
     tEl(heading, "cg.manage");
+    // TAB 放固定槽（不進 stage 捲動區）——每次重繪先清槽再放新的（同 stage
+    // clearChildren 慣例，不留舊節點）。renderManage 只在 hasManage 下被呼叫
+    // ＝pinned 邏輯上必在，null 檢查同 manageBtn 的防禦性寫法。
+    if (pinned) {
+      clearChildren(pinned);
+      pinned.appendChild(buildManageTabs());
+    }
     clearChildren(stage);
-    stage.appendChild(buildManageTabs());
     stage.appendChild(buildUploadRow());
     const list = document.createElement("div");
     list.className = "cg-manage-list";

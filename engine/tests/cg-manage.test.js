@@ -774,6 +774,23 @@ describe("CG 管理態", () => {
       expect(document.querySelector(".cg-manage-up").disabled).toBe(true);
       expect(document.querySelector(".cg-manage-down").disabled).toBe(true);
     });
+
+    it("分組 TAB 住 .cg-pinned 固定槽（捲動容器外）：切 TAB 不疊加、返回視圖態槽清空", async () => {
+      const panel = await openManageWith(fetchStub({
+        "GET /api/v4/cg/manage": { items: [
+          mkItem("cg-1", "月夜床帳", { opening: true }),
+          mkItem("cg-m1", "枕畔", { target: "mobile", opening: true }),
+        ] },
+      }));
+      const tabs = document.querySelector(".cg-manage-tabs");
+      expect(tabs.parentElement.className).toBe("cg-pinned");      // TAB 在固定槽
+      expect(tabs.closest(".cg-stage")).toBe(null);                 // 不在捲動容器內
+      document.querySelectorAll(".cg-manage-tab")[1].click();       // 切手機組（整團重繪）
+      expect(document.querySelectorAll(".cg-manage-tabs").length).toBe(1); // 槽先清再放＝不疊加
+      await panel.exitManage();
+      expect(document.querySelector(".cg-manage-tabs")).toBe(null); // 回視圖態 TAB 清掉
+      expect(document.querySelector(".cg-pinned").childNodes.length).toBe(0); // 槽本體留著、內容清空
+    });
   });
 
   // ── 多語卡名／描述（backend 契約：name／desc 是字串，或每語系一個的物件；同
@@ -1043,6 +1060,7 @@ describe("CG 管理態", () => {
       bare.open();
       expect(document.querySelector(".cg-back-btn")).toBe(null);
       expect(document.querySelector(".cg-sheet-head")).toBe(null);
+      expect(document.querySelector(".cg-pinned")).toBe(null); // 固定槽同 head：hasManage 才建
     });
 
     it("管理態：返回鈕現身、扳手隱藏（單一返回語意，不留兩顆做同件事的鈕）", async () => {

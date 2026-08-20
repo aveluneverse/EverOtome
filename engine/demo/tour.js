@@ -788,9 +788,9 @@ async function segCg({ msgsEl, ctx, adv }) {
 //    到清單尾 → 捲回頂 → 切手機組 → 返回相冊）────────────────────────────────
 // 8/18 需求：「進到 CG 後，去管理 CG 的地方下拉展示一下，讓觀眾知道可以在這裡管理 CG」。
 // 只展示不操作：mock 是靜態檔，POST 不會成功；畫面上不按儲存／刪除／上傳。
-// DOM 順序提醒（cg.js renderManage()）：stage 依序疊 TAB → 上傳列 → 卡片清單——
-// 上傳列在「頂」不在「底」，下拉捲到底看到的是清單最後幾張卡，節奏照這個真實
-// 順序走，不要憑直覺猜。
+// DOM 順序提醒（cg.js renderManage()）：TAB 住 .cg-pinned 固定槽（捲動區外
+// 常駐），捲動容器 .cg-stage 內依序疊上傳列 → 卡片清單——上傳列在「頂」不
+// 在「底」，下拉捲到底看到的是清單最後幾張卡，節奏照這個真實順序走。
 async function smoothScroll(el, to, ms) {
   const from = el.scrollTop;
   const t0 = performance.now();
@@ -835,16 +835,16 @@ async function segCgManage({ msgsEl, ctx }) {
   await sleep(1600);                   // 開場：房間＋立繪 idle
   panel.open();                        // 進相冊（視圖態：卡片＋開場景標記）
   await sleep(2600);
-  const sheet = panel.el.querySelector(".cg-sheet");
+  const stage = panel.el.querySelector(".cg-stage"); // 捲動容器（sheet 是 flex 直欄不捲）
   const wrench = panel.el.querySelector(".cg-manage-btn");
   if (wrench) wrench.click(); else await panel.enterManage();
   await waitFor(() => panel.el.querySelector(".cg-manage-list"), 3000); // 等清單真的渲染完再開始計時
   await sleep(2000);                   // 管理態首屏：分組 TAB＋上傳列＋前幾張卡（check png 落點）
-  if (sheet) {
-    await smoothScroll(sheet, sheet.scrollHeight - sheet.clientHeight, 4200); // 下拉展示：從上傳列一路捲到清單尾
+  if (stage) {
+    await smoothScroll(stage, stage.scrollHeight - stage.clientHeight, 4200); // 下拉展示：從上傳列一路捲到清單尾
     await sleep(1200);                 // 停在清單尾（最後幾張卡）
-    await smoothScroll(sheet, 0, 1400);
-    await sleep(1000);                 // 回到頂：分組 TAB＋上傳列再入鏡
+    await smoothScroll(stage, 0, 1400);
+    await sleep(1000);                 // 回到頂：TAB 常駐、上傳列再入鏡
   }
   const tabs = panel.el.querySelectorAll(".cg-manage-tab");
   if (tabs[1]) { tabs[1].click(); await sleep(2200); }   // 手機組（直式構圖那組）
