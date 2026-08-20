@@ -200,7 +200,7 @@ Management operations (`POST {cgEndpoint}/manage`, JSON):
 
 `edit` sends `name` and `desc` back in the shape they arrived: a plain string comes back as a plain string; per-language names come back as the same object with the language in use updated, and a language the card did not carry is added only when the text was actually changed.
 
-`set_opening` must act as a mutually exclusive selection (radio behavior) within the item's `target` group: setting one opening scene unsets the group's previous one. Keep exactly one opening scene per group. If the current opening scene gets deleted, promote another item before you return `2xx`; the shell tolerates a group with no flag by falling back to the group's first item, but the album then looks arbitrary.
+`set_opening` toggles the flag: one POST flips `opening` on that item and leaves every other item alone, so any number of items per group can carry it. The flag marks an **opening candidate**. The rules the flag encodes: while at least one candidate exists, the opening scene must come from the candidates. When a session enters the opening state with no scene set, pick one candidate (at random or by any policy) and write it into the shared scene state; on that opening turn only, reject a scene switch that targets a non-candidate, and tell the AI up front that the opening scene comes from this list so the choice and the gate agree. With zero candidates the opening choice is fully free. From the second turn on, scene switching is unrestricted in both cases. The shell tolerates any flag count: with no scene set it shows the group's first flagged item, then falls back to the group's first item.
 
 ### modelEndpoint (+ models)
 

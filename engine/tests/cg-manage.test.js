@@ -289,7 +289,7 @@ describe("CG 管理態", () => {
     expect(actions.querySelector(".cg-manage-delete")).not.toBeNull();
   });
 
-  it("開場景打 set_opening op；aria-pressed 反映當下資料、aria-label 帶組語意；「手機張」鈕已拆除（set_mobile 退役）", async () => {
+  it("開場候選打 set_opening op；aria-pressed 反映當下資料、aria-label 帶態動詞與組語意；「手機張」鈕已拆除（set_mobile 退役）", async () => {
     const presenter = makePresenter();
     global.fetch = fetchStub({
       "GET /api/v4/cg/manage": { items: [mkItem("cg-1", "第一張", { opening: true })] },
@@ -302,9 +302,9 @@ describe("CG 管理態", () => {
     await panel.enterManage();
     const openingBtn = document.querySelector(".cg-flag-opening");
     expect(openingBtn.getAttribute("aria-pressed")).toBe("true");
-    // 組語意（雙軌制）：backend 對 set_opening 做同 target 組內 radio——
-    // label 講明 radio 範圍。
-    expect(openingBtn.getAttribute("aria-label")).toBe("設「第一張」為開場景（桌機組）");
+    // 組語意（雙軌制）：opening 是同 target 組內的「開場候選」多選 toggle——
+    // label 講明這一下是加入還是移出、以及作用的組。
+    expect(openingBtn.getAttribute("aria-label")).toBe("把「第一張」移出開場候選（桌機組）");
     // set_mobile op 已退役（backend 送了回 400）——「手機張」flag 鈕物理上不存在，
     // 不是「存在但藏起來」。
     expect(document.querySelector(".cg-flag-mobile")).toBe(null);
@@ -315,35 +315,36 @@ describe("CG 管理態", () => {
     expect(JSON.parse(call[1].body)).toMatchObject({ op: "set_opening", id: "cg-1" });
   });
 
-  // radio 語意——set_opening 對 B 成功後，重新
-  // fetch 回來的清單裡 A 的 opening 已經是 false（server 端 unset others）；
-  // 重繪必須忠實反映：A 的開場景鈕 aria-pressed 落
-  // false、B 落 true，兩張卡互斥、不是各自為政。用跟 reorder 測試同一支
-  // sequencedManageFetch（GET 分兩輪回不同內容）。
-  it("set_opening 對 B 成功後重新 fetch：A 的開場景鈕變 false、B 變 true（雙卡對照，radio 語意）", async () => {
+  // 多選 toggle 語意——set_opening 是逐張翻轉的「開場候選」旗，多張可同時為
+  // 候選；前端只忠實渲染 server 回傳（radio 的 unset-others 已不存在）。對 B
+  // 按下後重新 fetch 回來 A、B 都是 true＝兩顆都亮。
+  it("set_opening 對 B 成功後重新 fetch：A、B 的開場候選鈕同時亮（多選 toggle 語意）", async () => {
     const presenter = makePresenter();
     global.fetch = sequencedManageFetch([
       [mkItem("cg-1", "A", { opening: true }), mkItem("cg-2", "B", { opening: false })],
-      [mkItem("cg-1", "A", { opening: false }), mkItem("cg-2", "B", { opening: true })],
+      [mkItem("cg-1", "A", { opening: true }), mkItem("cg-2", "B", { opening: true })],
     ]);
     const panel = buildCgPanel(document.getElementById("cg-root"), presenter, {
       send: () => {}, endpointBase: "/api/v4/cg",
     });
     panel.open();
     await panel.enterManage();
-    const openingBtnsBefore = document.querySelectorAll(".cg-flag-opening");
-    expect(openingBtnsBefore[0].getAttribute("aria-pressed")).toBe("true");
-    expect(openingBtnsBefore[1].getAttribute("aria-pressed")).toBe("false");
+    const before = document.querySelectorAll(".cg-flag-opening");
+    expect(before[0].getAttribute("aria-pressed")).toBe("true");
+    expect(before[1].getAttribute("aria-pressed")).toBe("false");
+    expect(before[0].getAttribute("aria-label")).toBe("把「A」移出開場候選（桌機組）");
+    expect(before[1].getAttribute("aria-label")).toBe("把「B」加入開場候選（桌機組）");
 
-    openingBtnsBefore[1].click(); // 對 B 按「開場景」
+    before[1].click(); // 對 B 按「開場候選」＝toggle 加入
     const call = global.fetch.mock.calls.find(
       ([u, o]) => u === "/api/v4/cg/manage" && (o || {}).method === "POST");
     expect(JSON.parse(call[1].body)).toMatchObject({ op: "set_opening", id: "cg-2" });
 
     await flush();
-    const openingBtnsAfter = document.querySelectorAll(".cg-flag-opening");
-    expect(openingBtnsAfter[0].getAttribute("aria-pressed")).toBe("false"); // A 卸下
-    expect(openingBtnsAfter[1].getAttribute("aria-pressed")).toBe("true");  // B 頂上
+    const after = document.querySelectorAll(".cg-flag-opening");
+    expect(after[0].getAttribute("aria-pressed")).toBe("true");  // A 仍是候選（沒被 unset）
+    expect(after[1].getAttribute("aria-pressed")).toBe("true");  // B 加入
+    expect(after[1].getAttribute("aria-label")).toBe("把「B」移出開場候選（桌機組）"); // 動詞跟著新態走
   });
 
   it("上傳：格式不符（400）誠實提示，不清欄位、不動既有清單", async () => {
@@ -831,7 +832,7 @@ describe("CG 管理態", () => {
       expect(document.querySelector(".cg-manage-down").getAttribute("aria-label")).toBe("下移「月夜床帳」");
       expect(document.querySelector(".cg-manage-save").getAttribute("aria-label")).toBe("儲存「月夜床帳」");
       expect(document.querySelector(".cg-manage-delete").getAttribute("aria-label")).toBe("刪除「月夜床帳」");
-      expect(document.querySelector(".cg-flag-opening").getAttribute("aria-label")).toBe("設「月夜床帳」為開場景（桌機組）");
+      expect(document.querySelector(".cg-flag-opening").getAttribute("aria-label")).toBe("把「月夜床帳」移出開場候選（桌機組）");
     });
 
     it("en：輸入框預填 en 值；↑ 鈕 aria-label 帶 en 名字", async () => {
@@ -988,7 +989,7 @@ describe("CG 管理態", () => {
       expect(global.fetch.mock.calls.length).toBe(fetchCallsBefore); // 沒有多打任何 fetch
       // 手機組卡片的開場景 aria-label 帶手機組語意
       expect(document.querySelector(".cg-flag-opening").getAttribute("aria-label"))
-        .toBe("設「枕畔」為開場景（手機組）");
+        .toBe("把「枕畔」移出開場候選（手機組）");
     });
 
     it("手機 TAB 下上傳＝FormData 帶 target=mobile（上傳歸屬當前 TAB）", async () => {

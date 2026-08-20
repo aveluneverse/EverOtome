@@ -71,7 +71,9 @@ export class CgPresenter {
   // 可能指向任一組的張，屬不屬於本機組由 applyState 判。
   _itemOf(id) { return this.items.find((it) => it.id === id) || null; }
   _groupOf(target) { return this.items.filter((it) => it.target === target); }
-  /** 組內開場景：組內 opening 優先 → 組內第一張 → null（組空）。 */
+  /** 組內開場 fallback：組內第一張開場候選（opening=true）→ 組內第一張 →
+   * null（組空）。多選候選下 scene 為空時的顯示近似——真正的開場抽籤在
+   * backend（contract set_opening 段）。 */
   _openingOf(target) {
     const group = this._groupOf(target);
     return group.find((it) => it.opening) || group[0] || null;
@@ -218,8 +220,8 @@ const CG_BACK_CHEVRON_SVG =
  * （行為怪），per-device filter 天然正確；跨組瀏覽與管理走管理態 TAB
  * （桌機｜手機，預設桌機、每次 enterManage 重設）。上傳歸屬當前 TAB 組
  * （form 帶 `target`）；「手機張」flag 鈕已拆除（`set_mobile` op 退役，送了
- * backend 回 400）；「開場景」照舊——backend 對 set_opening 做同 target 組內
- * radio。
+ * backend 回 400）；「開場候選」＝多選 toggle——backend 對 set_opening 逐張翻轉 opening，開場
+ * 時從候選抽一張（詳 backend-contract）。
  *
  * 每個變更動作（編輯／刪除／排序／開場景／上傳）一律「先 POST、成功
  * 才重新 fetch `/manage` 並重繪」——server 是唯一真相，不做樂觀 UI；失敗＝
@@ -625,17 +627,21 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     const flags = document.createElement("div");
     flags.className = "cg-manage-flags";
 
-    // 「開場景」照舊送 set_opening——backend 對同 target 組內做 radio（unset
-    // others 限同組），aria-label 帶組語意讓讀屏也知道 radio 範圍。「手機張」
-    // flag 鈕已拆除（雙軌制：set_mobile op 退役、送了 backend 回 400——
-    // 手機顯示哪張改由 mobile 組自己的 opening 決定）。
+    // 「開場候選」多選 toggle：op 仍是 set_opening、backend 語意＝點一下翻轉
+    // 該張 opening、其他張不動，多張可同時是候選；開場時 backend 從候選抽一
+    // 張，之後換景自由（見 backend-contract set_opening 段）。aria-label 帶組
+    // 語意＋當前態動詞（讀屏知道這一下是加入還是移出）。「手機張」flag 鈕已
+    // 拆除（雙軌制：set_mobile op 退役、送了 backend 回 400——手機顯示哪張改
+    // 由 mobile 組自己的 opening 決定）。
     const groupLabel = item.target === "mobile" ? t("cg.groupMobile") : t("cg.groupDesktop");
     const openingBtn = document.createElement("button");
     openingBtn.type = "button";
     openingBtn.className = "cg-flag-btn cg-flag-opening";
     tEl(openingBtn, "cg.opening");
     openingBtn.setAttribute("aria-pressed", item.opening ? "true" : "false");
-    openingBtn.setAttribute("aria-label", t("cg.setOpening", { name: label, group: groupLabel }));
+    openingBtn.setAttribute("aria-label", item.opening
+      ? t("cg.removeOpening", { name: label, group: groupLabel })
+      : t("cg.addOpening", { name: label, group: groupLabel }));
     openingBtn.addEventListener("click", () => {
       runManageOp({ op: "set_opening", id: item.id }, openingBtn);
     });

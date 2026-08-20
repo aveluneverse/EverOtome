@@ -16,7 +16,7 @@ How the CG album is structured, and where to put faces so the interface never co
 ```
 
 - **`target` splits the album into two tracks**: phones only see the `mobile` group, desktops only see the `desktop` group. Keep separate art per device so each screen gets a composition made for it. If a `cg_state` frame names a scene from the other device's group, the shell falls back to the current device's opening scene.
-- **`opening: true` marks the group's opening scene**, the one auto-selected when a `cg_state` frame arrives with `scene: null`. Keep exactly one per group (the manage channel's `set_opening` enforces this as a mutually exclusive selection).
+- **`opening: true` marks an opening candidate**: when a `cg_state` frame arrives with `scene: null`, the shell shows the group's first flagged item (falling back to the group's first item when none is flagged). Any number of items per group can carry the flag; the manage channel's `set_opening` toggles it per item, and the backend draws the actual opening scene from the candidates (see the [backend contract](backend-contract.md#cgendpoint-album-base-url)).
 - **`id`** doubles as the file reference: the shell loads the image from `{cgEndpoint}/file/{id}`.
 - **`name`** is shown to the user in the scene line when the CG comes on stage. It is a string, or one per language: `{ "zh-Hant": "…", "en": "…" }`; the shell shows the visitor's current interface language (the manage channel's `desc` works the same way).
 
