@@ -223,7 +223,7 @@ const CG_BACK_CHEVRON_SVG =
  * backend 回 400）；「開場候選」＝多選 toggle——backend 對 set_opening 逐張翻轉 opening，開場
  * 時從候選抽一張（詳 backend-contract）。
  *
- * 每個變更動作（編輯／刪除／排序／開場景／上傳）一律「先 POST、成功
+ * 每個變更動作（編輯／刪除／排序／開場候選／上傳）一律「先 POST、成功
  * 才重新 fetch `/manage` 並重繪」——server 是唯一真相，不做樂觀 UI；失敗＝
  * 本地狀態原封不動＋面板內誠實提示（沿用視圖態既有的 `.cg-send-hint` 元件與
  * 2.5s 自動清除時序，管理態不另立第二套提示機制）。
@@ -529,7 +529,7 @@ export function buildCgPanel(root, presenter, { send, endpointBase }) {
     const loc = getLocale();
     const shownName = pickLabel(item.name);
     const shownDesc = pickLabel(item.desc);
-    const label = shownName; // ↑↓／儲存／刪除／開場景 aria-label 用：當前語系的名字
+    const label = shownName; // ↑↓／儲存／刪除／開場候選 aria-label 用：當前語系的名字
     const card = document.createElement("div");
     card.className = "cg-manage-card";
 

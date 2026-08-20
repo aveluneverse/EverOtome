@@ -1,4 +1,4 @@
-// cg-manage.test.js —— CG 相冊管理態（上傳／編輯／刪除／排序／開場景；雙軌制：
+// cg-manage.test.js —— CG 相冊管理態（上傳／編輯／刪除／排序／開場候選；雙軌制：
 // 分組 TAB＋「<」返回鍵）。視圖態既有覆蓋在 cg-panel.test.js／cg.test.js，本檔
 // 只管管理態的行為；desc 外洩防線是本檔的核心斷言（見各測試內註解）。
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -824,7 +824,7 @@ describe("CG 管理態", () => {
       return JSON.parse(call[1].body);
     }
 
-    it("zh-Hant：輸入框預填 zh-Hant 值；↑↓／儲存／刪除／開場景的 aria-label 帶 zh-Hant 名字", async () => {
+    it("zh-Hant：輸入框預填 zh-Hant 值；↑↓／儲存／刪除／開場候選的 aria-label 帶 zh-Hant 名字", async () => {
       await openManage([i18nItem()]);
       expect(document.querySelector(".cg-manage-name").value).toBe("月夜床帳");
       expect(document.querySelector(".cg-manage-desc").value).toBe("害羞鑰匙");
@@ -987,7 +987,7 @@ describe("CG 管理態", () => {
       expect(document.querySelectorAll(".cg-manage-tab")[1].classList.contains("is-active")).toBe(true);
       expect(document.querySelector(".cg-manage-upload-target").textContent).toBe("上傳到：手機組");
       expect(global.fetch.mock.calls.length).toBe(fetchCallsBefore); // 沒有多打任何 fetch
-      // 手機組卡片的開場景 aria-label 帶手機組語意
+      // 手機組卡片的開場候選 aria-label 帶手機組語意
       expect(document.querySelector(".cg-flag-opening").getAttribute("aria-label"))
         .toBe("把「枕畔」移出開場候選（手機組）");
     });

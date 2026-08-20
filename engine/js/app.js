@@ -1487,7 +1487,7 @@ async function main() {
   // ── CG 相冊彈窗（視圖態＋管理態；雙軌
   // 制：per-device 視圖＋桌機｜手機管理 TAB＋「<」返回鍵）──────────────────────
   // 殼／卡片渲染／點卡送指令／點暗幕關／管理態（上傳／編輯／刪除／排序／
-  // 開場景），全部收在 cg.js 的 buildCgPanel（單測覆蓋見
+  // 開場候選），全部收在 cg.js 的 buildCgPanel（單測覆蓋見
   // tests/cg-panel.test.js＋tests/cg-manage.test.js）；這裡只接線：給宿主容器＋
   // cg presenter＋send callback＋endpointBase，`.js-open-cg` 綁 panel.open()
   // （同 `.js-open-appearance` 慣例）。按鈕本身的顯隱已由上方 initCg() 管

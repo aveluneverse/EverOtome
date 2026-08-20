@@ -196,7 +196,7 @@ Management operations (`POST {cgEndpoint}/manage`, JSON):
 { "op": "set_opening", "id": "..." }
 ```
 
-`reorder` swaps the item with its nearest neighbor **in the same `target` group**, scanning past items of the other group so their relative order never changes (a global adjacent swap would silently trade places with an invisible item from the other group). When the item is already at its group's edge in that direction, respond `404`; the shell disables the edge buttons, so only programmatic calls reach that case.
+`reorder` swaps the item with its nearest neighbor **in the same `target` group**, scanning past items of the other group so their relative order never changes (a global adjacent swap would silently trade places with an invisible item from the other group). When the item is already at its group's edge in that direction, respond `404`; the shell disables the edge buttons, so aside from stale views (a concurrent edit from another device, or a failed list refresh after a successful operation), only programmatic calls reach that case.
 
 `edit` sends `name` and `desc` back in the shape they arrived: a plain string comes back as a plain string; per-language names come back as the same object with the language in use updated, and a language the card did not carry is added only when the text was actually changed.
 
