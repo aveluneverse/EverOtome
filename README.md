@@ -1,13 +1,8 @@
 # EverOtome
 
-[繁體中文](README.zh-TW.md) | English
+English | [日本語](README.ja.md) | [繁體中文](README.zh-TW.md)
 
 ![EverOtome — Chat with your AI like you're in an otome game.](docs/readme-kv-en.webp)
-
-> [!IMPORTANT]
-> **Update, 2026/08/21: v0.2.0-beta is out**
-> If you cloned or forked EverOtome before Aug 21, please update (clone: `git pull`; fork: Sync fork).
-> → [Release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.0-beta)
 
 ---
 
