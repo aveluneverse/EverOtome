@@ -4,6 +4,11 @@
 
 ![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)
 
+> [!IMPORTANT]
+> **2026/08/21 更新：v0.2.0-beta 已發布**
+> 若你在 8/21 前 Clone / Fork 了 EverOtome，請更新至最新版（Clone 用 `git pull`／Fork 按 Sync fork）。
+> → [Release Notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.0-beta)
+
 ---
 
 ## 這是什麼
@@ -192,6 +197,7 @@ EverOtome 目前處於 **Beta** 階段：核心功能穩定可用，1.0 前設�
 ## 隱私與資料流
 
 - EverOtome 不含任何遙測或分析程式碼，專案維護者也沒有接收你資料的伺服器。這是純靜態前端。
+- 「檢查更新」是唯一的對外連線，而且只在你主動按下設定頁的「檢查更新」時發生：連線 GitHub 取得公開的版本資訊，不上傳任何資料，也沒有自動背景檢查。
 - 對話內容不寫入瀏覽器儲存：訊息即時渲染，歷史紀錄由你的後端提供；瀏覽器儲存只存介面偏好與顯示狀態。
 - 你的訊息、照片與語音，只流向你自己在設定檔指定的後端。
 
