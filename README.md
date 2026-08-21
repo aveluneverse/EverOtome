@@ -1,210 +1,210 @@
 # EverOtome
 
-繁體中文 | [English](README.en.md)
+[繁體中文](README.zh-TW.md) | English
 
-![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)
+![EverOtome — Chat with your AI like you're in an otome game.](docs/readme-kv-en.webp)
 
 > [!IMPORTANT]
-> **2026/08/21 更新：v0.2.0-beta 已發布**
-> 若你在 8/21 前 Clone / Fork 了 EverOtome，請更新至最新版（Clone 用 `git pull`／Fork 按 Sync fork）。
-> → [Release Notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.0-beta)
+> **Update, 2026/08/21: v0.2.0-beta is out**
+> If you cloned or forked EverOtome before Aug 21, please update (clone: `git pull`; fork: Sync fork).
+> → [Release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.0-beta)
 
 ---
 
-## 這是什麼
+## What is this
 
-EverOtome 是一個**開源的乙女遊戲／視覺小說風 AI 伴侶聊天前端**。
+EverOtome is an **open-source chat front end for AI companions, styled like an otome game or visual novel**.
 
-它不是遊戲、也不是託管服務，它是一層「殼」：角色立繪、房間背景、CG 與介面主題都能換成你自己的，接上你自己的 AI 後端，**把你的 AI 伴侶放進乙遊介面裡**。串接後，原本以文字為主的 AI 對話，就延伸成包含**角色立繪、場景、CG 與語音互動**的即時敘事體驗。
+It isn't a game, and it isn't a hosted service. It's a shell: swap in your own character sprites, room backgrounds, CGs, and interface themes, then plug in your own AI backend. **Your companion moves into an otome-game interface**, and text-first conversations become live storytelling with **sprites, scenes, CGs, and voice**.
 
-EverOtome 本身是以 vanilla JS 製作的純前端介面層，不含 AI 模型、後端服務與素材生成，這些由你自備。還沒接後端也能先看：內建範例角色與示範相冊，clone 下來一行指令就能預覽。
+EverOtome itself is a pure front-end layer built in vanilla JS. It ships no AI model, no backend service, and no asset generation; those are yours to bring. You can look around before wiring anything, too: a sample character and demo album are bundled, and the preview is one command away after cloning.
 
-https://github.com/user-attachments/assets/687e388c-a506-464f-bcb6-87ef4440a8aa
+https://github.com/user-attachments/assets/0854f49a-d0a9-4b69-baea-f8aa95aabbe6
 
-（這支影片有配樂。GitHub 預設靜音播放，想聽的話可以點播放器上的喇叭喔。）
-
----
-
-## 一眼看懂
-
-> 下面這些都是接上你的後端之後的樣子；還沒接後端時，開箱可以先看示範角色、示範相冊與導覽。
-
-**你能做的**
-
-- 讓他住進乙女遊戲的房間，和他聊天。
-- 放入他的立繪與表情差分，看他對你微笑、皺眉、凝視（附教學文件）；眨眼與嘴巴開合的節奏都能在設定裡自己調。
-- 通話與語音朗讀：他若已有語音，接進來就能在介面裡講話、打電話。
-- 自由更換房間主題、他的造型與家具：放進素材資料夾、寫進設定檔即可。
-- 內建 CG 相冊：上傳、排序、寫場景說明；點任一張 CG，就從那個場景開始聊。
-
-**他能做的**（接上你的後端後）
-
-- 依心情換表情：聊著聊著，對你露出靈動的小表情。
-- 嘴巴跟著他的聲音節奏開合。
-- 房間自主權：他知道房間現在的樣子，也會依心情自己換背景主題、換穿著、擺或收家具。
-- CG 自主權：他會按情節調度相冊裡的 CG，讓場景跟著故事走。
-
-**還有**
-
-- PWA，可加到電腦與手機的主畫面。
-- 內建五套佈景：水晶天鵝、薔薇暮誓、緋月夜曲、翠葉晨歌、白雪冰宮。
-- EverOtome 本身沒有伺服器、沒有遙測，素材與對話只流向你自己指定的後端。
-- 程式碼 MIT 授權，隨你魔改（範例素材另有使用限制）；做出來的樣子若願意讓我看看，我會很開心。
+(This video has background music. GitHub plays it muted by default; click the speaker on the player to hear it.)
 
 ---
 
-## 功能亮點
+## At a glance
 
-### 💫 讓你的立繪動起來
+> Everything below is what you get once your backend is wired in. Before that, the sample character, the demo album and the tour are there to look around.
 
-https://github.com/user-attachments/assets/c86f2d8d-b046-4917-8055-5c0834873c14
+**What you can do**
 
-你準備立繪，殼讓他活過來：眨眼、呼吸、開口說話。
+- Move your companion into an otome-game room and chat with them there.
+- Bring their sprite frames and expression patches and watch them smile, frown, or gaze back at you (guides included). Blink and mouth tempo are sliders in settings.
+- Voice and calls: if your companion already has a voice, connect it and they can talk, and call you, from inside the interface.
+- Change the room theme, their outfit, and the furniture: drop the art into the assets folder and list it in the config file.
+- A built-in CG album: upload, reorder, write scene notes, and start a conversation from any CG you pick.
 
-完整動態用一組九張差分圖（A 到 I 幀：3 種眼態 × 3 種嘴態），附[幀規格與生成指引](docs/sprite-guide.md)，手繪或 AI 生圖都適用。待機時立繪會眨眼、呼吸；文字回覆吐字時，嘴巴以**乙遊式口型（pakupaku）**定速開合。眨眼與嘴型兩種節奏，都是設定裡的拉桿。
+**What your companion can do** (once your backend is connected)
 
-語音播放時，嘴巴改成跟著聲音走：有聲就開、停頓就閉、講得大聲的地方開得更大。介面會事先把音檔完整讀過一遍算好節奏，不佔播放路徑；讀不了的音檔就退回定速口型。開著語音時，句子還在吐字、聲音還沒到，嘴巴會先閉著等，聲音到了才開。
+- Their expression follows their mood: a smile, a glance, a small look at you in the middle of a chat.
+- Their mouth moves with the rhythm of their own voice.
+- Room agency: they know how the room looks right now, and can switch the theme, change outfit, and put furniture out or away as the mood takes them.
+- Scene agency: they call up CGs from the album as the story moves, so the scene follows the plot.
 
-只有一張圖也可以，靜態立繪模式一樣好看。
+**Also**
 
-### 🎭 表情與臉紅
-
-https://github.com/user-attachments/assets/5fd0a659-e336-40e1-982d-b9720846ea34
-
-九張幀之上還能再疊兩層：一層是從臉頰浮上來的紅暈，一層是表情貼片，換眼睛、換嘴巴或兩者都換，底下的角色照樣眨眼、講話。
-
-這兩層由你的 AI 自己取用：回覆裡夾 `[blush]` 就浮出紅暈，夾 `[expr:smile]` 就換上那張臉，介面會在文字上屏前把暗號剝掉。兩層都在該造型的 `manifest.json` 裡宣告，沒宣告的角色就維持原樣。這兩層介面自己就會做，後端只要把暗號寫進回覆。
-
-`tools/gen_expression.py` 會從你為這個表情畫的全身圖裁出貼片。格式與流程見[立繪指南](docs/sprite-guide.md)。
-
-**Character Lab 試妝間**（`engine/demo/expression-lab.html`）就是試衣間：把一套造型放上活的立繪，這套宣告的每個表情各一顆鈕，加上講話與臉紅，接線前先看接縫與節奏。選了什麼就一直亮到你切別的。內建範例角色附一個微笑表情和一層紅暈，試妝間開箱就有東西看。
-
-### 🎨 五套介面主題，也能自己做
-
-https://github.com/user-attachments/assets/cbed4234-182f-47cd-9641-64aaa1d62a5a
-
-水晶天鵝、薔薇暮誓、緋月夜曲、翠葉晨歌、白雪冰宮，五套主題即點即切、全站變色（房間背景、對話框、氣泡、按鈕整套）。想做自己的主題：一套主題就是一組 CSS 變數加三件素材，在設定檔加一個項目就能用；要更大幅度的樣式改動，CSS 原始碼都在，直接改。
-
-### 🛋️ 房間自主權
-
-https://github.com/user-attachments/assets/3d38f41a-26d7-4c29-bfb9-531a1394cfb8
-
-房間不只由你佈置。你的 AI 可以換介面主題、換角色造型、擺出或收起家具：把想要的寫在自己的回覆裡當暗號，你的後端讀到、存下新狀態，再以一則 `room_state` 訊息推回來；介面收到就套用，後端推到哪台裝置，哪台就跟上。
-
-家具是設定檔裡的一份清單：一張圖、站在哪、預設擺不擺，畫在桌機版面上。範例設定附了一件留聲機，家具頁籤開箱就有東西可試。這些你都可以在外觀面板親手操作，不需要後端；把房間交給 AI 才需要後端，訊息的形狀見[接線手冊](docs/backend-contract.md)。
-
-### 📖 上傳與管理你們的 CG
-
-https://github.com/user-attachments/assets/49cc58e0-5705-41b5-b446-5c793f1239f7
-
-CG 不只能收藏，也可以成為新故事的起點。
-
-上傳與管理你跟 AI 的互動 CG：相冊內建管理介面，可上傳、排序、編輯場景資訊、指定開場景；桌機與手機素材各自獨立成組，依裝置呈現不同構圖。從任意一張 CG 開始你們的場景，故事不必每次都從房間開始。
-
-### 🌙 場景自主權
-
-https://github.com/user-attachments/assets/3039bccf-f584-4cfe-8258-84bb3f1f2b63
-
-你的 AI 挑場景：他在回覆裡標出想亮的那張，你的後端轉成一句 `cg_state` 指令，介面就淡入 CG、隨劇情切景、退場回房間。對話全程不中斷，所以**他想對你做的事，會直接成為你眼前的畫面**。
-
-同一張 CG 可以在故事的不同時點再度出現，場景也能隨故事一路換下去。暗號不會上屏：介面會把每一行裡的暗號剝乾淨。[接線手冊](docs/backend-contract.md)列了暗號家族與承載它們的訊息。
-
-### 📞 語音與電話整合
-
-可將既有的 AI 語音或電話流程接進乙遊式介面：撥出、通話計時，**他說的每句話都逐句進字幕與對話記錄**。掛斷後可重播語音，立繪的嘴巴跟著聲音動，跟通話中一樣。
-
-<!-- [素材位] demo-phone-desktop-*.webm -->
-
-### 💭 對話框與 Thinking 鈕
-
-視覺小說式對話框：名牌、打字機吐字，加一顆 **Thinking 鈕**。點一下，看他沒說出口的內心話，再點一下切回。內心話的內容由你的後端提供（回覆帶 `thoughts` 欄位就有這顆鈕，沒帶介面自動保持乾淨）。完整對話史在獨立的 Chat Log 面板（手機版另有 THINKING 頁籤；桌機版思緒直接嵌在對話記錄裡）。想只看立繪：桌機的眼睛鍵會展開顯示選項（收起對話框、隱藏立繪），手機的眼睛鍵則一按收起對話記錄。
-
-### 📱 桌機與手機介面
-
-![桌機雙欄佈局與手機半身構圖並排](docs/media/readme-devices-zh.webp)
-
-同一套角色體驗延續到不同裝置：桌機是大立繪雙欄佈局；手機自動切換成半身構圖加可收合的對話記錄。也支援 PWA，可在相容的瀏覽器安裝成獨立 App。
-
-### 🔌 支援串接的擴充功能
-
-後端支援哪些，就接哪些。除了聊天本體，這些功能都有現成的串接介面：**語音朗讀（TTS）、電話通話、CG 場景控制、照片傳送、模型切換、沙盒對話模式、訊息收藏、TTS 用量計**。而且介面很乾淨：CG、模型切換、沙盒、收藏這些功能，設定檔沒設定就整塊不會出現，不會留下半殘按鈕（語音朗讀、電話、照片傳送三項則一直都在，走內建的預設路徑；不想要播放鍵就把 `ttsEndpoint` 設成空字串）。可以從最小配置起步，依你的後端能力逐步啟用。
+- A PWA: add it to your desktop or phone home screen.
+- Five interface themes: Crystal Swan, Rose Vow, Crimson Nocturne, Verdant Dawnsong, Snow Palace.
+- No server of its own and no telemetry: your assets and conversations go only to the backend you choose.
+- MIT licensed code. Remix as you like (the sample art has its own terms); if you make something with it and feel like showing me, I'd love to see it.
 
 ---
 
-## 快速開始
+## Highlights
 
-### 最快方式：交給你的 AI 助手
+### 💫 Bring your sprites to life
 
-把這個 repo 交給你的 AI 助手，跟它說：
+https://github.com/user-attachments/assets/d372d1d6-b900-4694-b619-47bd6e254b66
 
-> 「幫我把 EverOtome 跑起來：`<repo 網址>`。先零後端預覽，之後照 `docs/` 的文件接上我的 AI。」
+You bring the sprites. The shell brings them to life: blinking, breathing, talking.
 
-### 自己動手
+For full animation, provide nine frames, A through I: 3 eye states × 3 mouth states. The [frame spec and generation guide](docs/sprite-guide.md) works for hand-drawn and AI-generated art alike. The sprite blinks and breathes at idle. While a reply types out, its mouth moves in **otome-style flaps (pakupaku)** at a steady tempo. Both tempos, blink and mouth, are sliders in settings.
 
-clone 專案後，一行指令零後端預覽：
+While a voice line plays, the mouth follows the audio instead: open on sound, closed through the pauses, wider where the line is loud. The interface works that out by reading the file through once, off to the side of playback, so nothing sits in the sound path, and audio it cannot read falls back to the flaps. With voice turned on, the mouth waits closed while a line is being typed rather than flapping at silence, then opens when the voice arrives.
+
+One image works too. Static portrait mode looks just as good.
+
+### 🎭 Expressions and blush
+
+https://github.com/user-attachments/assets/f9c0d84b-dbbc-4810-b563-1ee328446652
+
+Two more layers can ride on the nine frames: a blush that fades in over the cheeks, and expression patches that swap the eyes, the mouth, or both, while the character keeps blinking and talking underneath.
+
+Your AI reaches for them on its own. `[blush]` in a reply brings up the flush, `[expr:smile]` puts on a face, and the interface strips the markers before the line reaches the screen. Both layers are declared per appearance in `manifest.json`, so a character that declares neither simply stays as it is. The interface acts on these two itself, with no backend work beyond writing them into the reply.
+
+`tools/gen_expression.py` cuts the patches out of full-body art you drew for the expression. Format and workflow: [sprite guide](docs/sprite-guide.md).
+
+**Character Lab** (`engine/demo/expression-lab.html`) is the fitting room: it puts an appearance on a live sprite with a button for every expression it declares, plus talking and blush, so you can check seams and timing before anything is wired up. Whatever you pick stays until you switch it. The bundled sample character comes with a smile and a blush layer, so the lab has something to show from the first run.
+
+### 🎨 Five interface themes, or make your own
+
+https://github.com/user-attachments/assets/21095216-909c-4861-a137-e3bc343c2700
+
+Crystal Swan, Rose Vow, Crimson Nocturne, Verdant Dawnsong, Snow Palace: switch between the five with one click, and the room background, dialogue box, bubbles, and buttons all change together. A custom theme is one set of CSS variables plus three art assets, added as one entry in the configuration file. For deeper restyling, the CSS source is right there. Edit it directly.
+
+### 🛋️ Room agency
+
+https://github.com/user-attachments/assets/734f6074-21df-43cc-9d38-1208e3e2fb0e
+
+The room is not only yours to arrange. Your AI can switch the interface theme, change the character's outfit, and put furniture out or away, by marking what it wants inside its own reply. Your backend reads the marker, saves the new state, and pushes it back as one `room_state` message; the interface applies it wherever your backend sends it, so a second device stays in step.
+
+Furniture is a list you write in the configuration file: an image, where it stands, and whether it starts out on display. It is drawn in the desktop layout. The sample configuration ships one piece, a gramophone, so the furniture tab has something to try from the first run. You can do all of this by hand from the appearance panel with no backend at all; handing the room over to your AI is the part that needs one, and the [backend contract](docs/backend-contract.md) has the shapes.
+
+### 📖 Upload and manage your CGs
+
+https://github.com/user-attachments/assets/e3703b04-7575-4921-8c50-52f0f8b0f14f
+
+A CG isn't just a keepsake. It can be where a new story starts.
+
+Upload and manage the CGs you share with your AI: the album keeps desktop and mobile art in separate groups, so each screen gets a composition that fits, and the built-in manager handles uploading, reordering, editing scene info, and picking each group's opening scene. Open a scene from any CG you like; the story doesn't have to start in the same room every time.
+
+### 🌙 Scene agency
+
+https://github.com/user-attachments/assets/3ffa2d4c-0748-4eaf-8f4a-a5ba31f5aadf
+
+Your AI picks the scene. It marks the card it wants inside its own reply, your backend turns that into one `cg_state` command, and the interface fades into the CG, switches scenes as the story moves, then returns to the room. The conversation never breaks, so **what they want to do with you becomes the scene before your eyes**.
+
+The same CG can return at different points in the story, and scenes can keep changing as the story unfolds. The markers never reach the screen: the interface strips them out of every line. The [backend contract](docs/backend-contract.md) lists the marker families and the messages that carry them.
+
+### 📞 Voice and phone calls
+
+Connect an existing AI voice or call flow to the otome interface. It handles dialing and the call timer, and **every line they speak lands in the subtitles and the Chat Log, sentence by sentence**. After the call, replay the audio, and the sprite's mouth follows it the same way it does live.
+
+<!-- [media slot] demo-phone-desktop-*.webm -->
+
+### 💭 Dialogue box and the Thinking button
+
+A visual-novel-style dialogue box: nameplate, typewriter text, and a **Thinking** button. One tap shows what they didn't say out loud; another switches back. The content comes from your backend (replies carrying a `thoughts` field get the button; without it, the interface stays clean). Full history lives in a separate Chat Log panel (on phones it has its own THINKING tab; on desktop the thoughts sit inline in the log). To look at the sprite alone: on desktop the eye button opens display options (hide the dialogue box, hide the sprite); on phones it folds the Chat Log away.
+
+### 📱 Desktop and mobile
+
+![Desktop two-column layout next to the mobile half-body composition](docs/media/readme-devices-en.webp)
+
+One character experience across devices: desktop runs a two-column layout with a large sprite; mobile switches to a half-body composition with a collapsible Chat Log. It's also a PWA, installable as a standalone app in compatible browsers.
+
+### 🔌 Optional integrations
+
+Wire in whatever your backend supports. Beyond the core chat, built-in integration points cover **text-to-speech, phone calls, CG scene control, photo sending, model switching, a sandbox chat mode, message favorites, and a TTS usage meter**. The interface stays tidy either way: CG, model switching, sandbox mode and favorites never render unless you configure them, with no half-dead buttons left behind (text-to-speech, phone calls and photo sending are always on and use built-in default paths; set `ttsEndpoint` to an empty string if you don't want the play buttons). Start minimal and enable more as your backend grows.
+
+---
+
+## Quick start
+
+### Fastest: hand it to your AI assistant
+
+Point your AI assistant at this repo and say:
+
+> "Help me get EverOtome running: `<repo URL>`. Start with the zero-backend preview, then follow the docs in `docs/` to wire in my AI."
+
+### By hand
+
+Clone the project, then one command gets you a zero-backend preview:
 
 ```bash
 cd engine
 python serve.py       # http://127.0.0.1:8300
 ```
 
-（`serve.py` 只是本機預覽用的靜態伺服器，EverOtome 本體零框架依賴。）
+(`serve.py` is a static file server for local preview. EverOtome itself has zero framework dependencies.)
 
-不配任何東西就能跑：內建範例角色 **Rye**（附一個微笑表情與一層紅暈）、示範 CG 相冊與一件家具，核心介面互動（眨眼、換主題、外觀面板、試妝間）全部可玩；想看功能演出，開 `demo/tour.html?seg=cg` 有零後端的自動導覽（示範資料演出）。要接自己的 AI：
+It runs with nothing configured: the sample character **Rye** (with a smile expression and a blush layer), a demo CG album, and one piece of furniture are bundled, and the core interactions (blinking, theme switching, the appearance panel, the Character Lab) all work as-is. To see the bigger features in action, open `demo/tour.html?seg=cg` for an automated, zero-backend tour running on demo data. To connect your own AI:
 
 ```bash
-cp config.example.json config.json     # Windows 用 copy
-# 編輯 config.json 指向你的後端與素材
+cp config.example.json config.json     # Windows: copy
+# then edit config.json to point at your backend and assets
 ```
 
-需要後端的功能（收發訊息、電話、CG 推送）在接上你的服務前不會連線。**這是預期行為，不是壞掉。**
+Features that need a backend (sending and receiving messages, calls, CG push) won't work until you connect a service that implements them. **That's expected, not broken.**
 
 ---
 
-## 語言
+## Languages
 
-介面內建繁體中文與英文，預設跟隨訪客瀏覽器的語言設定。可以隨時從**設定 → 語言**切換（該裝置會記住這個選擇），或在 `config.json` 裡用 `"locale": "zh-Hant"` 或 `"en"` 幫所有人固定一種語言，也可以在網址加 `?lang=en` 強制這次讀取用該語言。你在 `config.json` 裡寫的名字（主題、造型、家具），以及後端提供的 CG 相冊卡片的 `name` 與 `desc`，都可以是單一字串，也可以每語系各給一個：`"label": { "zh-Hant": "水晶天鵝", "en": "Crystal Swan" }`。
+The interface ships in Traditional Chinese and English, and follows the visitor's browser by default. Switch any time from **Settings → Language** (remembered on that device), pin one for everyone with `"locale": "zh-Hant"` or `"en"` in `config.json`, or force one page load with `?lang=en` in the URL. Names you write in `config.json` (themes, outfits, furniture), and the `name` and `desc` of the CG album cards your backend serves, can each be a single string or one per language: `"label": { "zh-Hant": "水晶天鵝", "en": "Crystal Swan" }`.
 
-要新增語言，把 `engine/js/locales/en.js` 複製成 `engine/js/locales/<code>.js`，翻譯裡面的值，再到 `engine/js/i18n.js` 頂部 import 這份字典並加進 `DICTS`，同時把代碼註冊進 `SUPPORTED_LOCALES` 與 `LOCALE_NAMES`。測試套件會檢查每個語言的鍵是否一致，也會檢查示範相冊的每張卡都有各語言的名字。
-
----
-
-## 給開發者（或你的 AI）📚
-
-接後端要讀的技術文件，都在 `docs/`：
-
-- **[接線手冊（Backend Contract）](docs/backend-contract.md)**：你的後端要實作的 WebSocket 訊息與 REST 端點
-- **[CG 相冊與構圖指南](docs/cg-guide.md)**：雙軌相冊格式，加上安全區模板（你的 CG 該把臉畫在哪）
-
-> 把這兩份直接丟給你的 AI 助手，讓它照文件幫你串接。
+To add a language, copy `engine/js/locales/en.js` to `engine/js/locales/<code>.js`, translate the values, then, at the top of `engine/js/i18n.js`, import the dictionary into `DICTS` and register the code in `SUPPORTED_LOCALES` and `LOCALE_NAMES`. The test suite checks that every language has the same keys, and that the sample album carries a name in each of them.
 
 ---
 
-## 專案狀態
+## For developers (or your AI) 📚
 
-EverOtome 目前處於 **Beta** 階段：核心功能穩定可用，1.0 前設定檔格式與後端協定仍可能調整。
+The technical docs for wiring a backend live in `docs/`:
 
----
+- **[Backend Contract](docs/backend-contract.md)**: the WebSocket messages and REST endpoints your backend needs to implement
+- **[CG Album and Composition Guide](docs/cg-guide.md)**: the dual-track album format, plus safe-zone templates for where faces should go
 
-## 執行需求
-
-- 現代瀏覽器（Chrome、Edge、Safari、Firefox 的近年版本）
-- 本機預覽：Python 3（3.7 以上），只為跑 `serve.py`
-- 即時聊天、電話、CG 推送：需要一個實作[接線手冊](docs/backend-contract.md)的後端
+> Hand these two files to your AI assistant and have it follow them.
 
 ---
 
-## 隱私與資料流
+## Project status
 
-- EverOtome 不含任何遙測或分析程式碼，專案維護者也沒有接收你資料的伺服器。這是純靜態前端。
-- 「檢查更新」是唯一的對外連線，而且只在你主動按下設定頁的「檢查更新」時發生：連線 GitHub 取得公開的版本資訊，不上傳任何資料，也沒有自動背景檢查。
-- 對話內容不寫入瀏覽器儲存：訊息即時渲染，歷史紀錄由你的後端提供；瀏覽器儲存只存介面偏好與顯示狀態。
-- 你的訊息、照片與語音，只流向你自己在設定檔指定的後端。
+EverOtome is in **Beta**: the core feature set is stable and usable, and the config format and backend protocol may still shift before 1.0.
 
 ---
 
-## 授權
+## Requirements
 
-程式碼採 MIT License，見 [LICENSE](LICENSE)。fork、改皮、拆掉用不到的部分都行；授權只要求保留版權與授權聲明。如果你用 EverOtome 做了什麼，開個 issue 或丟個連結給我，我會很開心。
+- A modern browser (recent versions of Chrome, Edge, Safari, or Firefox)
+- Local preview: Python 3 (3.7 or later), used only to run `serve.py`
+- Live chat, calls, and CG push need a backend that implements the [backend contract](docs/backend-contract.md)
 
-範例角色 **Rye** 的立繪與差分、示範家具與試妝間背景、示範 CG，以及專案品牌視覺（logo、KV）為原創素材，不適用 MIT，僅供本專案展示用途使用；詳見 [ASSETS.md](ASSETS.md)。
+---
+
+## Privacy and data flow
+
+- EverOtome contains no telemetry and no analytics, and its maintainers operate no hosted service that receives your data. It's a pure static front end.
+- The "Check for updates" button is the only outward connection, and it fires only when you press it in the settings page: it fetches the public version info from GitHub, uploads nothing, and never checks in the background.
+- Conversation content is never written to browser storage. Messages render live, and history comes from your backend; browser storage is limited to interface preferences and display state.
+- Your messages, photos, and voice go only to the backend you configure.
+
+---
+
+## License
+
+The code is licensed under MIT; see [LICENSE](LICENSE). Fork it, restyle it, strip out what you don't need; the license asks only that the copyright and license notice stay with the code. If you build something on top of EverOtome, an issue or a link back would make my day.
+
+The sample character **Rye**'s sprites and expression patches, the demo furniture and lab backdrop, the demo CGs, and the project's brand art (logo and key visuals) are original assets outside the MIT grant, provided for display within this project only. Details in [ASSETS.md](ASSETS.md).
