@@ -16,6 +16,7 @@ import {
   SettingsPanel,
 } from "../js/settings.js";
 import { setLocale, getLocale, STORAGE_KEY, t } from "../js/i18n.js";
+import { VERSION } from "../js/version.js";
 
 // 每個測試前清乾淨 localStorage＋body class，避免測試互相汙染狀態（settings.js 的
 // 讀寫全部經過同一組 localStorage key，順序不同的測試檔／測試案例都共用同一個
@@ -167,10 +168,9 @@ describe("SettingsPanel —— DOM 建構＋開關", () => {
     const container = makeContainer();
     new SettingsPanel({ container });
     const buttons = [...container.querySelectorAll(".settings-panel button")];
-    // 語言列永遠在（不像模型下拉要 modelOptions 才出現）：trigger 1 顆＋選項
-    // 3 顆（auto／zh-Hant／en）＝4 顆，全部 type="button"（不是表單送出鍵），
-    // 語意是「選一個語言」，跟本測試原本要擋的「送出」「叉叉」是兩回事。
-    expect(buttons.length).toBe(4);
+    // 5＝語言下拉（trigger 1＋選項 3，auto／zh-Hant／en）＋常駐的「檢查更新」1 顆
+    // ——全是功能控制項，沒有任何「送出／關閉」類按鈕（本測試真正要擋的對象）。
+    expect(buttons.length).toBe(5);
     expect(buttons.every((b) => b.type === "button")).toBe(true);
     expect(container.querySelector("form")).toBeNull();
   });
@@ -900,5 +900,77 @@ describe("language row", () => {
     // t() 用目前語系（此刻仍是 en，見上）算出 auto 選項此刻該顯示的字——
     // 不hardcode 字面值，locale 解到哪個都成立。
     expect(trigger.textContent.trim()).toBe(t("settings.langAuto"));
+  });
+});
+
+describe("版本顯示與檢查更新（純本地顯示；只在主動點擊時查 GitHub）", () => {
+  function buildPanel() {
+    const container = makeContainer();
+    const panel = new SettingsPanel({ container });
+    panel.open();
+    return panel;
+  }
+
+  it("設定頁常駐顯示目前版本（version.js 單一真相；零網路請求）", async () => {
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy;
+    buildPanel();
+    const ver = document.querySelector(".settings-version");
+    expect(ver).not.toBe(null);
+    expect(ver.textContent).toBe("EverOtome v" + VERSION);
+    expect(document.querySelector(".settings-check-update")).not.toBe(null);
+    expect(fetchSpy).not.toHaveBeenCalled(); // 開面板不打任何請求——查詢只能由點擊觸發
+  });
+
+  it("點「檢查更新」查到新版：顯示新版本號＋「查看更新內容」連結（href 走回應的 GitHub 頁）", async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true, status: 200,
+      json: async () => ([{ tag_name: "v9.9.9-beta", html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta" }]),
+    }));
+    buildPanel();
+    document.querySelector(".settings-check-update").click();
+    await new Promise((r) => setTimeout(r, 0));
+    const line = document.querySelector(".settings-update-result");
+    expect(line.textContent).toContain("v9.9.9-beta");
+    const a = line.querySelector("a");
+    expect(a).not.toBe(null);
+    expect(a.getAttribute("href")).toBe("https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta");
+    expect(a.getAttribute("rel")).toBe("noopener");
+    expect(global.fetch).toHaveBeenCalledTimes(1); // 只查一次、只在點擊時
+  });
+
+  it("點「檢查更新」已是最新（tag 帶 v 前綴、剝掉後等於本地版本）：顯示已最新、無連結", async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true, status: 200,
+      json: async () => ([{ tag_name: "v" + VERSION, html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v" + VERSION }]),
+    }));
+    buildPanel();
+    document.querySelector(".settings-check-update").click();
+    await new Promise((r) => setTimeout(r, 0));
+    const line = document.querySelector(".settings-update-result");
+    expect(line.textContent).toBe(t("settings.updateLatest"));
+    expect(line.querySelector("a")).toBe(null);
+  });
+
+  it("查詢失敗（斷網）：簡短提示、按鈕復原可再按、不影響其他設定", async () => {
+    global.fetch = vi.fn(async () => { throw new TypeError("network down"); });
+    buildPanel();
+    const btn = document.querySelector(".settings-check-update");
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(document.querySelector(".settings-update-result").textContent).toBe(t("settings.updateFailed"));
+    expect(btn.disabled).toBe(false); // 失敗後復原、可再試
+  });
+
+  it("回應的 html_url 非 github.com 網域：連結退回官方 releases 頁（href 白名單）", async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true, status: 200,
+      json: async () => ([{ tag_name: "v9.9.9-beta", html_url: "https://evil.example/x" }]),
+    }));
+    buildPanel();
+    document.querySelector(".settings-check-update").click();
+    await new Promise((r) => setTimeout(r, 0));
+    const a = document.querySelector(".settings-update-result a");
+    expect(a.getAttribute("href")).toBe("https://github.com/aveluneverse/EverOtome/releases");
   });
 });

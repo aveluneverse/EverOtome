@@ -176,6 +176,12 @@ export default {
   "settings.mouthHint": "How fast the mouth moves while speaking. Typing and voice share the same beat. Takes effect as you drag.",
   "settings.lang": "Language",
   "settings.langAuto": "Auto (follow browser)",
+  "settings.checkUpdate": "Check for updates",
+  "settings.updateNote": "Connects to GitHub to fetch the latest version info. Nothing from your EverOtome is uploaded.",
+  "settings.updateLatest": "You are on the latest version",
+  "settings.updateFound": "New version available: {tag}",
+  "settings.updateView": "See what changed",
+  "settings.updateFailed": "Could not check right now",
   // ── 試妝間（demo/expression-lab.html）
   "lab.title": "Character Lab",
   "lab.noSprite": "No sprite here yet",

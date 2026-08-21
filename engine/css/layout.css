@@ -2128,6 +2128,26 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   color: var(--focus);
 }
 
+/* 版本與更新列：版本字淡色小字；「檢查更新」低調膠囊鈕（沿既有 token 與
+ * 圓鈕語彙，不生新色）。結果行沿 .settings-note。 */
+.settings-version { color: var(--text-dim); font-size: 0.85rem; }
+.settings-check-update {
+  flex: 0 0 auto;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--btn-bg) 55%, transparent);
+  color: var(--btn-ink);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-check-update:hover { background: var(--btn-bg-hover); }
+.settings-check-update:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.settings-check-update:disabled { opacity: 0.55; }
+.settings-update-result a { color: var(--primary); }
+
 /* ── 色系主題 ─────────────────────────────────────────────────────────────
  * 設計：預設主題＝最終樣式外觀，其他主題＝純換色系——同一套框件／版式／
  * 玻璃透明度，只有顏色跟主題走。

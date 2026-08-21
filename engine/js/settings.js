@@ -15,6 +15,14 @@
 
 import { confirmDialog } from "./confirm.js";
 import { t, tEl, setLocale, getStoredChoice, localeOptions, onLocaleChange } from "./i18n.js";
+import { VERSION } from "./version.js";
+
+// 「檢查更新」資料源：GitHub 公開 releases API（列表第一顆＝最新，含
+// pre-release——`releases/latest` 端點刻意不回 pre-release，beta 期不能用）。
+// 只在使用者主動按下「檢查更新」時 fetch；不上傳任何資料、無自動背景檢查
+// （README 隱私段同句承諾）。
+const UPDATE_FEED_URL = "https://api.github.com/repos/aveluneverse/EverOtome/releases?per_page=1";
+const RELEASES_URL = "https://github.com/aveluneverse/EverOtome/releases";
 
 const KEYS = {
   ttsEnabled: "v4.ttsEnabled",
@@ -632,6 +640,31 @@ export class SettingsPanel {
     tEl(speedNote, "settings.mouthHint");
     body.appendChild(speedNote);
 
+    // 版本與更新：版本號吃 version.js 單一真相（純本地、零請求）；「檢查
+    // 更新」只在點擊當下查一次 GitHub 公開 API，三態結果（有新版／已最新／
+    // 無法檢查）落 aria-live 結果行，失敗不絆任何功能。
+    const verRow = document.createElement("div");
+    verRow.className = "settings-row";
+    const verLabel = document.createElement("span");
+    verLabel.className = "settings-version";
+    verLabel.textContent = "EverOtome v" + VERSION;
+    verRow.appendChild(verLabel);
+    const checkBtn = document.createElement("button");
+    checkBtn.type = "button";
+    checkBtn.className = "settings-check-update";
+    tEl(checkBtn, "settings.checkUpdate");
+    checkBtn.addEventListener("click", () => this._checkUpdate());
+    verRow.appendChild(checkBtn);
+    body.appendChild(verRow);
+    const updateNote = document.createElement("p");
+    updateNote.className = "settings-note";
+    tEl(updateNote, "settings.updateNote");
+    body.appendChild(updateNote);
+    const updateResult = document.createElement("p");
+    updateResult.className = "settings-note settings-update-result";
+    updateResult.setAttribute("aria-live", "polite");
+    body.appendChild(updateResult);
+
     sheet.appendChild(body);
     this.container.appendChild(panel);
     // 存住每個控制項的 input／數值標籤參照——`_refresh()` 要靠這些參照把持久化的
@@ -650,7 +683,49 @@ export class SettingsPanel {
       modelInputs,
       modelDd,
       modelNote: modelNoteEl,
+      checkUpdateBtn: checkBtn,
+      updateResult,
     };
+  }
+
+  /** 「檢查更新」：只由設定頁按鈕觸發。查 GitHub 公開 releases 列表第一顆
+   * （含 pre-release），tag 去掉 v 前綴與本地 VERSION 比對——不同＝有新版
+   * （附「查看更新內容」連結；href 只信 github.com 網域，否則退回官方
+   * releases 頁）、相同＝已最新、任何失敗＝簡短提示。全程不上傳任何資料。 */
+  async _checkUpdate() {
+    const btn = this._dom.checkUpdateBtn;
+    const line = this._dom.updateResult;
+    if (btn.disabled) return; // 查詢中不收第二單
+    btn.disabled = true;
+    line.textContent = "";
+    try {
+      const res = await fetch(UPDATE_FEED_URL, {
+        headers: { Accept: "application/vnd.github+json" },
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const rel = Array.isArray(data) ? data[0] : null;
+      const tag = rel && typeof rel.tag_name === "string" ? rel.tag_name : "";
+      const latest = tag.replace(/^v/, "");
+      if (!latest) throw new Error("no tag");
+      if (latest === VERSION) {
+        line.textContent = t("settings.updateLatest");
+      } else {
+        line.textContent = t("settings.updateFound", { tag }) + " ";
+        const a = document.createElement("a");
+        a.href = (rel.html_url && /^https:\/\/github\.com\//.test(rel.html_url))
+          ? rel.html_url
+          : RELEASES_URL;
+        a.target = "_blank";
+        a.rel = "noopener";
+        tEl(a, "settings.updateView");
+        line.appendChild(a);
+      }
+    } catch (e) {
+      line.textContent = t("settings.updateFailed");
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   /**

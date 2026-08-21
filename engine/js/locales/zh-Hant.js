@@ -176,6 +176,12 @@ export default {
   "settings.mouthHint": "他說話時嘴巴開合的節奏——打字與語音同一個拍子，拖動即時生效。",
   "settings.lang": "語言",
   "settings.langAuto": "自動（跟瀏覽器）",
+  "settings.checkUpdate": "檢查更新",
+  "settings.updateNote": "將連線至 GitHub 取得最新版本資訊，不會上傳 EverOtome 的資料。",
+  "settings.updateLatest": "目前已是最新版本",
+  "settings.updateFound": "有新版本：{tag}",
+  "settings.updateView": "查看更新內容",
+  "settings.updateFailed": "目前無法檢查",
   // ── 試妝間（demo/expression-lab.html）
   "lab.title": "表情試妝間",
   "lab.noSprite": "這裡還沒有立繪",
