@@ -1,6 +1,6 @@
 # EverOtome
 
-[English](README.md) | [日本語](README.ja.md) | 繁體中文
+[English](README.md) | [日本語](README.ja.md) | 中文
 
 ![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)
 

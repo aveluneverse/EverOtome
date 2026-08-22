@@ -1,6 +1,6 @@
 # EverOtome
 
-English | [日本語](README.ja.md) | [繁體中文](README.zh-TW.md)
+English | [日本語](README.ja.md) | [中文](README.zh-TW.md)
 
 ![EverOtome — Chat with your AI like you're in an otome game.](docs/readme-kv-en.webp)
 

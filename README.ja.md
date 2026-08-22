@@ -1,6 +1,6 @@
 # EverOtome
 
-[English](README.md) | 日本語 | [繁體中文](README.zh-TW.md)
+[English](README.md) | 日本語 | [中文](README.zh-TW.md)
 
 ![EverOtome — 乙女ゲームの中にいるみたいに AI とチャット](docs/readme-kv-en.webp)
 
