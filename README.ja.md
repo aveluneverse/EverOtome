@@ -2,7 +2,7 @@
 
 [English](README.md) | 日本語 | [中文](README.zh-TW.md)
 
-> **更新（2026-08-27）：v0.2.1-beta。** この日より前に clone した方は `git pull`（または再ダウンロード）してください。ご自身または AI アシスタントが `tools/make_sample_character.py` を実行したことがある場合は、`git checkout -- engine/assets/sample` でサンプルキャラクターを復元し、そのスクリプトを削除してください。詳細は [release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.1-beta) をご覧ください。
+> **更新（2026-08-27）：v0.3.0-beta。** ホーム画面の左上にバージョン番号と「アップデートを確認」を表示し、エラーの表示のそばに「問題を報告」リンクを置きました。以前に clone した方は `git pull`（または再ダウンロード）してください。ご自身または AI アシスタントが `tools/make_sample_character.py`（v0.2.1-beta で削除済み）を実行したことがある場合は、`git checkout -- engine/assets/sample` でサンプルキャラクターを復元し、そのスクリプトを削除してください。詳細は [release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.3.0-beta) をご覧ください。
 
 ![EverOtome — 乙女ゲームの中にいるみたいに AI とチャット](docs/readme-kv-en.webp)
 
