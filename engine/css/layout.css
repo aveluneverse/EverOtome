@@ -730,6 +730,9 @@ body.has-theme-assets .ver-chip { top: calc(100% + 1.05dvh + 7px); }
  * 比 .feedback-link 單獨一顆高，一定贏，不必依賴這條規則跟上面 .feedback-link
  * 宣告的先後順序。 */
 .ver-chip-report.feedback-link { text-underline-offset: 4px; }
+/* 回報問題 icon（手機限定）：桌機版本列已經有文字連結，這裡先藏起來；顯示
+ * 規則見下面 899.98px 媒體查詢（跟 .chatlog-full-btn 同一段）。 */
+.report-icon-btn { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .ver-chip-result { transition: none; }
 }
@@ -1544,6 +1547,17 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
 /* ══ 手機直屏（<900px）：由下而上——乾淨實色 dock（icon 列）→ 實色列輸入欄
    → 立繪底部從這兩層之上起 → Chat Log 復刻桌機玻璃框（無模糊）疊立繪上。 ═══════ */
 @media (max-width: 899.98px) {
+  /* 手機頂部三列（標題＋版本列／CHAT LOG・THINKING 分頁／狀態句）垂直間距
+   * token 化（Mira 2026-08-27 22:5x：「手機上下間距不能太密」）；先給一組
+   * 可以之後單獨調整任一顆數字的正式數值，不必再回頭改動四個屬性各自的
+   * 寫死值。 */
+  :root {
+    --m-head-h: 2.2rem;
+    --m-status-top: 2.6rem;
+    --m-msgs-top: 1.7rem;
+    --m-full-pad: 3.1rem;
+  }
+
   #stage-root {
     width: 100%;
     height: 100dvh;
@@ -1599,20 +1613,20 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   /* position:relative（full-bleed 配套）：分隔線 ::after／#chat-status／
    * 滿版鈕三件 absolute 原錨 #chatlog——head 平時貼 #chatlog 頂＝兩種錨同位
    * （零視覺變化），改錨 head 後滿版 padding-top 推下 head 時三件自動跟位。 */
-  .chatlog-head { position: relative; height: 1.9rem; align-items: center; padding-bottom: 0; }
+  .chatlog-head { position: relative; height: var(--m-head-h); align-items: center; padding-bottom: 0; }
   .chatlog-title { font-size: 0.92rem; opacity: 0.85; }
   .chatlog-head::after {
     content: "";
     position: absolute;
     left: 7%;
     right: 7%;
-    top: 1.9rem;
+    top: var(--m-head-h);
     height: 1px;
     background: color-mix(in srgb, var(--primary-soft) 18%, transparent);
   }
-  #chat-status { top: 2.1rem; font-size: 0.7rem; }
+  #chat-status { top: var(--m-status-top); font-size: 0.7rem; }
   /* 頂部硬邊界同桌機那課：padding-top 轉 margin-top，捲到頂不蓋 head 分隔線 */
-  #msgs { margin-top: 1.3rem; padding: 0 4.5% 0.9rem; }
+  #msgs { margin-top: var(--m-msgs-top); padding: 0 4.5% 0.9rem; }
 
   /* ── Chat Log 雙頁籤：CHAT LOG｜THINKING ───────────────────────────────────
    * 思緒與對話泡泡各自獨立顯示——思緒退出泡泡區（擠壓／被遮根治）、集中
@@ -1833,6 +1847,35 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   .chatlog-full-btn .icon-collapse { display: none; }
   body.chatlog-full .chatlog-full-btn .icon-expand { display: none; }
   body.chatlog-full .chatlog-full-btn .icon-collapse { display: block; }
+
+  /* 回報問題手機版：貼在滿版鈕左側，同一顆 geometry（top／transform／寬高）；
+   * 顏色跟展開鈕同一階暗色，hover／active／focus-visible 也比照辦理。
+   * .feedback-link 本身的底線這裡不要（icon 沒有文字可加底線）；#brand 整體
+   * pointer-events:none，這裡跟 .chatlog-full-btn 一樣單獨開回 auto。 */
+  .report-icon-btn {
+    display: flex;
+    position: absolute;
+    top: 0.95rem;
+    right: calc(2.5% + 2.1rem + 0.35rem);
+    transform: translateY(-50%);
+    width: 2.1rem;
+    height: 2.1rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: none;
+    color: var(--btn-ink);
+    text-decoration: none;
+    pointer-events: auto;
+  }
+  .report-icon-btn:hover,
+  .report-icon-btn:active { color: var(--title-ink); }
+  .report-icon-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .report-icon-btn svg { width: 1.15rem; height: 1.15rem; }
+  /* 版本列裡的文字版回報問題手機不重複顯示（同一顆連結，上面已經有 icon 版）。 */
+  .ver-chip-sep-report,
+  .ver-chip-report { display: none; }
+
   /* 滿版態（full-bleed，取代早期「更大圓角框」方案）：不再是一塊浮著的圓角
    * 矩形——整片半透遮罩鋪滿畫面（top 0 到輸入列上緣、左右出血、零圓角），
    * 顏色比照平時 0.55（泡泡自己是實色、遮罩只負責壓底加讀性）。模型名浮
@@ -1848,7 +1891,7 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
     right: 0;
     border-radius: 0;
     background: rgba(8, 5, 16, 0.55);
-    padding-top: calc(2.6rem + env(safe-area-inset-top));
+    padding-top: calc(var(--m-full-pad) + env(safe-area-inset-top));
     /* 平時圓角框懸浮縫（bottom 8.2rem）在 full-bleed 下＝謎之縫隙露背景——
      * 遮罩底貼死輸入列頂（inputbar bottom 3.8rem＋高 3.8rem）。 */
     bottom: calc(7.6rem + env(safe-area-inset-bottom));

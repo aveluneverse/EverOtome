@@ -17,6 +17,13 @@ const CHIP_HTML = `
     <span class="ver-chip-sep ver-chip-sep-report" aria-hidden="true">·</span>
     <a class="ver-chip-report feedback-link" href="#stale-placeholder" target="_blank" rel="noopener" data-i18n="feedback.report">回報問題</a>
   </div>
+  <a class="report-icon-btn feedback-link" href="#stale-placeholder-icon" target="_blank" rel="noopener" aria-label="回報問題" data-i18n-attr="aria-label:feedback.report">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      <line x1="12" y1="7" x2="12" y2="11"></line>
+      <line x1="12" y1="15" x2="12.01" y2="15"></line>
+    </svg>
+  </a>
 `;
 
 function buildChip() {
@@ -229,6 +236,70 @@ describe("永久「回報問題」連結（Mira 2026-08-27 22:1x 拍板：跟「
     await new Promise((r) => setTimeout(r, 0));
     expect(container.querySelector(".ver-chip-report")).toBe(link); // 同一個節點，沒被重建或移除
     expect(link.getAttribute("href")).toBe(FEEDBACK_URL);
+  });
+});
+
+describe("手機版回報問題 icon（.report-icon-btn，Mira 2026-08-27 22:5x 拍板：跟 .chatlog-full-btn 同排，取代版本列裡的文字連結）", () => {
+  it("開面板就存在，不必查詢或失敗才出現；href 在 init 時從 FEEDBACK_URL 覆寫（不是沿用 HTML 上寫死的字面值）；target／rel／class／svg 齊全", () => {
+    const container = buildChip();
+    initVersionChip(container);
+    const icon = container.querySelector(".report-icon-btn");
+    expect(icon).not.toBe(null);
+    expect(icon.getAttribute("href")).toBe(FEEDBACK_URL); // fixture 原本寫 "#stale-placeholder-icon"，init 時被覆寫
+    expect(icon.getAttribute("target")).toBe("_blank");
+    expect(icon.getAttribute("rel")).toBe("noopener");
+    expect(icon.classList.contains("feedback-link")).toBe(true);
+    expect(icon.querySelectorAll("svg").length).toBe(1);
+    expect(icon.querySelector("svg").getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("零 fetch：光是 initVersionChip 就看得到這顆 icon，不必按過「檢查更新」", () => {
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy;
+    const container = buildChip();
+    initVersionChip(container);
+    expect(container.querySelector(".report-icon-btn")).not.toBe(null);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("換語系：aria-label 跟著換（走既有 data-i18n-attr／applyDom 機制，version-chip.js 不必另外接程式碼）", () => {
+    const container = buildChip();
+    initVersionChip(container);
+    const icon = container.querySelector(".report-icon-btn");
+    expect(icon.getAttribute("aria-label")).toBe("回報問題");
+    setLocale("en", { persist: false });
+    expect(icon.getAttribute("aria-label")).toBe(t("feedback.report"));
+    expect(icon.getAttribute("aria-label")).not.toBe("回報問題");
+    setLocale("zh-Hant", { persist: false }); // 還原語系，不影響後面的測試
+    expect(icon.getAttribute("aria-label")).toBe("回報問題");
+  });
+
+  it("found／latest／failed 狀態切換不影響這顆 icon：同一個節點、href 不變（render() 只碰 .ver-chip-result／.ver-chip-check，不碰它）", async () => {
+    global.fetch = vi.fn(async () => okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const icon = container.querySelector(".report-icon-btn");
+    container.querySelector(".ver-chip-check").click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".report-icon-btn")).toBe(icon);
+    expect(icon.getAttribute("href")).toBe(FEEDBACK_URL);
+  });
+
+  it("找不到 .report-icon-btn（局部容器只搭 #ver-chip，沒有這段 markup）＝安靜略過，不影響版本號／檢查更新照常運作", () => {
+    const container = document.createElement("div");
+    container.innerHTML = `
+      <div id="ver-chip" class="ver-chip">
+        <span class="ver-chip-v" id="ver-chip-version"></span><span class="ver-chip-sep" aria-hidden="true">·</span>
+        <button type="button" class="ver-chip-check" data-i18n="settings.checkUpdate">檢查更新</button>
+        <span class="ver-chip-result" role="status" aria-live="polite" hidden></span>
+      </div>
+    `;
+    document.body.appendChild(container);
+    expect(() => initVersionChip(container)).not.toThrow();
+    expect(container.querySelector("#ver-chip-version").textContent).toBe("v" + VERSION);
   });
 });
 

@@ -36,6 +36,12 @@ export function initVersionChip(root = document) {
   // 防禦寫法，理論上不該發生。
   const reportLink = chip.querySelector(".ver-chip-report");
   if (reportLink) reportLink.href = FEEDBACK_URL;
+  // 手機版回報問題 icon（Mira 2026-08-27 22:5x 拍板：貼在 Chat Log 展開鈕左側，
+  // 取代版本列裡那顆文字連結）：同一顆 FEEDBACK_URL 覆寫，單一事實來源。這顆
+  // 不在 #ver-chip 底下（它是 .brand-lockup 的手足，見 index.html），改從外層
+  // scope 找；局部容器沒搭這段 markup（例如只測 #ver-chip 本身）就安靜略過。
+  const reportIconBtn = scope.querySelector(".report-icon-btn");
+  if (reportIconBtn) reportIconBtn.href = FEEDBACK_URL;
   // latest 態鈕先隱藏、結果行沒有連結可接手鍵盤焦點——給它 tabindex="-1"，
   // 讓它能被程式化 focus()（不進 Tab 序，滑鼠使用者完全無感），焦點才不會在
   // 鈕被 hidden 的瞬間被瀏覽器甩去 body（見下方 render() 的 latest 分支／

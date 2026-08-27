@@ -218,6 +218,18 @@
         <a class="ver-chip-report feedback-link" href="https://marshmallow-qa.com/a4u0myommjpyzup" target="_blank" rel="noopener" data-i18n="feedback.report">回報問題</a>
       </div>
     </div>
+    <!-- 回報問題手機版：桌機仍用上面版本列裡的文字連結（桌機夠寬）；手機版本列
+         空間緊繃，這裡改成一顆貼在 Chat Log 展開鈕左側的 icon，同一顆
+         FEEDBACK_URL、同一顆 aria-label 字典鍵，只是外觀從文字換成圖示。桌機
+         用 CSS 藏起來，手機媒體查詢裡連同版本列的文字連結一起顯隱互換（見
+         layout.css 的 .report-icon-btn／.ver-chip-sep-report／.ver-chip-report）。 -->
+    <a class="report-icon-btn feedback-link" href="https://marshmallow-qa.com/a4u0myommjpyzup" target="_blank" rel="noopener" aria-label="回報問題" data-i18n-attr="aria-label:feedback.report">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        <line x1="12" y1="7" x2="12" y2="11"></line>
+        <line x1="12" y1="15" x2="12.01" y2="15"></line>
+      </svg>
+    </a>
     <span id="char-name" hidden></span>
     <!-- 左側欄五鈕：打電話→外觀→CG→設定→顯示選項，由上而下（CG 鈕預設
          hidden，需 cgEndpoint 才出現；顯示選項展開後才看到隱藏人像／收起
