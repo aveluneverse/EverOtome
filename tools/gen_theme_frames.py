@@ -83,7 +83,7 @@ def main() -> int:
     for role, color in SRC_COLORS.items():
         if color not in svg:
             print(f"[FAIL] source frame does not contain the {role} color {color}; was the frame edited? "
-                  f"Update SRC_COLORS first, then rerun.")
+                  f"Update SRC_COLORS first, then rerun. Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
             return 1
     for theme_id, colors in THEMES.items():
         out_svg = svg

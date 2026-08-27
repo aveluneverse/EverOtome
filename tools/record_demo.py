@@ -324,13 +324,13 @@ def main():
                             pass
                     shutil.rmtree(video_tmp, ignore_errors=True)
                     results.append((seg, tag, None, 0, [f"[record-fail] {e}"]))
-                    print(f"[{seg}/{tag}] FAILED: {e}")
+                    print(f"[{seg}/{tag}] FAILED: {e} Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
                     continue
 
         print("\n=== recording done ===")
         for seg, tag, path, size, noise in results:
             if path is None:
-                print(f"[{seg}/{tag}] FAILED  {noise}")
+                print(f"[{seg}/{tag}] FAILED  {noise} Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
                 continue
             print(f"[{seg}/{tag}] {path}  {size/1024/1024:.1f} MB")
             if noise:

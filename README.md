@@ -199,7 +199,7 @@ EverOtome is in **Beta**: the core feature set is stable and usable, and the con
 ## Privacy and data flow
 
 - EverOtome contains no telemetry and no analytics, and its maintainers operate no hosted service that receives your data. It's a pure static front end.
-- The "Check for updates" button is the only outward connection, and it fires only when you press it in the settings page: it fetches the public version info from GitHub, uploads nothing, and never checks in the background.
+- The "Check for updates" button is the only outward connection, and it fires only when you press it (on the home screen or in Settings): it fetches the public version info from GitHub, uploads nothing, and never checks in the background.
 - Conversation content is never written to browser storage. Messages render live, and history comes from your backend; browser storage is limited to interface preferences and display state.
 - Your messages, photos, and voice go only to the backend you configure.
 

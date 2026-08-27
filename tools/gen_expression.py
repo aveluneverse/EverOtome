@@ -250,7 +250,7 @@ def main() -> int:
                 print(f"  {p.name}: source {im.size[0]}x{im.size[1]} pasted onto the {W}x{H} canvas at offset ({dx},{dy})")
                 im = canvas
             else:
-                print(f"FAIL: {p.name} is {im.size}, base is {W}x{H} (canvas drifted? measure the offset and pass --src-offset DX DY)")
+                print(f"FAIL: {p.name} is {im.size}, base is {W}x{H} (canvas drifted? measure the offset and pass --src-offset DX DY) Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
                 failed = True
                 continue
         d = diff_mask(flat(im), A)
@@ -265,7 +265,7 @@ def main() -> int:
                 tint += count(comp)   # 臉框內、離眼嘴基準區都遠＝臉上的底色（紅暈）→ 交給 static 區
             else:
                 stray += count(comp)
-                print(f"  FAIL: {p.name} changed outside the face, bbox {b} ({count(comp)} px); only the eyes, the mouth and the face tint may change")
+                print(f"  FAIL: {p.name} changed outside the face, bbox {b} ({count(comp)} px); only the eyes, the mouth and the face tint may change Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
                 failed = True
         eye_n, mouth_n = count(eye_hit), count(mouth_hit)
         eye_role, mouth_role = roles_from_name(p.name)
