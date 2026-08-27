@@ -712,6 +712,24 @@ body.has-theme-assets .ver-chip { top: calc(100% + 1.05dvh + 7px); }
 .ver-chip-result a { pointer-events: auto; margin-left: 0.6em; }
 .ver-chip-result a:not(.feedback-link) { color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
 .ver-chip-result a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* 失敗態的重試控制項（Mira 2026-08-28 裁定選項一：版本列每一態只留一顆
+ * 主要動作——found＝連結、latest＝句子（淡回鈕）、failed 改成句子自己接這顆
+ * 重試，鈕不再跟句子並存，見 version-chip.js 的 appendRetry()）：視覺照抄
+ * 上面的 found 連結（.ver-chip-result a），只是用 <button> 承接「再查一次」
+ * 的語意（不是導頁，不能用 <a>）。 */
+.ver-chip-retry {
+  pointer-events: auto;
+  margin-left: 0.6em;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.ver-chip-retry:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* 永久「回報問題」連結（Mira 2026-08-27 22:1x 拍板：跟「檢查更新」同一行，不再
  * 只在查詢失敗時才出現）：字型／字級／顏色走 .ver-chip 繼承（<a> 不像 <button>
  * 需要額外 font:inherit）；本身在 #brand 的 pointer-events:none 底下要單獨開回
@@ -1983,6 +2001,10 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
    * 用 aria-label 保留在可及性樹上，不是真的從 DOM 拿掉。 */
   .ver-chip-view-label { display: none; }
   .ver-chip-result a::after { content: "\203a"; }
+  /* 重試控制項的可見文字同樣是 .ver-chip-view-label（上面那條規則已經藏
+   * 起來），手機只留 ↻ 符號，同 found 連結的 › 符號同一手法（一次只留一顆
+   * 主要動作的規則見 version-chip.js 的 render()）。 */
+  .ver-chip-retry::after { content: "\21bb"; }
 
   /* 電話面板：全舞台 */
   #phone-root { left: 0; top: 0; width: 100%; height: 100%; }

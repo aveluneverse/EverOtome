@@ -90,9 +90,9 @@ export function initVersionChip(root = document) {
 
   /** 加一顆連結到結果行；手機版把可見文字換成 › 符號（CSS 隱藏 .ver-chip-view-label、
    * 補 ::after），可及性名稱一律用 aria-label 保留完整句子，不受畫面文字影響。
-   * 現在只有 found 態的「查看更新內容」會呼叫（Mira 2026-08-27 22:1x 拍板：failed
-   * 態不再自己接一顆「回報問題」——永久的那顆已經在同一行，見 initVersionChip
-   * 開頭設 reportLink.href 那段），維持既有配色，不是回饋連結。 */
+   * 只有 found 態的「查看更新內容」會呼叫——failed 態現在改呼叫下面的
+   * appendRetry()（視覺手法一致，但語意是「再查一次」不是導去外部頁面，故用
+   * <button> 不用 <a>，兩者不能共用同一顆函式），維持既有配色，不是回饋連結。 */
   function appendLink(labelKey, href) {
     const a = document.createElement("a");
     a.href = href;
@@ -105,6 +105,26 @@ export function initVersionChip(root = document) {
     a.appendChild(label);
     resultEl.appendChild(a);
     return a;
+  }
+
+  /** 加一顆重試控制項到結果行——failed 態專用。視覺手法跟 appendLink() 一致（手機
+   * 版把可見文字換成 ↻ 符號，同一顆 .ver-chip-view-label／::after 機制），可及性
+   * 名稱固定用「檢查更新」的字典鍵：這顆本質上就是鈕的分身，只是失敗時擺在
+   * 結果行內、跟版本號同一行不必額外換行（Mira 2026-08-28 裁定選項一：版本列
+   * 一次只留一顆主要動作）。點下去呼叫 startCheck() 直接再查一次，不是導頁，
+   * 故用 <button> 不用 <a>。 */
+  function appendRetry() {
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "ver-chip-retry";
+    retry.setAttribute("aria-label", t("settings.checkUpdate"));
+    const label = document.createElement("span");
+    label.className = "ver-chip-view-label";
+    tEl(label, "settings.checkUpdate");
+    retry.appendChild(label);
+    retry.addEventListener("click", () => startCheck(retry));
+    resultEl.appendChild(retry);
+    return retry;
   }
 
   function scheduleFadeBackToButton() {
@@ -155,8 +175,9 @@ export function initVersionChip(root = document) {
     }
     const hadFocus = hadFocusBeforeQuery; // 消費一次即歸零，見上方宣告處與本函式開頭註解
     hadFocusBeforeQuery = false;
-    // 查詢已經有結果了：鈕先復原成可點（found／latest 接下來會再把它藏起來；
-    // failed 讓它就留著，查詢失敗最需要能立刻再試一次）。
+    // 查詢已經有結果了：鈕先復原成可點（found／latest／failed 接下來都會再把它
+    // 藏起來——版本列一次只留一顆主要動作，failed 改由結果行自己接一顆重試
+    // 控制項頂替，鈕跟句子不再同時出現，見下面 appendRetry()）。
     btn.disabled = false;
     btn.removeAttribute("aria-busy");
     resultEl.hidden = false;
@@ -181,18 +202,30 @@ export function initVersionChip(root = document) {
       if (hadFocus) resultEl.focus(); // 沒有連結可接手，焦點暫留在結果行本身（tabindex="-1"，見上）
       scheduleFadeBackToButton();
     } else if (state.kind === "failed") {
-      btn.hidden = false; // 失敗最該讓人能馬上再按一次，跟 found／latest 不同、不藏鈕
+      // 版本列一次只留一顆主要動作（Mira 2026-08-28 裁定選項一）：鈕藏起來，改由
+      // 這句話自己接一顆重試控制項，可見文字桌機同鈕的「檢查更新」、手機收成 ↻
+      // 符號（appendRetry() 與 CSS，同 found 連結的既有手法）。
+      btn.hidden = true;
       renderPrefixAndTag("settings.updateFailed", "");
+      const retry = appendRetry();
+      if (hadFocus) retry.focus();
     }
   }
 
-  btn.addEventListener("click", async () => {
-    if (btn.disabled) return; // 查詢中忽略第二次點擊
-    hadFocusBeforeQuery = document.activeElement === btn; // 一定要在下一行 disabled=true 之前讀
+  /** 鈕與 failed 態重試控制項共用的查詢起手式——`source` 只影響焦點歸屬判斷
+   * （點擊的到底是鈕本身還是結果行裡的重試控制項），查詢本身與鈕的
+   * disabled／aria-busy 狀態一律由鈕自己承擔：重試控制項沒有自己的查詢中樣式，
+   * 它下一輪 render() 就會被結果行清空整段拿掉（見上方 render() 的 null 分支）。 */
+  async function startCheck(source) {
+    if (btn.disabled) return; // 查詢中忽略第二次觸發
+    hadFocusBeforeQuery = document.activeElement === source; // 一定要在下一行 disabled=true 之前讀
+    btn.hidden = false; // failed 態鈕本來藏著；重新查詢期間顯示的是鈕本身（disabled／aria-busy），同從 idle 直接點鈕查詢一致
     btn.disabled = true;
     btn.setAttribute("aria-busy", "true");
     await checkForUpdate();
-  });
+  }
+
+  btn.addEventListener("click", () => startCheck(btn));
 
   onUpdateState(() => render());
   onLocaleChange(() => render());

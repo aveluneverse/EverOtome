@@ -114,7 +114,7 @@ describe("initVersionChip：版本文字＋檢查更新按鈕", () => {
     expect(btn.hidden).toBe(false);
   });
 
-  it("failed 顯示失敗字串，鈕不隱藏、可以馬上再按；結果行不再自己接回報問題連結（Mira 2026-08-27 22:1x 拍板：永久連結已經在同一行，見下方 describe）", async () => {
+  it("failed 顯示失敗字串，鈕隱藏（Mira 2026-08-28 裁定選項一：版本列一次只留一顆主要動作）；結果行不再自己接回報問題連結（Mira 2026-08-27 22:1x 拍板：永久連結已經在同一行，見下方 describe）", async () => {
     global.fetch = vi.fn(async () => { throw new TypeError("network down"); });
     const container = buildChip();
     initVersionChip(container);
@@ -123,10 +123,119 @@ describe("initVersionChip：版本文字＋檢查更新按鈕", () => {
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
     expect(result.hidden).toBe(false);
-    expect(result.textContent).toBe(t("settings.updateFailed"));
+    expect(result.textContent).toContain(t("settings.updateFailed")); // 句子後面接著重試控制項自己的文字，見下方 describe
     expect(result.querySelector("a")).toBe(null); // 不再自己 append 第二顆連結
-    expect(btn.hidden).toBe(false);
+    expect(btn.hidden).toBe(true);
+  });
+
+  it("failed 的重試控制項：在 .ver-chip-result 內、aria-label 與可見文字都跟主鈕共用同一個字典鍵，換語系照樣跟著換", async () => {
+    global.fetch = vi.fn(async () => { throw new TypeError("network down"); });
+    const container = buildChip();
+    initVersionChip(container);
+    const btn = container.querySelector(".ver-chip-check");
+    const result = container.querySelector(".ver-chip-result");
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    const retry = result.querySelector(".ver-chip-retry");
+    expect(retry).not.toBe(null);
+    expect(retry.getAttribute("aria-label")).toBe(t("settings.checkUpdate"));
+    expect(retry.querySelector(".ver-chip-view-label").textContent).toBe(t("settings.checkUpdate"));
+
+    setLocale("en", { persist: false });
+    const retryEn = result.querySelector(".ver-chip-retry");
+    expect(retryEn.getAttribute("aria-label")).toBe(t("settings.checkUpdate"));
+    expect(retryEn.querySelector(".ver-chip-view-label").textContent).toBe(t("settings.checkUpdate"));
+    setLocale("zh-Hant", { persist: false }); // 還原語系，不影響後面的測試
+  });
+
+  it("failed 的重試控制項：點下去再打一次 fetch；查詢中鈕重新出現＝disabled／aria-busy，結果行藏起來、has-result 消失；查到 found 後鈕再度隱藏", async () => {
+    let resolveSecond;
+    let callCount = 0;
+    global.fetch = vi.fn(async () => {
+      callCount += 1;
+      if (callCount === 1) throw new TypeError("network down");
+      return new Promise((resolve) => { resolveSecond = resolve; }); // 第二次查詢手動控制何時落地
+    });
+    const container = buildChip();
+    initVersionChip(container);
+    const chip = container.querySelector("#ver-chip");
+    const btn = container.querySelector(".ver-chip-check");
+    const result = container.querySelector(".ver-chip-result");
+
+    btn.click(); // 第一次查詢：落地 failed
+    await new Promise((r) => setTimeout(r, 0));
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const retry = result.querySelector(".ver-chip-retry");
+    expect(retry).not.toBe(null);
+
+    retry.click(); // 第二次查詢由重試控制項觸發
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(btn.hidden).toBe(false); // 查詢中：鈕重新出現，顯示成查詢中的樣子
+    expect(btn.disabled).toBe(true);
+    expect(btn.getAttribute("aria-busy")).toBe("true");
+    expect(result.hidden).toBe(true); // 查詢一開始共用狀態被清成 null，結果行清空隱藏
+    expect(chip.classList.contains("has-result")).toBe(false);
+
+    resolveSecond(okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }]));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(btn.hidden).toBe(true); // found 落地：鈕再度隱藏
     expect(btn.disabled).toBe(false);
+    expect(result.hidden).toBe(false);
+    expect(result.textContent).toContain("v9.9.9-beta");
+    expect(result.querySelector("a")).not.toBe(null);
+  });
+
+  it("failed 的重試控制項：鍵盤操作（focus＋click）觸發查詢，查到 found 後焦點交給新出現的連結", async () => {
+    let callCount = 0;
+    let resolveSecond;
+    global.fetch = vi.fn(async () => {
+      callCount += 1;
+      if (callCount === 1) throw new TypeError("network down");
+      return new Promise((resolve) => { resolveSecond = resolve; });
+    });
+    const container = buildChip();
+    initVersionChip(container);
+    const btn = container.querySelector(".ver-chip-check");
+    const result = container.querySelector(".ver-chip-result");
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    const retry = result.querySelector(".ver-chip-retry");
+    retry.focus();
+    expect(document.activeElement).toBe(retry);
+    retry.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    resolveSecond(okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }]));
+    await new Promise((r) => setTimeout(r, 0));
+    const link = result.querySelector("a");
+    expect(link).not.toBe(null);
+    expect(document.activeElement).toBe(link);
+  });
+
+  it("failed 顯示中換語系：重新渲染後重試控制項仍在，且已換新語系的文字", async () => {
+    global.fetch = vi.fn(async () => { throw new TypeError("network down"); });
+    const container = buildChip();
+    initVersionChip(container);
+    const btn = container.querySelector(".ver-chip-check");
+    const result = container.querySelector(".ver-chip-result");
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(result.textContent).toContain(t("settings.updateFailed")); // 句子後面接著重試控制項自己的文字
+
+    setLocale("en", { persist: false });
+    expect(result.textContent).toContain(t("settings.updateFailed"));
+    const retry = result.querySelector(".ver-chip-retry");
+    expect(retry).not.toBe(null);
+    expect(retry.querySelector(".ver-chip-view-label").textContent).toBe(t("settings.checkUpdate"));
+    setLocale("zh-Hant", { persist: false }); // 還原語系，不影響後面的測試
   });
 
   it("查詢中忽略第二次點擊：兩次點擊只打一次 fetch", async () => {
