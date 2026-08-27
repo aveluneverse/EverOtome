@@ -1,8 +1,8 @@
 // feedback.js —— 回饋管道單一真相（Mira 2026-08-27 規則：每一條使用者會看到的
 // 錯誤路徑都要附上這個回饋盒）。console 小工具（logError／logWarn）恆接英文附言
 // （Mira 2026-08-27 早上追加規則：console 是給開發者看的，不跟介面語系走）；
-// buildFeedbackLink() 是三處回饋連結（Chat Log 表頭／設定頁／版本列）共用的
-// 錨點建構式，可見文字與 aria-label 才跟介面語系走。
+// buildFeedbackLink() 是設定頁查詢失敗那一行用的錨點建構式，可見文字與
+// aria-label 才跟介面語系走。
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { FEEDBACK_URL, CONSOLE_FEEDBACK_SUFFIX, logError, logWarn, buildFeedbackLink } from "../js/feedback.js";
 import { setLocale, t } from "../js/i18n.js";
@@ -56,7 +56,7 @@ describe("logError／logWarn：既有訊息尾巴黏上恆英文附言，其餘�
   });
 });
 
-describe("buildFeedbackLink()：三處回饋連結共用的錨點建構式", () => {
+describe("buildFeedbackLink()：設定頁查詢失敗那一行用的錨點建構式", () => {
   it("href／target／rel／class 固定；可見文字與 aria-label 用目前語系的 feedback.report", () => {
     const a = buildFeedbackLink();
     expect(a.tagName).toBe("A");

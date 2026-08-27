@@ -27,10 +27,11 @@ export function logWarn(msg, ...rest) {
 /** 建一顆標準化的「回饋回報」連結：href／target／rel／class（樣式見 layout.css
  * 的 .feedback-link）一次到位，可見文字與可及性名稱都跟目前介面語系走
  * （tEl／tAttr 各自掛 data-i18n／data-i18n-attr，換語系時 i18n.js 的
- * applyDom() 會一併重譯，不必額外訂閱 onLocaleChange）。Chat Log 表頭與設定頁
- * 查詢失敗共用這一份；版本列查詢失敗另有自己的 appendLink（連結內多包一層
- * 手機版文字／›符號切換用的 span），不套用本函式，只借同一個 class 讓顏色與
- * 底線風格一致。 */
+ * applyDom() 會一併重譯，不必額外訂閱 onLocaleChange）。目前唯一呼叫端是
+ * 設定頁查詢失敗那一行；其餘回饋連結（file:// 提示、版本列的永久連結、手機版
+ * 那顆 icon）都是 index.html 裡寫死的靜態錨點，只共用 .feedback-link 這顆
+ * class，不呼叫本函式——版本列查詢失敗那一行也已經不再自己接一顆回饋連結
+ * （Mira 2026-08-27 22:1x 拍板拿掉，見 version-chip.js 的 render()）。 */
 export function buildFeedbackLink() {
   const a = document.createElement("a");
   a.href = FEEDBACK_URL;

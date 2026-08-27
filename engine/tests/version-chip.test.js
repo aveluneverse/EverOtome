@@ -337,6 +337,56 @@ describe("手機版 has-result class（Mira 2026-08-27 拍板：有結果時版�
     expect(chip.classList.contains("has-result")).toBe(false);
   });
 
+  it("latest 態的淡回計時器被新查詢頂替：第二次查詢在舊計時器到期前落地，has-result 不會被補殺（clearFadeTimer 沒被跳過）", async () => {
+    vi.useFakeTimers();
+    let resolveSecond;
+    let callCount = 0;
+    global.fetch = vi.fn(async () => {
+      callCount += 1;
+      if (callCount === 1) return okResponse([{ tag_name: "v" + VERSION }]);
+      return new Promise((resolve) => { resolveSecond = resolve; }); // 第二次查詢手動控制何時落地
+    });
+    const container = buildChip();
+    initVersionChip(container);
+    const chip = container.querySelector("#ver-chip");
+    const btn = container.querySelector(".ver-chip-check");
+    const result = container.querySelector(".ver-chip-result");
+
+    btn.click(); // 第一次查詢：落地 latest，排下淡回計時器（6000 停留 ＋ 300 淡出）
+    await vi.advanceTimersByTimeAsync(0); // 讓 fetch/json 兩個 microtask 跑完
+    expect(chip.classList.contains("has-result")).toBe(true);
+    expect(result.hidden).toBe(false);
+    expect(btn.hidden).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(3000); // 還沒到 6000，舊計時器還沒觸發
+    btn.click(); // 第二次查詢在舊計時器到期前開始
+    // 查詢一開始，共用狀態被清成 null 並通知一次：render() 開頭的 clearFadeTimer()
+    // 要在這一刻把舊的淡回計時器清掉，結果行也立刻清空隱藏。
+    expect(result.hidden).toBe(true);
+    expect(chip.classList.contains("has-result")).toBe(false);
+
+    resolveSecond(okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }]));
+    await vi.advanceTimersByTimeAsync(0); // 讓第二次查詢的 fetch/json 跑完
+    expect(chip.classList.contains("has-result")).toBe(true);
+    expect(result.hidden).toBe(false);
+    expect(result.textContent).toContain("v9.9.9-beta");
+    const link = result.querySelector("a");
+    expect(link).not.toBe(null);
+    expect(link.getAttribute("href")).toBe("https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta");
+    expect(btn.hidden).toBe(true);
+
+    // 舊計時器原本會在這段期間到期；若 clearFadeTimer() 被跳過，finishFadeBack()
+    // 會誤把上面剛落地的新結果清掉。
+    vi.advanceTimersByTime(6300 + 1);
+    expect(chip.classList.contains("has-result")).toBe(true);
+    expect(result.hidden).toBe(false);
+    expect(result.textContent).toContain("v9.9.9-beta");
+    expect(btn.hidden).toBe(true);
+  });
+
   it("failed：#ver-chip 加上 has-result class", async () => {
     global.fetch = vi.fn(async () => { throw new TypeError("network down"); });
     const container = buildChip();
