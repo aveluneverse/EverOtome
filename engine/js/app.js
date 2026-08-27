@@ -81,7 +81,7 @@ import { initThemes } from "./theme.js";
 import { createAdvVisibility } from "./adv-visibility.js";
 import { initI18n, applyConfigLocale, t, tEl, tAttr, pickLabel, onLocaleChange } from "./i18n.js";
 import { bindLocaleRelabel } from "./appearance-labels.js";
-import { logError, logWarn, buildFeedbackLink } from "./feedback.js";
+import { logError, logWarn } from "./feedback.js";
 import { installViewportLock } from "./viewport-lock.js";
 import { initVersionChip } from "./version-chip.js";
 
@@ -1690,17 +1690,10 @@ async function main() {
   const connNote = new ConnNoteTracker(); // 待機提示選句（見 conn-note.js）
   chat.onStatusChange = (status) => {
     const noteKey = connNote.keyFor(status);
-    if (statusEl) {
-      statusEl.textContent = connText(status);
-      // 從沒連上過又已失敗（見 conn-note.js）：Chat Log 表頭這行「已斷線，重新
-      // 連線中……」不會自己好轉，附上回饋盒連結（Mira 2026-08-27 規則：每一條
-      // 使用者會看到的錯誤路徑都要有）。這裡動的是表頭狀態字，不是下面
-      // adv.setIdleNote 寫的角色 ADV 待機句——兩處文案故意分開維護、各自的 DOM。
-      if (noteKey === "conn.idleOffline") {
-        statusEl.appendChild(document.createTextNode(" "));
-        statusEl.appendChild(buildFeedbackLink());
-      }
-    }
+    // Chat Log 表頭這行狀態字純文字（Mira 2026-08-27 22:1x 拍板：回報問題連結
+    // 搬去標題角版本列跟「檢查更新」同一行，這裡不再自己 append 一顆——那顆
+    // 永久存在、不必等「已斷線」才出現，見 index.html #ver-chip／version-chip.js）。
+    if (statusEl) statusEl.textContent = connText(status);
     // ADV 待機提示：正文空著時框裡給一句介面系統文字（不是對方的話——本機預覽
     // 沒有後端、或斷線期間，看到的不該是一塊沉默的空玻璃）。正文已有內容時
     // `:empty` 不成立，這行純粹是設 data 屬性、不會蓋掉任何一句話。

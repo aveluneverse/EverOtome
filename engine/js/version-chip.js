@@ -30,6 +30,12 @@ export function initVersionChip(root = document) {
   if (!versionEl || !btn || !resultEl) return null;
 
   versionEl.textContent = "v" + VERSION;
+  // 永久「回報問題」連結：HTML 上的 href 是字面值（不跑 JS／view-source 時仍是
+  // 對的網址），這裡再從 FEEDBACK_URL 覆寫一次成唯一事實來源，網址要改只改
+  // feedback.js 那顆常數。找不到就安靜略過——同這個函式其它必要子節點的既有
+  // 防禦寫法，理論上不該發生。
+  const reportLink = chip.querySelector(".ver-chip-report");
+  if (reportLink) reportLink.href = FEEDBACK_URL;
   // latest 態鈕先隱藏、結果行沒有連結可接手鍵盤焦點——給它 tabindex="-1"，
   // 讓它能被程式化 focus()（不進 Tab 序，滑鼠使用者完全無感），焦點才不會在
   // 鈕被 hidden 的瞬間被瀏覽器甩去 body（見下方 render() 的 latest 分支／
@@ -78,15 +84,14 @@ export function initVersionChip(root = document) {
 
   /** 加一顆連結到結果行；手機版把可見文字換成 › 符號（CSS 隱藏 .ver-chip-view-label、
    * 補 ::after），可及性名稱一律用 aria-label 保留完整句子，不受畫面文字影響。
-   * `extraClass`（可選）：失敗態的「回報問題」連結傳 "feedback-link"，跟 Chat Log
-   * 表頭／設定頁共用同一份顏色與底線樣式（見 layout.css）；found 態的「查看更新
-   * 內容」不傳，維持既有配色，不是回饋連結。 */
-  function appendLink(labelKey, href, extraClass) {
+   * 現在只有 found 態的「查看更新內容」會呼叫（Mira 2026-08-27 22:1x 拍板：failed
+   * 態不再自己接一顆「回報問題」——永久的那顆已經在同一行，見 initVersionChip
+   * 開頭設 reportLink.href 那段），維持既有配色，不是回饋連結。 */
+  function appendLink(labelKey, href) {
     const a = document.createElement("a");
     a.href = href;
     a.target = "_blank";
     a.rel = "noopener";
-    if (extraClass) a.className = extraClass;
     a.setAttribute("aria-label", t(labelKey));
     const label = document.createElement("span");
     label.className = "ver-chip-view-label";
@@ -166,7 +171,6 @@ export function initVersionChip(root = document) {
     } else if (state.kind === "failed") {
       btn.hidden = false; // 失敗最該讓人能馬上再按一次，跟 found／latest 不同、不藏鈕
       renderPrefixAndTag("settings.updateFailed", "");
-      appendLink("feedback.report", FEEDBACK_URL, "feedback-link");
     }
   }
 

@@ -206,12 +206,16 @@
         <line x1="2" y1="4" x2="418" y2="4" stroke="url(#brand-wave-fade)"
               stroke-width="1.4" stroke-linecap="round" vector-effect="non-scaling-stroke"></line>
       </svg>
-      <!-- 版本列＋檢查更新：手動點擊才連線 GitHub（同設定頁那顆共用 update-check.js
-           一份查詢與狀態）。#brand 整體 pointer-events:none，這裡單獨開回 auto。 -->
+      <!-- 版本列＋檢查更新＋回報問題：手動點擊「檢查更新」才連線 GitHub
+           （同設定頁那顆共用 update-check.js 一份查詢與狀態）；「回報問題」另開
+           分頁連到外部回饋表單，不連線 GitHub。#brand 整體 pointer-events:none，
+           這裡單獨開回 auto。 -->
       <div id="ver-chip" class="ver-chip">
         <span class="ver-chip-v" id="ver-chip-version"></span><span class="ver-chip-sep" aria-hidden="true">·</span>
         <button type="button" class="ver-chip-check" data-i18n="settings.checkUpdate">檢查更新</button>
         <span class="ver-chip-result" role="status" aria-live="polite" hidden></span>
+        <span class="ver-chip-sep ver-chip-sep-report" aria-hidden="true">·</span>
+        <a class="ver-chip-report feedback-link" href="https://marshmallow-qa.com/a4u0myommjpyzup" target="_blank" rel="noopener" data-i18n="feedback.report">回報問題</a>
       </div>
     </div>
     <span id="char-name" hidden></span>

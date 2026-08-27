@@ -654,7 +654,7 @@ body.has-theme-assets #brand-title { font-size: clamp(1rem, 1.5vw, 1.6rem); }
 body.has-ui-skin .brand-wave,
 body.has-theme-assets .brand-wave { display: block; }
 
-/* 版本列＋檢查更新（標題角）：Mira 8/21 拍板設計 A——手動點擊才連 GitHub，
+/* 版本列＋檢查更新＋回報問題（標題角）：Mira 8/21 拍板設計 A——手動點擊才連 GitHub，
  * 同設定頁那顆共用 update-check.js 一份查詢與狀態（見 version-chip.js）。位置
  * 絕對定位掛在 .brand-lockup 下方（同 .brand-wave 的既有手法——鎖組本身高度
  * 只等於字高，不能讓這裡的內容走一般文件流，否則會撐大鎖組高度、把
@@ -663,7 +663,7 @@ body.has-theme-assets .brand-wave { display: block; }
  * #brand 整體 pointer-events:none（見上）；這裡容器本身不開回 auto——手機窄螢幕
  * 英文「找到新版」句子長，換行後這條可能貼近下方 CHAT LOG／THINKING 分頁列，
  * 整塊開 auto 會讓純文字（版本號／分隔點／前綴句）那段空隙也擋住分頁列的點擊。
- * 只在真的可點的兩顆子節點（.ver-chip-check／.ver-chip-result a）個別開回
+ * 只在真的可點的三顆子節點（.ver-chip-check／.ver-chip-result a／.ver-chip-report）個別開回
  * auto，其餘文字维持穿透。 */
 .ver-chip {
   position: absolute;
@@ -712,6 +712,11 @@ body.has-theme-assets .ver-chip { top: calc(100% + 1.05dvh + 7px); }
 .ver-chip-result a { pointer-events: auto; margin-left: 0.6em; }
 .ver-chip-result a:not(.feedback-link) { color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
 .ver-chip-result a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* 永久「回報問題」連結（Mira 2026-08-27 22:1x 拍板：跟「檢查更新」同一行，不再
+ * 只在查詢失敗時才出現）：字型／字級／顏色走 .ver-chip 繼承（<a> 不像 <button>
+ * 需要額外 font:inherit）；本身在 #brand 的 pointer-events:none 底下要單獨開回
+ * auto，同下面 .ver-chip-check／.ver-chip-result a 兩顆既有的做法。 */
+.ver-chip-report { pointer-events: auto; }
 
 /* 回饋回報連結共用樣式（Mira 2026-08-27 規則）：Chat Log 表頭／設定頁查詢失敗／
  * 版本列查詢失敗三處共用同一顆 class，不沿用容器本身給非回饋連結（如「查看
@@ -720,6 +725,11 @@ body.has-theme-assets .ver-chip { top: calc(100% + 1.05dvh + 7px); }
 .feedback-link { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; text-decoration-color: color-mix(in srgb, var(--text-dim) 45%, transparent); transition: color .3s ease; }
 .feedback-link:hover { color: var(--text); }
 .feedback-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* .ver-chip-report 的底線位移刻意跟 .ver-chip-check 對齊在 4px，不是 .feedback-link
+ * 給其它兩處用的 3px——複合 class 選擇器（.ver-chip-report.feedback-link）特異度
+ * 比 .feedback-link 單獨一顆高，一定贏，不必依賴這條規則跟上面 .feedback-link
+ * 宣告的先後順序。 */
+.ver-chip-report.feedback-link { text-underline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) {
   .ver-chip-result { transition: none; }
 }
@@ -1895,7 +1905,13 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   /* 版本列跟著切回一般文件流（取消桌機那份絕對定位），成為 .brand-lockup 這行
    * flex 的第二個子項，貼題字右邊、基線對齊；字級縮一階（批准設計值）。
    * flex-shrink:0＝寧可整塊換行，不要被壓縮到內部文字（本身 white-space:nowrap）
-   * 溢出裁切。 */
+   * 溢出裁切（2026-08-27 22:1x 加回報問題連結後實測過這條路：英文 found／
+   * latest 態＋回報問題同一行，極端情況會在 390px 視窗右側被裁掉幾個字元
+   * ——嘗試過讓 .ver-chip 自己 flex-wrap:wrap＋max-width 斷成兩行，但兩行高
+   * 會頂到下面 CHAT LOG／THINKING 分頁列，視覺上文字疊字更糟，故不採用；維持
+   * 原本「整塊換行、內容本身溢出就裁切」的既有設計，裁切只發生在畫面最右側、
+   * 不會跟下面的分頁列重疊，分頁列本身可點性不受影響，見下面只把 pointer-events
+   * 開回給 .ver-chip-report 這一顆的做法）。 */
   .ver-chip,
   body.has-ui-skin .ver-chip,
   body.has-theme-assets .ver-chip {

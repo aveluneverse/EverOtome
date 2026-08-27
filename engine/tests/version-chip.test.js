@@ -14,6 +14,8 @@ const CHIP_HTML = `
     <span class="ver-chip-v" id="ver-chip-version"></span><span class="ver-chip-sep" aria-hidden="true">·</span>
     <button type="button" class="ver-chip-check" data-i18n="settings.checkUpdate">檢查更新</button>
     <span class="ver-chip-result" role="status" aria-live="polite" hidden></span>
+    <span class="ver-chip-sep ver-chip-sep-report" aria-hidden="true">·</span>
+    <a class="ver-chip-report feedback-link" href="#stale-placeholder" target="_blank" rel="noopener" data-i18n="feedback.report">回報問題</a>
   </div>
 `;
 
@@ -105,7 +107,7 @@ describe("initVersionChip：版本文字＋檢查更新按鈕", () => {
     expect(btn.hidden).toBe(false);
   });
 
-  it("failed 顯示失敗字串＋回報問題連結（FEEDBACK_URL），鈕不隱藏、可以馬上再按", async () => {
+  it("failed 顯示失敗字串，鈕不隱藏、可以馬上再按；結果行不再自己接回報問題連結（Mira 2026-08-27 22:1x 拍板：永久連結已經在同一行，見下方 describe）", async () => {
     global.fetch = vi.fn(async () => { throw new TypeError("network down"); });
     const container = buildChip();
     initVersionChip(container);
@@ -114,11 +116,8 @@ describe("initVersionChip：版本文字＋檢查更新按鈕", () => {
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
     expect(result.hidden).toBe(false);
-    expect(result.textContent).toContain(t("settings.updateFailed"));
-    const a = result.querySelector("a");
-    expect(a).not.toBe(null);
-    expect(a.getAttribute("href")).toBe(FEEDBACK_URL);
-    expect(a.classList.contains("feedback-link")).toBe(true); // Mira 2026-08-27：三處回饋連結共用同一顆 class
+    expect(result.textContent).toBe(t("settings.updateFailed"));
+    expect(result.querySelector("a")).toBe(null); // 不再自己 append 第二顆連結
     expect(btn.hidden).toBe(false);
     expect(btn.disabled).toBe(false);
   });
@@ -181,6 +180,55 @@ describe("initVersionChip：版本文字＋檢查更新按鈕", () => {
     expect(settingsResult.querySelector("a").getAttribute("href")).toBe(
       "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
     );
+  });
+});
+
+describe("永久「回報問題」連結（Mira 2026-08-27 22:1x 拍板：跟「檢查更新」同一行，狀態列那份拿掉）", () => {
+  it("開面板就存在，不必查詢或失敗才出現；href／target／rel／class 齊全，init 時從 FEEDBACK_URL 覆寫（不是沿用 HTML 上寫死的字面值）", () => {
+    const container = buildChip();
+    initVersionChip(container);
+    const link = container.querySelector(".ver-chip-report");
+    expect(link).not.toBe(null);
+    expect(link.getAttribute("href")).toBe(FEEDBACK_URL); // fixture 原本寫 "#stale-placeholder"，init 時被覆寫
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener");
+    expect(link.classList.contains("feedback-link")).toBe(true);
+    expect(link.textContent).toBe(t("feedback.report"));
+  });
+
+  it("零 fetch：光是 initVersionChip 就看得到這顆連結，不必按過「檢查更新」", () => {
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy;
+    const container = buildChip();
+    initVersionChip(container);
+    expect(container.querySelector(".ver-chip-report")).not.toBe(null);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("換語系：文字跟著換（走既有 data-i18n／applyDom 機制，version-chip.js 不必另外接程式碼）", () => {
+    const container = buildChip();
+    initVersionChip(container);
+    const link = container.querySelector(".ver-chip-report");
+    expect(link.textContent).toBe("回報問題");
+    setLocale("en", { persist: false });
+    expect(link.textContent).toBe(t("feedback.report"));
+    expect(link.textContent).not.toBe("回報問題");
+    setLocale("zh-Hant", { persist: false }); // 還原語系，不影響後面的測試
+    expect(link.textContent).toBe("回報問題");
+  });
+
+  it("found／latest 兩態一樣在同一行：永久連結不會被 render() 動到（不受鈕隱藏、結果行改寫影響）", async () => {
+    global.fetch = vi.fn(async () => okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const link = container.querySelector(".ver-chip-report");
+    container.querySelector(".ver-chip-check").click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".ver-chip-report")).toBe(link); // 同一個節點，沒被重建或移除
+    expect(link.getAttribute("href")).toBe(FEEDBACK_URL);
   });
 });
 
