@@ -313,6 +313,51 @@ Incoming call flow:
 
 Optional cross-device "clear screen" line. `GET` → `{ "cleared_at": "<ts>" }` (the current line); `POST` → the server takes its own ledger-tail timestamp as the new line and returns `{ "cleared_at": "<ts>" }`. On `404` or failure the shell falls back to a per-device localStorage line, so not implementing this is fine.
 
+## Deployment: one origin
+
+The shell only talks to same-origin paths: `wsEndpoint` becomes `ws(s)://<the host that served the page>/ws`, and every REST path in `config.json` is fetched from that same host. So the process that serves `engine/` and the process that answers `/ws` and `/api/...` have to look like one server to the browser. Two ways to get there:
+
+1. **Your backend serves `engine/` itself**: a static route for the folder plus your WebSocket and REST handlers. Simplest when you control the backend.
+2. **A reverse proxy in front of both**: static files from `engine/`, `/ws` and `/api/` forwarded to the backend. The two configurations below were run against this repository on 2026-08-27 (engine served as static files, a stand-in backend on port 9000): the chat connected through the proxy and replies rendered.
+
+Caddy (save as `Caddyfile`, then `caddy run`):
+
+```
+:8400 {
+	root * /path/to/EverOtome/engine
+	file_server
+	reverse_proxy /ws 127.0.0.1:9000
+	reverse_proxy /api/* 127.0.0.1:9000
+}
+```
+
+nginx (a `server` block inside your `http { ... }`):
+
+```
+server {
+    listen 8400;
+    root /path/to/EverOtome/engine;
+    location / { try_files $uri $uri/ =404; }
+    location /ws {
+        proxy_pass http://127.0.0.1:9000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+    location /api/ {
+        proxy_pass http://127.0.0.1:9000;
+        proxy_set_header Host $host;
+    }
+}
+```
+
+Then open `http://localhost:8400/` in the browser: the proxy's port, not the backend's, and not `serve.py` (which is the zero-backend preview and proxies nothing). Notes:
+
+- Everything under `/api/` now goes to your backend, so the bundled demo album under `engine/api/v4/cg/` is no longer reachable. That is the intended state once your backend serves CGs; if it does not, remove `cgEndpoint` from `config.json` and the album button disappears.
+- Replace `9000` with your backend's port and `8400` with the port you want to open. For HTTPS, terminate TLS on the proxy; the shell switches to `wss://` by itself.
+- On Windows, write the `root` path with forward slashes and keep it free of non-ASCII characters (nginx for Windows cannot open paths outside the system code page).
+
 ## Development
 
 The engine test suite (vanilla JS, vitest + jsdom). It needs Node.js 20.19+ or 22.12+ with npm; the shell itself has no Node dependency:

@@ -4,10 +4,7 @@
 
 ![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)
 
-> [!IMPORTANT]
-> **2026/08/21 更新：v0.2.0-beta 已發布**
-> 若你在 8/21 前 Clone / Fork 了 EverOtome，請更新至最新版（Clone 用 `git pull`／Fork 按 Sync fork）。
-> → [Release Notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.0-beta)
+> **更新（2026-08-27）：v0.2.1-beta。** 在這個日期之前 clone 的人，請 `git pull`（或重新下載）。如果你或你的 AI 助手曾經跑過 `tools/make_sample_character.py`，用 `git checkout -- engine/assets/sample` 救回範例角色並刪掉那支腳本；細節見 [release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.1-beta)。
 
 ---
 
@@ -159,7 +156,7 @@ copy config.example.json config.json     # Windows
 # 編輯 config.json 指向你的後端與素材
 ```
 
-即時聊天走的是同源路徑上的 WebSocket（例如 `/ws`），所以你的後端要自己供應 `engine/` 資料夾，或跟它一起放在同一個反向代理後面。細節在[接線手冊](docs/backend-contract.md)。
+即時聊天走的是同源路徑上的 WebSocket（例如 `/ws`），所以你的後端要自己供應 `engine/` 資料夾，或跟它一起放在同一個反向代理後面。實際跑過的 Caddy／nginx 範例在[接線手冊](docs/backend-contract.md#deployment-one-origin)。
 
 需要後端的功能（收發訊息、電話、CG 推送）在接上你的服務前不會連線。**這是預期行為，不是壞掉。**後端還沒跑起來時，瀏覽器 console 會出現 `config.json` 與範例後端路徑（`/api/history`、`/api/v4/chat-clear`）的 404，以及反覆的 WebSocket 重連錯誤，對話框會寫著尚未連線；範例角色、主題、相冊與導覽照常可用。
 
@@ -205,6 +202,12 @@ EverOtome 目前處於 **Beta** 階段：核心功能穩定可用，1.0 前設�
 - 「檢查更新」是唯一的對外連線，而且只在你主動按下設定頁的「檢查更新」時發生：連線 GitHub 取得公開的版本資訊，不上傳任何資料，也沒有自動背景檢查。
 - 對話內容不寫入瀏覽器儲存：訊息即時渲染，歷史紀錄由你的後端提供；瀏覽器儲存只存介面偏好與顯示狀態。
 - 你的訊息、照片與語音，只流向你自己在設定檔指定的後端。
+
+---
+
+## 回饋
+
+卡住、發現 bug、有想法？丟進匿名投稿箱：[マシュマロ](https://marshmallow-qa.com/a4u0myommjpyzup)（不用帳號）。習慣用 GitHub 的話開 issue 也行。投稿箱是第三方服務、完全自願；EverOtome 本體仍然不會把任何東西送去任何地方。
 
 ---
 

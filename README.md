@@ -2,6 +2,8 @@
 
 English | [日本語](README.ja.md) | [中文](README.zh-TW.md)
 
+> **Update (2026-08-27): v0.2.1-beta.** If you cloned before this date, run `git pull` (or download again). If you or your AI assistant ever ran `tools/make_sample_character.py`, restore the sample character with `git checkout -- engine/assets/sample` and delete that script; details in the [release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.1-beta).
+
 ![EverOtome — Chat with your AI like you're in an otome game.](docs/readme-kv-en.webp)
 
 ---
@@ -154,7 +156,7 @@ copy config.example.json config.json     # Windows
 # then edit config.json to point at your backend and assets
 ```
 
-The live chat runs over a WebSocket at a same-origin path such as `/ws`, so your backend has to serve the `engine/` folder itself, or sit behind the same reverse proxy. The [backend contract](docs/backend-contract.md) has the details.
+The live chat runs over a WebSocket at a same-origin path such as `/ws`, so your backend has to serve the `engine/` folder itself, or sit behind the same reverse proxy. The [backend contract](docs/backend-contract.md#deployment-one-origin) has Caddy and nginx examples that were run against this repo.
 
 Features that need a backend (sending and receiving messages, calls, CG push) won't work until you connect a service that implements them. **That's expected, not broken.** While no backend is running, the browser console shows 404s for `config.json` and for the example backend paths (`/api/history`, `/api/v4/chat-clear`), plus repeated WebSocket reconnect errors, and the dialogue box says it is not connected yet; the sample character, the themes, the album and the tour work regardless.
 
@@ -200,6 +202,12 @@ EverOtome is in **Beta**: the core feature set is stable and usable, and the con
 - The "Check for updates" button is the only outward connection, and it fires only when you press it in the settings page: it fetches the public version info from GitHub, uploads nothing, and never checks in the background.
 - Conversation content is never written to browser storage. Messages render live, and history comes from your backend; browser storage is limited to interface preferences and display state.
 - Your messages, photos, and voice go only to the backend you configure.
+
+---
+
+## Feedback
+
+Stuck, found a bug, or have an idea? Drop a note in the anonymous box: [Marshmallow](https://marshmallow-qa.com/a4u0myommjpyzup) (no account needed). A GitHub issue works too if you prefer. The box is a third-party service and entirely optional; EverOtome itself still sends nothing anywhere.
 
 ---
 
