@@ -74,6 +74,7 @@ describe("initVersionChip：版本文字＋檢查更新按鈕", () => {
     expect(a.getAttribute("href")).toBe("https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta");
     expect(a.getAttribute("target")).toBe("_blank");
     expect(a.getAttribute("rel")).toBe("noopener");
+    expect(a.classList.contains("feedback-link")).toBe(false); // 非回饋連結，不套用回饋連結配色
   });
 
   it("latest 態顯示已最新字串、鈕先隱藏，6 秒停留＋0.3 秒淡出後鈕淡回（fake timers）", async () => {
@@ -117,6 +118,7 @@ describe("initVersionChip：版本文字＋檢查更新按鈕", () => {
     const a = result.querySelector("a");
     expect(a).not.toBe(null);
     expect(a.getAttribute("href")).toBe(FEEDBACK_URL);
+    expect(a.classList.contains("feedback-link")).toBe(true); // Mira 2026-08-27：三處回饋連結共用同一顆 class
     expect(btn.hidden).toBe(false);
     expect(btn.disabled).toBe(false);
   });

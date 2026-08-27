@@ -65,12 +65,16 @@ export function initVersionChip(root = document) {
   }
 
   /** 加一顆連結到結果行；手機版把可見文字換成 › 符號（CSS 隱藏 .ver-chip-view-label、
-   * 補 ::after），可及性名稱一律用 aria-label 保留完整句子，不受畫面文字影響。 */
-  function appendLink(labelKey, href) {
+   * 補 ::after），可及性名稱一律用 aria-label 保留完整句子，不受畫面文字影響。
+   * `extraClass`（可選）：失敗態的「回報問題」連結傳 "feedback-link"，跟 Chat Log
+   * 表頭／設定頁共用同一份顏色與底線樣式（見 layout.css）；found 態的「查看更新
+   * 內容」不傳，維持既有配色，不是回饋連結。 */
+  function appendLink(labelKey, href, extraClass) {
     const a = document.createElement("a");
     a.href = href;
     a.target = "_blank";
     a.rel = "noopener";
+    if (extraClass) a.className = extraClass;
     a.setAttribute("aria-label", t(labelKey));
     const label = document.createElement("span");
     label.className = "ver-chip-view-label";
@@ -132,7 +136,7 @@ export function initVersionChip(root = document) {
     } else if (state.kind === "failed") {
       btn.hidden = false; // 失敗最該讓人能馬上再按一次，跟 found／latest 不同、不藏鈕
       renderPrefixAndTag("settings.updateFailed", "");
-      appendLink("feedback.report", FEEDBACK_URL);
+      appendLink("feedback.report", FEEDBACK_URL, "feedback-link");
     }
   }
 

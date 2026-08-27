@@ -937,6 +937,7 @@ describe("版本顯示與檢查更新（純本地顯示；只在主動點擊時�
     expect(a).not.toBe(null);
     expect(a.getAttribute("href")).toBe("https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta");
     expect(a.getAttribute("rel")).toBe("noopener");
+    expect(a.classList.contains("feedback-link")).toBe(false); // 非回饋連結，不套用回饋連結配色
     expect(global.fetch).toHaveBeenCalledTimes(1); // 只查一次、只在點擊時
   });
 
@@ -967,6 +968,7 @@ describe("版本顯示與檢查更新（純本地顯示；只在主動點擊時�
     expect(a.getAttribute("href")).toBe(FEEDBACK_URL);
     expect(a.getAttribute("target")).toBe("_blank");
     expect(a.getAttribute("rel")).toBe("noopener");
+    expect(a.classList.contains("feedback-link")).toBe(true); // Mira 2026-08-27：三處回饋連結共用同一顆 class
     expect(btn.disabled).toBe(false); // 失敗後復原、可再試
   });
 

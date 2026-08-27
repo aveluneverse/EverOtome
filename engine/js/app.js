@@ -81,7 +81,7 @@ import { initThemes } from "./theme.js";
 import { createAdvVisibility } from "./adv-visibility.js";
 import { initI18n, applyConfigLocale, t, tEl, tAttr, pickLabel, onLocaleChange } from "./i18n.js";
 import { bindLocaleRelabel } from "./appearance-labels.js";
-import { logError, logWarn, FEEDBACK_URL } from "./feedback.js";
+import { logError, logWarn, buildFeedbackLink } from "./feedback.js";
 import { installViewportLock } from "./viewport-lock.js";
 import { initVersionChip } from "./version-chip.js";
 
@@ -1698,12 +1698,7 @@ async function main() {
       // adv.setIdleNote 寫的角色 ADV 待機句——兩處文案故意分開維護、各自的 DOM。
       if (noteKey === "conn.idleOffline") {
         statusEl.appendChild(document.createTextNode(" "));
-        const a = document.createElement("a");
-        a.href = FEEDBACK_URL;
-        a.target = "_blank";
-        a.rel = "noopener";
-        tEl(a, "feedback.report");
-        statusEl.appendChild(a);
+        statusEl.appendChild(buildFeedbackLink());
       }
     }
     // ADV 待機提示：正文空著時框裡給一句介面系統文字（不是對方的話——本機預覽

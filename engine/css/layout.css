@@ -709,8 +709,17 @@ body.has-theme-assets .ver-chip { top: calc(100% + 1.05dvh + 7px); }
   transition: opacity 0.3s ease;
 }
 .ver-chip-result b { font-weight: normal; color: var(--text); }
-.ver-chip-result a { pointer-events: auto; color: var(--text); text-decoration: underline; text-underline-offset: 4px; margin-left: 0.6em; }
+.ver-chip-result a { pointer-events: auto; margin-left: 0.6em; }
+.ver-chip-result a:not(.feedback-link) { color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
 .ver-chip-result a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* 回饋回報連結共用樣式（Mira 2026-08-27 規則）：Chat Log 表頭／設定頁查詢失敗／
+ * 版本列查詢失敗三處共用同一顆 class，不沿用容器本身給非回饋連結（如「查看
+ * 更新內容」）用的既有配色——上面兩條 :not(.feedback-link) 就是把回饋連結從
+ * 那條規則排除掉，改由這裡統一接手。 */
+.feedback-link { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; text-decoration-color: color-mix(in srgb, var(--text-dim) 45%, transparent); transition: color .3s ease; }
+.feedback-link:hover { color: var(--text); }
+.feedback-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   .ver-chip-result { transition: none; }
 }
@@ -2238,7 +2247,7 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
 .settings-check-update:hover { background: var(--btn-bg-hover); }
 .settings-check-update:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .settings-check-update:disabled { opacity: 0.55; }
-.settings-update-result a { color: var(--primary); }
+.settings-update-result a:not(.feedback-link) { color: var(--primary); }
 
 /* ── 色系主題 ─────────────────────────────────────────────────────────────
  * 設計：預設主題＝最終樣式外觀，其他主題＝純換色系——同一套框件／版式／
