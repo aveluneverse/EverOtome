@@ -156,7 +156,7 @@ copy config.example.json config.json     # Windows
 
 The live chat runs over a WebSocket at a same-origin path such as `/ws`, so your backend has to serve the `engine/` folder itself, or sit behind the same reverse proxy. The [backend contract](docs/backend-contract.md) has the details.
 
-Features that need a backend (sending and receiving messages, calls, CG push) won't work until you connect a service that implements them. **That's expected, not broken.** While no backend is running, the browser console shows a 404 for `config.json` and repeated WebSocket reconnect errors, and the dialogue box says it is not connected yet; the sample character, the themes, the album and the tour work regardless.
+Features that need a backend (sending and receiving messages, calls, CG push) won't work until you connect a service that implements them. **That's expected, not broken.** While no backend is running, the browser console shows 404s for `config.json` and for the example backend paths (`/api/history`, `/api/v4/chat-clear`), plus repeated WebSocket reconnect errors, and the dialogue box says it is not connected yet; the sample character, the themes, the album and the tour work regardless.
 
 ---
 

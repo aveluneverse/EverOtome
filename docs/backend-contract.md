@@ -315,7 +315,7 @@ Optional cross-device "clear screen" line. `GET` → `{ "cleared_at": "<ts>" }` 
 
 ## Development
 
-The engine test suite (vanilla JS, vitest + jsdom). It needs Node.js 20.19 or newer (22.12 or newer recommended) with npm; the shell itself has no Node dependency:
+The engine test suite (vanilla JS, vitest + jsdom). It needs Node.js 20.19+ or 22.12+ with npm; the shell itself has no Node dependency:
 
 ```bash
 cd engine
