@@ -663,7 +663,7 @@ body.has-theme-assets .brand-wave { display: block; }
  * #brand 整體 pointer-events:none（見上）；這裡容器本身不開回 auto——手機窄螢幕
  * 英文「找到新版」句子長，換行後這條可能貼近下方 CHAT LOG／THINKING 分頁列，
  * 整塊開 auto 會讓純文字（版本號／分隔點／前綴句）那段空隙也擋住分頁列的點擊。
- * 只在真的可點的三顆子節點（.ver-chip-check／.ver-chip-result a／.ver-chip-report）個別開回
+ * 只在真的可點的四顆子節點（.ver-chip-check／.ver-chip-result a／.ver-chip-retry／.ver-chip-report）個別開回
  * auto，其餘文字维持穿透。 */
 .ver-chip {
   position: absolute;

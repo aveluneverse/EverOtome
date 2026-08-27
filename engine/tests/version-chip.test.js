@@ -588,3 +588,32 @@ describe("焦點管理（Mira 2026-08-27 規則：鈕被 hidden 甩掉的鍵盤�
     expect(document.activeElement).not.toBe(result);
   });
 });
+
+describe("null 態＝沒有結果可顯示（Task 19 review 意見：查詢可能是設定頁那顆鈕另外觸發的，不是這顆 chip 自己點的）", () => {
+  it.each([
+    ["found", () => okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }])],
+    ["latest", () => okResponse([{ tag_name: "v" + VERSION }])],
+    ["failed", () => { throw new TypeError("network down"); }],
+  ])("%s 態顯示中，setUpdateState(null) 落地後（模擬設定頁另外觸發的查詢，不是點這顆鈕），鈕要立刻重新出現", async (kind, makeResult) => {
+    global.fetch = vi.fn(async () => makeResult());
+    const container = buildChip();
+    initVersionChip(container);
+    const chip = container.querySelector("#ver-chip");
+    const btn = container.querySelector(".ver-chip-check");
+    const result = container.querySelector(".ver-chip-result");
+
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(btn.hidden).toBe(true); // 結果顯示中，鈕理所當然藏著
+
+    setUpdateState(null); // 不是點這顆鈕，模擬設定頁那顆「檢查更新」在別處另外觸發的查詢剛開始
+    expect(btn.hidden).toBe(false); // 沒有結果可顯示，鈕是唯一的主要動作，必須看得到
+    expect(btn.disabled).toBe(false); // 是否可點仍由 startCheck() 決定，這裡不驗證進行中樣式
+    expect(result.hidden).toBe(true);
+    expect(result.textContent).toBe("");
+    expect(chip.classList.contains("has-result")).toBe(false);
+  });
+});

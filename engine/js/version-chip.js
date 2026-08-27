@@ -168,9 +168,15 @@ export function initVersionChip(root = document) {
       // 真正的結果（找到新版／已最新／失敗）要等下面第二次 setUpdateState() 才會
       // 觸發下一輪 render()，焦點旗標要留到那時候才消費，不然會被這次清空通知
       // 白白吃掉，害真正該搬焦點的那一刻讀到 false。
+      // btn.hidden 這裡「要」重設回 false（Task 19 review 意見）：null 態＝沒有結果
+      // 可顯示，鈕就是唯一的主要動作，理當看得見。查詢不見得是這顆 chip 自己點鈕
+      // 觸發的——設定頁那顆「檢查更新」呼叫的是同一份 checkForUpdate()，若首頁這邊
+      // 當下正顯示著上一輪的結果（鈕正藏著），這次 null 通知若不管鈕，鈕會維持藏著
+      // 而結果行也已經被清空，版本列會整段開天窗直到這次查詢落地為止。
       resultEl.hidden = true;
       resultEl.textContent = "";
       chip.classList.remove("has-result"); // 尚未查過／查詢剛重新開始＝沒有結果可顯示
+      btn.hidden = false;
       return;
     }
     const hadFocus = hadFocusBeforeQuery; // 消費一次即歸零，見上方宣告處與本函式開頭註解
