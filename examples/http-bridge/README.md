@@ -42,7 +42,11 @@ No `python` command? Use `python3`.
 
 ## Point it at your companion
 
-Give your companion one HTTP route that takes `{"text": "..."}` and answers `{"text": "..."}`, then pass its URL as `--reply`. If the companion's existing route uses other names (say `POST /chat` with `message` and `reply`), either add the new route next to it or write a ten-line shim server that translates; do not rename what already works.
+Give your companion one HTTP route that takes `{"text": "..."}` and answers `{"text": "..."}`, then pass its URL as `--reply`. If an existing route already does the job under other names (say `POST /chat` with `message` in and `reply` out), keep it and tell the bridge the names; do not rename what already works:
+
+```bash
+python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/chat --text-key message --reply-key reply
+```
 
 Your route also receives `{"text": "/new", "command": "new"}` when the user picks "New conversation" in the MENU. Reset your session there if that makes sense for your companion, or answer `{"text": ""}` to say nothing. `/status` never reaches you; the bridge answers it itself.
 
@@ -54,7 +58,7 @@ Edit `engine/config.json` (copy `config.example.json` first if you have not):
 - set `"ttsEndpoint": ""` so no silent play buttons appear
 - keep `"historyEndpoint": "/api/history"`: the bridge serves this run's chat as scrollback
 
-Options: `--port` (default 8400), `--host`, `--engine` (the `engine/` folder, default the one in this repository), `--ws-path`, `--history-path`, `--reply-timeout` (seconds to wait for the companion, default 120). `--help` lists them.
+Options: `--port` (default 8400), `--host`, `--engine` (the `engine/` folder, default the one in this repository), `--ws-path`, `--history-path`, `--reply-timeout` (seconds to wait for the companion, default 120), `--text-key` and `--reply-key` (the JSON field names when the companion's route uses others than `text`). `--help` lists them.
 
 On a server, start the bridge with `--host 0.0.0.0` so a browser elsewhere can reach it, or put it behind the reverse proxy from the [backend contract](../../docs/backend-contract.md#deployment-one-origin). The bridge has no login of its own: anyone who can reach the port can talk to the companion, so keep the port firewalled or behind whatever already protects the rest of the server.
 

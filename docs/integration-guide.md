@@ -35,7 +35,7 @@ Three more shapes can arrive on the same socket. Two are JSON objects with a `te
 
 ## Three ways in: pick one
 
-**A. Run the bridge.** No dependencies, and nothing to add to the companion beyond one HTTP route. `examples/http-bridge/bridge.py` serves `engine/`, accepts `/ws`, and turns each message into one `POST` to the companion: `{"text": "..."}` in, `{"text": "..."}` out. Give the companion that one route (or a ten-line shim next to it when its existing route uses other names), then, from the EverOtome folder:
+**A. Run the bridge.** No dependencies, and nothing to add to the companion beyond one HTTP route. `examples/http-bridge/bridge.py` serves `engine/`, accepts `/ws`, and turns each message into one `POST` to the companion: `{"text": "..."}` in, `{"text": "..."}` out. Give the companion that one route; when an existing route already does the job under other names, keep it and tell the bridge the names, for example `--text-key message --reply-key reply`. Then, from the EverOtome folder:
 
 ```bash
 python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/reply
@@ -133,7 +133,7 @@ You cannot see the screen, so use the checker. It does what the browser does on 
 python tools/check_integration.py http://127.0.0.1:8400
 ```
 
-`RESULT: PASS` means the shell is served, the socket accepted the message, and a well-formed reply came back within the time limit (60 seconds by default; `--timeout 180` for a slow companion). Each `[FAIL]` line carries a `fix:` line. `[WARN]` lines are things to decide rather than breakage: a silent play button, a missing history, a sample config still in use, a `405` where a `404` would read better. The checker sends exactly one chat message (the text after `--message`, or a default greeting), and the companion may remember it; it never starts a call and never sends `/new`. Standard library only, Python 3.7 or newer.
+`RESULT: PASS` means the shell is served, the socket accepted the message, and a well-formed reply came back within the time limit (60 seconds by default; `--timeout 180` for a slow companion). Each `[FAIL]` line carries a `fix:` line. `[WARN]` lines are things to decide rather than breakage: a silent play button, a missing history, a sample config still in use, a `405` where a `404` would read better. The checker sends exactly one chat message (the text after `--message`, or a default greeting), and the companion may remember it; it never starts a call and never sends `/new`. `--no-chat` connects without sending anything, for a companion that must not be talked to yet. Standard library only, Python 3.7 or newer.
 
 Then have the person open the address in a browser and say something. The checker proves the pipe; their eyes prove the face.
 
