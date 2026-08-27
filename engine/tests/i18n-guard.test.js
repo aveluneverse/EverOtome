@@ -182,8 +182,8 @@ describe("no hardcoded CJK string literals in engine/js (outside locales/) or th
 // 只認得出「鍵是雙引號字面值」的呼叫：t("a.b")／tEl(el, "a.b")／
 // tAttr(el, "attr", "a.b")。三元運算式或變數鍵（如 t(key)、
 // tAttr(b, "aria-label", cond ? "x.y" : "x.z")）的引數本身不是字面值，依規格
-// 略過不查——這類呼叫全專案共 8 處（app.js 7 處：connText() 一顆 4-way 查表
-// ＋ 6 顆二分支三元；cg.js 1 處二分支三元），都已人工核對過，實際會用到的
+// 略過不查——這類呼叫全專案共 9 處（app.js 8 處：connText() 一顆 4-way 查表
+// ＋ 6 顆二分支三元＋ setIdleNote 一顆待機提示查表（conn.idleConnecting／conn.idleOffline，見 conn-note.js）；cg.js 1 處二分支三元），都已人工核對過，實際會用到的
 // 鍵（conn.* 四顆、side.* 四顆、chatlog.* 四顆、appearance.outfit* 兩顆、
 // cg.group* 兩顆）全部都在字典裡（見 Task 9 交接）。
 const KEY_FMT = "[A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)+";

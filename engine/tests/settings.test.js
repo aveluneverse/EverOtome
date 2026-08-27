@@ -973,4 +973,20 @@ describe("版本顯示與檢查更新（純本地顯示；只在主動點擊時�
     const a = document.querySelector(".settings-update-result a");
     expect(a.getAttribute("href")).toBe("https://github.com/aveluneverse/EverOtome/releases");
   });
+
+  it("查到結果後切換語系：結果行文字立刻跟著新語系重新渲染，不必重新查一次 API", async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true, status: 200,
+      json: async () => ([{ tag_name: "v" + VERSION, html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v" + VERSION }]),
+    }));
+    buildPanel();
+    document.querySelector(".settings-check-update").click();
+    await new Promise((r) => setTimeout(r, 0));
+    const line = document.querySelector(".settings-update-result");
+    expect(line.textContent).toBe(t("settings.updateLatest")); // 先確認查詢當下（zh-Hant）是對的
+    setLocale("en");
+    expect(line.textContent).toBe(t("settings.updateLatest")); // 換語系後立刻跟上，不必再點一次「檢查更新」
+    expect(global.fetch).toHaveBeenCalledTimes(1); // 語系切換沒有再打一次 API
+    setLocale("zh-Hant", { persist: false }); // 還原語系，不影響後面的測試
+  });
 });

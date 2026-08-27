@@ -39,7 +39,10 @@ import subprocess
 import sys
 import time
 
-from playwright.sync_api import sync_playwright
+# playwright 的 import 刻意不放這裡（模組載入層級）——`--help`／段名打錯這類
+# 完全不需要開瀏覽器的路徑，不該連 pip install playwright 都沒做就先炸掉。
+# 真正的 import 挪到 main() 裡、緊貼著第一次呼叫 sync_playwright() 之前
+# （見 test_record_demo_help.py：用 `python -S` 關掉 site-packages 驗證這件事）。
 
 # Windows 主控台常用非 UTF-8 codepage（如 cp950）；報告裡的符號字元（如 ⚠）
 # 遇不可編碼字元會讓 print() 丟 UnicodeEncodeError、把整支腳本中止在最後的
@@ -144,11 +147,29 @@ def build_name(*parts, lang, stamp, ext):
     return "-".join(segs) + "." + ext
 
 
+# --help 文字（英文；tokenizer 測試會掃使用者看得到的字串）。段名清單直接從
+# SEGMENTS 這顆單一真相拼出來，不另外抄一份會跟著漂移的清單。
+USAGE = """usage: record_demo.py [segment | --shots] [--lang <code>] [--out <folder>]
+
+  segment          one of: {segments} (omit to record every segment)
+  --shots          skip recording; take one desktop + one mobile screenshot instead
+  --lang <code>    locale to append to the demo URL, e.g. --lang en
+  --out <folder>   output folder for recordings (default: recordings/, relative
+                   to the repo root)
+  -h, --help       show this message and exit
+
+Requires: pip install playwright && playwright install chromium
+""".format(segments="/".join(SEGMENTS))
+
+
 def parse_args(argv):
     """回傳 (only, shots_only, lang, out)。--lang <code>／--out <dir> 可插在 positional
     前後皆可，解析掉後剩下的字串沿用改動前的邏輯（sys.argv[1] 是段名或 --shots 或缺）——
     不給這兩個旗標時這條路徑與改動前逐字相同。out 為 None＝預設 recordings/；相對路徑
     以 repo 根為準（例：--out recordings/0819＝按日期分夾）。"""
+    if "-h" in argv or "--help" in argv:
+        print(USAGE)
+        raise SystemExit(0)
     lang = None
     out = None
     rest = []
@@ -229,6 +250,10 @@ def main():
         time.sleep(1.5)
         if serve.poll() is not None:
             raise SystemExit(f"[abort] serve.py did not start (is port {PORT} in use?)")
+
+        # 真的要開瀏覽器這一刻才 import——上面所有 SystemExit 路徑
+        # （--help／段名打錯／serve.py 沒起來）都不需要裝 playwright。
+        from playwright.sync_api import sync_playwright
 
         results = []
         with sync_playwright() as p:

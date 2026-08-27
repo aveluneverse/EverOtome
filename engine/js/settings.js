@@ -191,6 +191,10 @@ export class SettingsPanel {
     this.thoughtsToggleAvailable = !!thoughtsToggleAvailable;
     this.getThoughtsVisible = typeof getThoughtsVisible === "function" ? getThoughtsVisible : () => true;
     this.onThoughtsVisibleChange = typeof onThoughtsVisibleChange === "function" ? onThoughtsVisibleChange : null;
+    // 「檢查更新」最後一次查到的結果（見 _renderUpdateResult）——沒查過／正在查＝null，
+    // 這時結果行清空。存狀態而非直接寫 DOM 字串，換語系時才能重新渲染同一份結果，
+    // 不必為了跟上新語系再打一次 GitHub API。
+    this._updateState = null;
     this._dom = {};
     this._buildDom();
   }
@@ -348,7 +352,10 @@ export class SettingsPanel {
     // 換語系後重排三個選項的文字與勾選狀態；訂閱一次到底（同模型下拉的
     // document click／keydown listener 慣例——本檔目前沒有任何控制項的
     // 生命週期會主動取消訂閱，面板隨頁面存活，不另外處理 unsubscribe）。
-    onLocaleChange(() => this._syncLangRow());
+    onLocaleChange(() => {
+      this._syncLangRow();
+      this._renderUpdateResult(); // 已查到的「檢查更新」結果跟著新語系重新渲染（見 _renderUpdateResult 說明）
+    });
 
     // 沙盒測試模式：sandboxAvailable 沒給（config 缺鍵／後端 flag
     // 未開）＝整列不出現，開源殼零成本（同 modelOptions 既有慣例）。放最頂——
@@ -691,13 +698,17 @@ export class SettingsPanel {
   /** 「檢查更新」：只由設定頁按鈕觸發。查 GitHub 公開 releases 列表第一顆
    * （含 pre-release），tag 去掉 v 前綴與本地 VERSION 比對——不同＝有新版
    * （附「查看更新內容」連結；href 只信 github.com 網域，否則退回官方
-   * releases 頁）、相同＝已最新、任何失敗＝簡短提示。全程不上傳任何資料。 */
+   * releases 頁）、相同＝已最新、任何失敗＝簡短提示。全程不上傳任何資料。
+   * 查完的結果存進 `this._updateState`（不是直接寫死 DOM 字串），實際畫面交給
+   * `_renderUpdateResult()` 統一渲染——換語系時只要重呼那支就能讓已經查到的
+   * 結果跟著新語系重組文字，不必為了跟上新語系再打一次 API（見 onLocaleChange
+   * 訂閱處）。 */
   async _checkUpdate() {
     const btn = this._dom.checkUpdateBtn;
-    const line = this._dom.updateResult;
     if (btn.disabled) return; // 查詢中不收第二單
     btn.disabled = true;
-    line.textContent = "";
+    this._updateState = null;
+    this._renderUpdateResult();
     try {
       const res = await fetch(UPDATE_FEED_URL, {
         headers: { Accept: "application/vnd.github+json" },
@@ -709,22 +720,43 @@ export class SettingsPanel {
       const latest = tag.replace(/^v/, "");
       if (!latest) throw new Error("no tag");
       if (latest === VERSION) {
-        line.textContent = t("settings.updateLatest");
+        this._updateState = { kind: "latest" };
       } else {
-        line.textContent = t("settings.updateFound", { tag }) + " ";
-        const a = document.createElement("a");
-        a.href = (rel.html_url && /^https:\/\/github\.com\//.test(rel.html_url))
+        const href = (rel.html_url && /^https:\/\/github\.com\//.test(rel.html_url))
           ? rel.html_url
           : RELEASES_URL;
-        a.target = "_blank";
-        a.rel = "noopener";
-        tEl(a, "settings.updateView");
-        line.appendChild(a);
+        this._updateState = { kind: "found", tag, href };
       }
     } catch (e) {
-      line.textContent = t("settings.updateFailed");
+      this._updateState = { kind: "failed" };
     } finally {
       btn.disabled = false;
+      this._renderUpdateResult();
+    }
+  }
+
+  /** 「檢查更新」結果行的唯一渲染入口：只讀 `this._updateState`，不重新 fetch。
+   * `_checkUpdate()` 查完呼叫一次；`onLocaleChange` 訂閱也呼叫一次——換語系時
+   * 已經查到的結果（有新版／已最新／查詢失敗）跟著用新語系重新組字串。沒有
+   * 狀態（尚未查過、或查詢中先清一次）＝清空這一行。 */
+  _renderUpdateResult() {
+    const line = this._dom.updateResult;
+    if (!line) return;
+    const state = this._updateState;
+    line.textContent = "";
+    if (!state) return;
+    if (state.kind === "latest") {
+      line.textContent = t("settings.updateLatest");
+    } else if (state.kind === "found") {
+      line.textContent = t("settings.updateFound", { tag: state.tag }) + " ";
+      const a = document.createElement("a");
+      a.href = state.href;
+      a.target = "_blank";
+      a.rel = "noopener";
+      tEl(a, "settings.updateView");
+      line.appendChild(a);
+    } else if (state.kind === "failed") {
+      line.textContent = t("settings.updateFailed");
     }
   }
 
