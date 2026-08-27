@@ -5,7 +5,7 @@ English | [日本語](README.ja.md) | [中文](README.zh-TW.md)
 > [!IMPORTANT]
 > ✨ **Update, 2026/08/27: v0.3.1-beta is out**
 > The version number and "Check for updates" now sit under the title on the home screen, with "Report a problem" right beside them (a small icon in the top-right corner on phones). If you cloned or forked before, `git pull` (fork: Sync fork) brings you up to date; your assets and config stay as they are. If you ever ran the old `tools/make_sample_character.py`, the release notes have a short step to bring Rye back.
-> → [Release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.3.1-beta)
+> → [Release notes](https://github.com/aveluneverse/EverOtome/releases)
 
 ![EverOtome — Chat with your AI like you're in an otome game.](docs/readme-kv-en.webp)
 

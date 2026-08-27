@@ -5,7 +5,7 @@
 > [!IMPORTANT]
 > ✨ **2026/08/27 更新：v0.3.1-beta を公開しました**
 > ホーム画面左上のタイトルの下にバージョン番号と「アップデートを確認」を表示し、「問題を報告」もすぐ横に置きました（スマートフォンでは右上の小さなアイコンです）。以前に clone / fork した方は `git pull`（fork の場合は Sync fork）で最新版になります。素材や設定はそのままで大丈夫です。旧版の `tools/make_sample_character.py` を実行したことがある方は、release notes に Rye を戻す短い手順があります。
-> → [Release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.3.1-beta)
+> → [Release notes](https://github.com/aveluneverse/EverOtome/releases)
 
 ![EverOtome — 乙女ゲームの中にいるみたいに AI とチャット](docs/readme-kv-en.webp)
 
