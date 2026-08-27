@@ -16,13 +16,7 @@
 import { confirmDialog } from "./confirm.js";
 import { t, tEl, setLocale, getStoredChoice, localeOptions, onLocaleChange } from "./i18n.js";
 import { VERSION } from "./version.js";
-
-// 「檢查更新」資料源：GitHub 公開 releases API（列表第一顆＝最新，含
-// pre-release——`releases/latest` 端點刻意不回 pre-release，beta 期不能用）。
-// 只在使用者主動按下「檢查更新」時 fetch；不上傳任何資料、無自動背景檢查
-// （README 隱私段同句承諾）。
-const UPDATE_FEED_URL = "https://api.github.com/repos/aveluneverse/EverOtome/releases?per_page=1";
-const RELEASES_URL = "https://github.com/aveluneverse/EverOtome/releases";
+import { checkForUpdate, getUpdateState, onUpdateState } from "./update-check.js";
 
 const KEYS = {
   ttsEnabled: "v4.ttsEnabled",
@@ -191,10 +185,6 @@ export class SettingsPanel {
     this.thoughtsToggleAvailable = !!thoughtsToggleAvailable;
     this.getThoughtsVisible = typeof getThoughtsVisible === "function" ? getThoughtsVisible : () => true;
     this.onThoughtsVisibleChange = typeof onThoughtsVisibleChange === "function" ? onThoughtsVisibleChange : null;
-    // 「檢查更新」最後一次查到的結果（見 _renderUpdateResult）——沒查過／正在查＝null，
-    // 這時結果行清空。存狀態而非直接寫 DOM 字串，換語系時才能重新渲染同一份結果，
-    // 不必為了跟上新語系再打一次 GitHub API。
-    this._updateState = null;
     this._dom = {};
     this._buildDom();
   }
@@ -671,6 +661,11 @@ export class SettingsPanel {
     updateResult.className = "settings-note settings-update-result";
     updateResult.setAttribute("aria-live", "polite");
     body.appendChild(updateResult);
+    // 結果來自共用模組（update-check.js）的狀態，不是本面板私有——首頁版本列
+    // （version-chip.js）查一次，這裡也要跟著顯示同一份結果，反之亦然。訂閱一次到底
+    // ＝面板只建一次、不會被重建（同上方 onLocaleChange 訂閱同一套慣例，見下方
+    // 「這兩顆 document 監聽」那段既有說明），這裡不另外處理 unsubscribe。
+    onUpdateState(() => this._renderUpdateResult());
 
     sheet.appendChild(body);
     this.container.appendChild(panel);
@@ -695,54 +690,29 @@ export class SettingsPanel {
     };
   }
 
-  /** 「檢查更新」：只由設定頁按鈕觸發。查 GitHub 公開 releases 列表第一顆
-   * （含 pre-release），tag 去掉 v 前綴與本地 VERSION 比對——不同＝有新版
-   * （附「查看更新內容」連結；href 只信 github.com 網域，否則退回官方
-   * releases 頁）、相同＝已最新、任何失敗＝簡短提示。全程不上傳任何資料。
-   * 查完的結果存進 `this._updateState`（不是直接寫死 DOM 字串），實際畫面交給
-   * `_renderUpdateResult()` 統一渲染——換語系時只要重呼那支就能讓已經查到的
-   * 結果跟著新語系重組文字，不必為了跟上新語系再打一次 API（見 onLocaleChange
-   * 訂閱處）。 */
+  /** 「檢查更新」：只由設定頁按鈕觸發。實際查詢／比對／三態判斷全部搬進共用模組
+   * `update-check.js`（`checkForUpdate()`，首頁版本列 version-chip.js 共用同一份）；
+   * 本檔只剩「查詢中鎖鈕」這一件私有職責。結果不是這裡直接寫，`checkForUpdate()`
+   * 開始與結束都會把結果寫進共用狀態並通知訂閱者，`_renderUpdateResult()` 已經訂閱
+   * 了那份狀態（見 `_buildDom` 的 `onUpdateState` 呼叫），會自動被叫到、不必在這裡
+   * 手動呼叫。 */
   async _checkUpdate() {
     const btn = this._dom.checkUpdateBtn;
     if (btn.disabled) return; // 查詢中不收第二單
     btn.disabled = true;
-    this._updateState = null;
-    this._renderUpdateResult();
-    try {
-      const res = await fetch(UPDATE_FEED_URL, {
-        headers: { Accept: "application/vnd.github+json" },
-      });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      const rel = Array.isArray(data) ? data[0] : null;
-      const tag = rel && typeof rel.tag_name === "string" ? rel.tag_name : "";
-      const latest = tag.replace(/^v/, "");
-      if (!latest) throw new Error("no tag");
-      if (latest === VERSION) {
-        this._updateState = { kind: "latest" };
-      } else {
-        const href = (rel.html_url && /^https:\/\/github\.com\//.test(rel.html_url))
-          ? rel.html_url
-          : RELEASES_URL;
-        this._updateState = { kind: "found", tag, href };
-      }
-    } catch (e) {
-      this._updateState = { kind: "failed" };
-    } finally {
-      btn.disabled = false;
-      this._renderUpdateResult();
-    }
+    await checkForUpdate();
+    btn.disabled = false;
   }
 
-  /** 「檢查更新」結果行的唯一渲染入口：只讀 `this._updateState`，不重新 fetch。
-   * `_checkUpdate()` 查完呼叫一次；`onLocaleChange` 訂閱也呼叫一次——換語系時
-   * 已經查到的結果（有新版／已最新／查詢失敗）跟著用新語系重新組字串。沒有
-   * 狀態（尚未查過、或查詢中先清一次）＝清空這一行。 */
+  /** 「檢查更新」結果行的唯一渲染入口：只讀共用模組的 `getUpdateState()`，不重新
+   * fetch。`checkForUpdate()` 查完會通知訂閱者（見 `_buildDom` 的 `onUpdateState`）；
+   * `onLocaleChange` 訂閱也呼叫一次——換語系時已經查到的結果（有新版／已最新／
+   * 查詢失敗）跟著用新語系重新組字串。沒有狀態（尚未查過、或查詢中先清一次）＝
+   * 清空這一行。 */
   _renderUpdateResult() {
     const line = this._dom.updateResult;
     if (!line) return;
-    const state = this._updateState;
+    const state = getUpdateState();
     line.textContent = "";
     if (!state) return;
     if (state.kind === "latest") {
