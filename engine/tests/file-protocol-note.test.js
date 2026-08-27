@@ -21,6 +21,6 @@ describe("file:// hint", () => {
   it("carries the feedback box as a link (Mira 2026-08-27 rule: every user-facing error path)", () => {
     const note = html.match(/<p id="file-protocol-note" hidden>([\s\S]*?)<\/p>/)[1];
     expect(note).toMatch(/Stuck\? Tell us: /);
-    expect(note).toMatch(/<a href="https:\/\/marshmallow-qa\.com\/a4u0myommjpyzup">https:\/\/marshmallow-qa\.com\/a4u0myommjpyzup<\/a>/);
+    expect(note).toMatch(/<a class="feedback-link" href="https:\/\/marshmallow-qa\.com\/a4u0myommjpyzup" target="_blank" rel="noopener">https:\/\/marshmallow-qa\.com\/a4u0myommjpyzup<\/a>/);
   });
 });

@@ -184,7 +184,6 @@ export default {
   "settings.updateFailed": "Could not check right now",
   // ── 回饋管道（feedback box，Mira 2026-08-27 規則：每一條錯誤路徑都要有）
   "feedback.report": "Report a problem",
-  "feedback.stuck": "Stuck? Tell us: ",
   // ── 試妝間（demo/expression-lab.html）
   "lab.title": "Character Lab",
   "lab.noSprite": "No sprite here yet",
