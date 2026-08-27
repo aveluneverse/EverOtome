@@ -984,7 +984,7 @@ describe("版本顯示與檢查更新（純本地顯示；只在主動點擊時�
     await new Promise((r) => setTimeout(r, 0));
     const line = document.querySelector(".settings-update-result");
     expect(line.textContent).toBe(t("settings.updateLatest")); // 先確認查詢當下（zh-Hant）是對的
-    setLocale("en");
+    setLocale("en", { persist: false });
     expect(line.textContent).toBe(t("settings.updateLatest")); // 換語系後立刻跟上，不必再點一次「檢查更新」
     expect(global.fetch).toHaveBeenCalledTimes(1); // 語系切換沒有再打一次 API
     setLocale("zh-Hant", { persist: false }); // 還原語系，不影響後面的測試

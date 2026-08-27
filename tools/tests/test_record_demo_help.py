@@ -4,6 +4,7 @@ playwright right before it launches a browser, well after argument parsing is do
 top-level `from playwright.sync_api import sync_playwright` really moved out of module scope.
 A bad segment name is existing behaviour (SystemExit before playwright is ever touched); this
 just pins it with a real test."""
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,7 @@ def test_help_prints_usage_without_needing_playwright():
     assert r.returncode == 0, r.stdout + r.stderr
     assert "usage" in r.stdout.lower()
     assert "--lang" in r.stdout
+    assert not re.search(r"[一-鿿]", r.stdout), "CJK in --help output:\n" + r.stdout
 
 
 def test_unknown_segment_still_fails_cleanly():

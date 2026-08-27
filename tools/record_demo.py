@@ -147,8 +147,10 @@ def build_name(*parts, lang, stamp, ext):
     return "-".join(segs) + "." + ext
 
 
-# --help 文字（英文；tokenizer 測試會掃使用者看得到的字串）。段名清單直接從
-# SEGMENTS 這顆單一真相拼出來，不另外抄一份會跟著漂移的清單。
+# --help 文字（英文）。tools/tests/test_tools_messages_english.py 的 tokenizer 掃不到這裡：它只看
+# print(...)／raise／argparse 參數括號裡的字面字串，而 print(USAGE) 傳的是變數；英文由
+# test_record_demo_help.py 的「stdout 無 CJK」斷言釘住。段名清單直接從 SEGMENTS 這顆單一真相
+# 拼出來，不另外抄一份會跟著漂移的清單。
 USAGE = """usage: record_demo.py [segment | --shots] [--lang <code>] [--out <folder>]
 
   segment          one of: {segments} (omit to record every segment)
