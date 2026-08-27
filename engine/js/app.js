@@ -51,6 +51,7 @@ import { MouthDriver } from "./audio-mouth.js";
 import { envelopeForUrl } from "./envelope.js";
 import { TtsSpeaker, TtsSynthCache } from "./tts.js";
 import { ChatClient, renderFrame, loadHistory, fetchLastEntryTs, postServerClearLine, fetchServerClearLine, stripMarkers, isReplaying, primeReplayEl, CallLogRenderer, markRoseFlags, appendThought, upsertPartialBubble, clearPartialBubble, showThinkingDots, renderSceneLine } from "./chat.js";
+import { ConnNoteTracker } from "./conn-note.js";
 import { CgPresenter, buildCgPanel } from "./cg.js";
 
 // 清畫面持久清除線（「清了又回來」的修法；同時支援跨裝置版「一邊清、兩邊
@@ -1680,7 +1681,9 @@ async function main() {
     }
   }
 
+  const connNote = new ConnNoteTracker(); // 待機提示選句（見 conn-note.js）
   chat.onStatusChange = (status) => {
+    const noteKey = connNote.keyFor(status);
     if (statusEl) statusEl.textContent = connText(status);
     // ADV 待機提示：正文空著時框裡給一句介面系統文字（不是對方的話——本機預覽
     // 沒有後端、或斷線期間，看到的不該是一塊沉默的空玻璃）。正文已有內容時
@@ -1706,11 +1709,7 @@ async function main() {
     // 思緒（見 adv.js），開機第一次 "connecting" 時是安全 no-op。
     pendingThoughtsTs = null;
     adv.updateThoughts(null);
-    if (status === "connecting" || status === "reconnecting") {
-      adv.setIdleNote(t("conn.idleConnecting")); // 字串不帶刪節號（點點點是動畫的事）
-    } else {
-      adv.setIdleNote(t("conn.idleOffline"));
-    }
+    adv.setIdleNote(t(noteKey)); // 從沒連上過又已失敗＝「尚未連線」句；其餘照舊（見 conn-note.js）
   };
   // 邊寫邊送：partial frame＝這一輪目前累積的完整文字（非
   // 增量，每次都是從頭算的全文，見 chat.onFrame 內對應分支）。streamArmed／
