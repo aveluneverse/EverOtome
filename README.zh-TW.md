@@ -159,7 +159,7 @@ copy config.example.json config.json     # Windows
 # 編輯 config.json 指向你的後端與素材
 ```
 
-你的後端要自己供應 `engine/` 資料夾，或跟它擋在同一個反向代理後面：介面只跟同源路徑（例如 `/ws`）說話。細節在[接線手冊](docs/backend-contract.md)。
+即時聊天走的是同源路徑上的 WebSocket（例如 `/ws`），所以你的後端要自己供應 `engine/` 資料夾，或跟它擋在同一個反向代理後面。細節在[接線手冊](docs/backend-contract.md)。
 
 需要後端的功能（收發訊息、電話、CG 推送）在接上你的服務前不會連線。**這是預期行為，不是壞掉。**後端還沒跑起來時，瀏覽器 console 會出現 `config.json` 的 404 與反覆的 WebSocket 重連錯誤，對話框會寫著尚未連線；範例角色、主題、相冊與導覽照常可用。
 
