@@ -1,4 +1,4 @@
-"""The four regenerating tools must never touch shipped files unless asked with --force.
+"""The three regenerating tools must never touch shipped files unless asked with --force.
 Each tool locates the repo root from its own __file__, so a copy of the tool inside a
 temporary fake repo (tmp/tools/<tool>.py + tmp/engine/...) exercises the real code paths
 without touching the real engine/ tree."""
