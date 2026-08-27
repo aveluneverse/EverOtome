@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { TtsSpeaker, TtsSynthCache } from "../js/tts.js";
+import { CONSOLE_FEEDBACK_SUFFIX } from "../js/feedback.js";
 
 // jsdom（截至本專案安裝的 25.0.1）未實作 URL.createObjectURL/revokeObjectURL——實測直接呼叫
 // 會丟 TypeError。tts.js 的 200 成功路徑會呼叫到它；沒這個 stub，"佇列" 測試會在 _play()
@@ -127,7 +128,7 @@ describe("逾時涵蓋 body 下載（先前修過的問題）", () => {
 
     expect(s._busy).toBe(false);
     expect(s._play).not.toHaveBeenCalled();       // 從沒真的播到——卡在下載階段就被 abort 了
-    expect(console.warn).toHaveBeenCalledWith("tts fallback:", "AbortError");
+    expect(console.warn).toHaveBeenCalledWith("tts fallback:" + CONSOLE_FEEDBACK_SUFFIX, "AbortError");
     // useRealTimers() 復原交給檔案層級的 afterEach（見上）——這裡不再手動呼叫，斷言失敗時
     // 也不會漏掉復原。
   });

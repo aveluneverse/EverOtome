@@ -1,4 +1,5 @@
 import { computeEnvelope } from "./envelope.js";
+import { logWarn } from "./feedback.js";
 
 // iOS 手勢解鎖用的 44-byte 靜音 wav data URI——與 phone.js／chat.js 的 SILENT_WAV
 // 是同一個常數（同一套純 HTMLMediaElement 手勢優先播放規則的解法，跟 Web Audio API／
@@ -68,7 +69,7 @@ export class TtsSpeaker {
             this._dailyCapNotified = true;
             if (typeof this.onDailyCap === "function") this.onDailyCap();
           }
-          if (res && !res.ok) console.warn("tts fallback:", res.status);
+          if (res && !res.ok) logWarn("tts fallback:", res.status);
           this._noteNoVoice(); // 這句不會出聲（500/204/429 皆然）——打字口型可補位
           return;
         }
@@ -80,7 +81,7 @@ export class TtsSpeaker {
       const envPromise = computeEnvelope(blob);
       try { await this._play(url, envPromise); } finally { URL.revokeObjectURL(url); }
     } catch (e) {
-      console.warn("tts fallback:", e.name || e);
+      logWarn("tts fallback:", e.name || e);
       this._noteNoVoice(); // 網路炸／超時 abort——這句同樣不會出聲
     } finally {
       this._busy = false;
@@ -262,14 +263,14 @@ export class TtsSynthCache {
         });
         if (!res || !res.ok || res.status === 204) {
           if (res && res.status === 429 && this.onDailyCap) this.onDailyCap();
-          if (res && !res.ok) console.warn("tts synth fallback:", res.status);
+          if (res && !res.ok) logWarn("tts synth fallback:", res.status);
           return null;
         }
         blob = await res.blob();
       } finally { clearTimeout(timer); }
       return URL.createObjectURL(blob);
     } catch (e) {
-      console.warn("tts synth fallback:", e.name || e);
+      logWarn("tts synth fallback:", e.name || e);
       return null;
     }
   }

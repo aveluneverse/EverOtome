@@ -9,6 +9,8 @@
  * 鑰匙」之類的隱性偵測，是因為隱性偵測在 mood 只定義部分幀時會誤判；用 manifest 而非
  * opts，是因為同一份 manifest 不管誰載入、用什麼 opts 建構，行為都該一樣。
  */
+import { logWarn } from "./feedback.js";
+
 const FRAME_TABLE_2 = { open: ["A", "B", "C"], closed: ["D", "E", "F"] };
 const FRAME_TABLE_3 = { open: ["A", "B", "C"], half: ["D", "E", "F"], closed: ["G", "H", "I"] };
 
@@ -99,7 +101,7 @@ export class SpritePlayer {
         if (typeof im.decode === "function") await im.decode();
       } catch (err) {
         // 預載失敗照樣上屏（單張圖沒有差分可壞；瀏覽器 img 自身的載入容錯接手）
-        console.warn("static sprite preload failed (showing anyway):", err);
+        logWarn("static sprite preload failed (showing anyway):", err);
       }
       this._img = document.createElement("img");
       this._img.className = "sprite-frame";
@@ -131,7 +133,7 @@ export class SpritePlayer {
       // 載入失敗 fallback＝靜態 A 圖＋console 警告，聊天不受影響。
       // 降級後 setMouth／_blinkNow／startIdle 全靜默 no-op，畫面永遠停在初始 A
       // （this._eye/_mouth 從未被動過，_render() 自然算出 A）。
-      console.warn("sprite preload failed, degraded to static frame:", err);
+      logWarn("sprite preload failed, degraded to static frame:", err);
       this._degraded = true;
     }
     if (this._degraded) {
@@ -174,7 +176,7 @@ export class SpritePlayer {
     const key = this._eye + "|" + this._mouth;
     if (key === this._lastFrameKey) return;
     this._lastFrameKey = key;
-    try { this.onFrame(this._eye, this._mouth); } catch (err) { console.warn("onFrame hook failed:", err); }
+    try { this.onFrame(this._eye, this._mouth); } catch (err) { logWarn("onFrame hook failed:", err); }
   }
 
   // static 造型 img.src 在 load() 設定後永不再動——_render 對 static／未載入態

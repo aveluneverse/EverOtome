@@ -183,3 +183,85 @@ describe("initVersionChip：版本文字＋檢查更新按鈕", () => {
     );
   });
 });
+
+describe("焦點管理（Mira 2026-08-27 規則：鈕被 hidden 甩掉的鍵盤焦點要接住，不要掉到 body）", () => {
+  it("found：點擊前鈕有鍵盤焦點 → 鈕藏起來後焦點接到新出現的連結", async () => {
+    global.fetch = vi.fn(async () => okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const btn = container.querySelector(".ver-chip-check");
+    btn.focus();
+    expect(document.activeElement).toBe(btn);
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    const link = container.querySelector(".ver-chip-result a");
+    expect(document.activeElement).toBe(link);
+  });
+
+  it("found：滑鼠點擊（鈕從沒被 focus 過）→ 焦點不會被強制搬到連結上", async () => {
+    global.fetch = vi.fn(async () => okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const btn = container.querySelector(".ver-chip-check");
+    btn.click(); // 沒有先 focus()：模擬滑鼠使用者
+    await new Promise((r) => setTimeout(r, 0));
+    const link = container.querySelector(".ver-chip-result a");
+    expect(document.activeElement).not.toBe(link);
+  });
+
+  it("latest：點擊前鈕有鍵盤焦點 → 鈕藏起來後焦點接到結果行（tabindex=-1）；6.3 秒後鈕淡回，焦點仍在 chip 內就還給鈕", async () => {
+    vi.useFakeTimers();
+    global.fetch = vi.fn(async () => okResponse([{ tag_name: "v" + VERSION }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const btn = container.querySelector(".ver-chip-check");
+    const result = container.querySelector(".ver-chip-result");
+    btn.focus();
+    btn.click();
+    await vi.advanceTimersByTimeAsync(0); // 讓 fetch/json 兩個 microtask 跑完
+    expect(result.getAttribute("tabindex")).toBe("-1");
+    expect(document.activeElement).toBe(result);
+
+    await vi.advanceTimersByTimeAsync(6300); // 6000 停留 ＋ 300 淡出，鈕淡回
+    expect(btn.hidden).toBe(false);
+    expect(document.activeElement).toBe(btn);
+  });
+
+  it("latest：焦點在鈕淡回前已經離開 chip（使用者自己 tab 走了）→ 鈕淡回不搶焦點", async () => {
+    vi.useFakeTimers();
+    global.fetch = vi.fn(async () => okResponse([{ tag_name: "v" + VERSION }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const btn = container.querySelector(".ver-chip-check");
+    btn.focus();
+    btn.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const elsewhere = document.createElement("input");
+    document.body.appendChild(elsewhere);
+    elsewhere.focus();
+    expect(document.activeElement).toBe(elsewhere);
+
+    await vi.advanceTimersByTimeAsync(6300);
+    expect(btn.hidden).toBe(false);
+    expect(document.activeElement).toBe(elsewhere); // 沒被搶走
+  });
+
+  it("latest：滑鼠點擊（鈕從沒被 focus 過）→ 焦點不會被強制搬到結果行", async () => {
+    vi.useFakeTimers();
+    global.fetch = vi.fn(async () => okResponse([{ tag_name: "v" + VERSION }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const btn = container.querySelector(".ver-chip-check");
+    const result = container.querySelector(".ver-chip-result");
+    btn.click(); // 沒有先 focus()：模擬滑鼠使用者
+    await vi.advanceTimersByTimeAsync(0);
+    expect(document.activeElement).not.toBe(result);
+  });
+});
