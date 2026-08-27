@@ -17,6 +17,7 @@ import {
 } from "../js/settings.js";
 import { setLocale, getLocale, STORAGE_KEY, t } from "../js/i18n.js";
 import { VERSION } from "../js/version.js";
+import { FEEDBACK_URL } from "../js/feedback.js";
 
 // 每個測試前清乾淨 localStorage＋body class，避免測試互相汙染狀態（settings.js 的
 // 讀寫全部經過同一組 localStorage key，順序不同的測試檔／測試案例都共用同一個
@@ -952,13 +953,20 @@ describe("版本顯示與檢查更新（純本地顯示；只在主動點擊時�
     expect(line.querySelector("a")).toBe(null);
   });
 
-  it("查詢失敗（斷網）：簡短提示、按鈕復原可再按、不影響其他設定", async () => {
+  it("查詢失敗（斷網）：簡短提示＋回報問題連結（Mira 2026-08-27 規則：每一條錯誤路徑都要有）、按鈕復原可再按、不影響其他設定", async () => {
     global.fetch = vi.fn(async () => { throw new TypeError("network down"); });
     buildPanel();
     const btn = document.querySelector(".settings-check-update");
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
-    expect(document.querySelector(".settings-update-result").textContent).toBe(t("settings.updateFailed"));
+    const line = document.querySelector(".settings-update-result");
+    expect(line.textContent).toContain(t("settings.updateFailed"));
+    const a = line.querySelector("a");
+    expect(a).not.toBe(null);
+    expect(a.textContent).toBe(t("feedback.report"));
+    expect(a.getAttribute("href")).toBe(FEEDBACK_URL);
+    expect(a.getAttribute("target")).toBe("_blank");
+    expect(a.getAttribute("rel")).toBe("noopener");
     expect(btn.disabled).toBe(false); // 失敗後復原、可再試
   });
 

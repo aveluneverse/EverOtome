@@ -89,3 +89,15 @@ def test_guard_helper_speaks_for_itself(tmp_path):
     assert refuse_unless_force([a, b], force=False, label="sample") == 1
     assert refuse_unless_force([a, b], force=True, label="sample") == 0
     assert refuse_unless_force([b], force=False, label="sample") == 0   # nothing to overwrite
+
+
+def test_abort_line_carries_the_feedback_box(tmp_path, capsys):
+    """Mira 2026-08-27 rule: every user-facing error path carries the feedback box."""
+    sys.path.insert(0, str(TOOLS))
+    from _overwrite_guard import refuse_unless_force
+    a = tmp_path / "a.txt"
+    a.write_bytes(b"x")
+    refuse_unless_force([a], force=False, label="sample")
+    out = capsys.readouterr().out
+    assert "[abort]" in out
+    assert "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup" in out

@@ -25,5 +25,6 @@ def refuse_unless_force(targets: list, force: bool, label: str) -> int:
         return 0
     names = ", ".join("/".join(p.parts[-2:]) for p in existing[:6]) + (", ..." if len(existing) > 6 else "")
     print(f"[abort] {len(existing)} shipped file(s) already exist in {label} ({names}). "
-          f"Nothing was written. Re-run with --force to overwrite them.")
+          f"Nothing was written. Re-run with --force to overwrite them. "
+          f"Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
     return 1

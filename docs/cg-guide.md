@@ -36,3 +36,5 @@ These percentages are suggestions measured from the bundled layout. If you custo
 ## Rescue trick for existing art
 
 If a finished piece has its face in the covered zone, you don't have to redraw it: shift the content away from the overlay, then blend the trailing edge into black with a gradient (desktop: shift left, fade the right edge; mobile: shift up, fade the bottom). The CG stage floats on a dark backdrop, so a gradient into black reads as intentional vignetting. The bundled demo album went through exactly this treatment and can serve as a reference.
+
+Stuck? Tell us: [marshmallow-qa.com/a4u0myommjpyzup](https://marshmallow-qa.com/a4u0myommjpyzup)

@@ -20,8 +20,36 @@ def test_help_prints_usage_without_needing_playwright():
     assert not re.search(r"[一-鿿]", r.stdout), "CJK in --help output:\n" + r.stdout
 
 
+FEEDBACK_LINE = "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup"
+
+
 def test_unknown_segment_still_fails_cleanly():
     r = subprocess.run([sys.executable, str(TOOL), "nonsense-segment"], capture_output=True, text=True)
     out = r.stdout + r.stderr
     assert r.returncode == 1, out
     assert "[abort]" in out
+    assert FEEDBACK_LINE in out  # Mira 2026-08-27 rule: every user-facing error path
+
+
+def test_lang_missing_value_carries_the_feedback_box():
+    r = subprocess.run([sys.executable, str(TOOL), "--lang"], capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    assert r.returncode == 1, out
+    assert "[abort]" in out
+    assert FEEDBACK_LINE in out
+
+
+def test_out_missing_value_carries_the_feedback_box():
+    r = subprocess.run([sys.executable, str(TOOL), "--out"], capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    assert r.returncode == 1, out
+    assert "[abort]" in out
+    assert FEEDBACK_LINE in out
+
+
+def test_unsupported_locale_carries_the_feedback_box():
+    r = subprocess.run([sys.executable, str(TOOL), "--lang", "xx"], capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    assert r.returncode == 1, out
+    assert "[abort]" in out
+    assert FEEDBACK_LINE in out

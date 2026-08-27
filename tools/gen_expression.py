@@ -199,7 +199,8 @@ def main() -> int:
             p = base_dir / f"{n}.{ext}"
             if p.exists():
                 return Image.open(p)
-        print(f"FAIL: base frame {n}.png/.webp missing"); sys.exit(1)
+        print(f"FAIL: base frame {n}.png/.webp missing. Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
+        sys.exit(1)
 
     A_rgba = base("A").convert("RGBA")
     W, H = A_rgba.size
@@ -292,7 +293,8 @@ def main() -> int:
     ref = next((s for role in REF_PRIORITY for s in srcs if (s.eye_role, s.mouth_role) == role), None)
     if ref is None and len(srcs) > 1:
         print("FAIL: no reference image (eyes open, mouth closed). Name a multi-image set A to I (A = eyes open, mouth closed), "
-              "or include at least one image whose name marks it as eyes open and mouth closed")
+              "or include at least one image whose name marks it as eyes open and mouth closed. "
+              "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
         return 1
     if ref is not None and len(srcs) > 1:
         eye_motion = Image.new("L", (W, H), 0)
@@ -335,7 +337,8 @@ def main() -> int:
     overlap = count(ImageChops.multiply(eye_zone.point(lambda v: 255 if v > 0 else 0),
                                         mouth_zone.point(lambda v: 255 if v > 0 else 0)))
     if overlap:
-        print(f"FAIL: the eye and mouth regions still overlap by {overlap} px (should not happen; please report it)")
+        print(f"FAIL: the eye and mouth regions still overlap by {overlap} px (should not happen; please report it). "
+              f"Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
         return 1
 
     result = {"id": args.name, "label": args.label, "size": [W, H], "eyes": {}, "mouth": {},
@@ -431,7 +434,8 @@ def main() -> int:
     if static_zone is not None:
         covered = ImageChops.lighter(covered, static_zone.point(lambda v: 255 if v > 0 else 0))
     if not result["eyes"] and not result["mouth"] and not static_fn:
-        print("FAIL: this expression produced no patch at all (0 eye states, 0 mouth states, no tint region); an empty expression is not written to the manifest")
+        print("FAIL: this expression produced no patch at all (0 eye states, 0 mouth states, no tint region); an empty expression is not written to the manifest. "
+              "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
         return 1
     for s in srcs:
         miss = ImageChops.subtract(diff_mask(flat(s.im), A), covered)
@@ -454,7 +458,8 @@ def main() -> int:
                       f"not cut, not covered, counted into the rebuild residual)")
                 continue
             print(f"FAIL: {s.path.name} has change inside the face box that no patch covers, bbox {miss.getbbox()} ({n_miss} px, solid {count(core)} px); "
-                  f"that area would show the base frame through. Check that the change sits on the eyes or the mouth, or that the tint region is large enough (>= {STATIC_MIN_PX} px)")
+                  f"that area would show the base frame through. Check that the change sits on the eyes or the mouth, or that the tint region is large enough (>= {STATIC_MIN_PX} px). "
+                  f"Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
             return 1
 
     eyes_n, mouth_n = len(result["eyes"]), len(result["mouth"])
@@ -504,7 +509,8 @@ def main() -> int:
     # 拿一批沒過驗證的貼片上場；json 一寫，試妝間也會把壞掉的狀態當正式資料。宣告不寫＝引擎
     # 看不到這個表情，跟沒切過一樣安全；貼片檔留在 --out 資料夾給人工檢視根因，不影響安全性。
     if failed:
-        print("RESULT: FAIL. json not written, manifest not merged (the patch files are on disk for inspection; with no declaration the engine never sees them)")
+        print("RESULT: FAIL. json not written, manifest not merged (the patch files are on disk for inspection; with no declaration the engine never sees them). "
+              "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
         return 1
 
     for o in outs:

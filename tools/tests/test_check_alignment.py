@@ -26,17 +26,29 @@ def test_clean_set_passes(tmp_path):
     assert r.returncode == 0
     assert "PASS" in r.stdout
 
+FEEDBACK_LINE = "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup"
+
 def test_tampered_set_fails_and_names_culprit(tmp_path):
     _make_set(tmp_path, tamper=True)
     r = _run(tmp_path)
     assert r.returncode == 1
     assert "FAIL: C" in r.stdout  # 指名哪張要重生（緊扣 FAIL 摘要行，不吃到逐張診斷行裡的 "C"）
+    assert FEEDBACK_LINE in r.stdout  # Mira 2026-08-27 rule: every user-facing error path
 
 def test_size_mismatch_fails(tmp_path):
     _make_set(tmp_path)
     Image.new("RGBA", (99, 150)).save(tmp_path / "F.png")
     r = _run(tmp_path)
     assert r.returncode == 1
+    assert FEEDBACK_LINE in r.stdout
+
+def test_missing_frame_fails_with_feedback_box(tmp_path):
+    _make_set(tmp_path)
+    (tmp_path / "F.png").unlink()  # 缺一張——load_set 該直接指名報 FAIL
+    r = _run(tmp_path)
+    assert r.returncode == 1
+    assert "FAIL: missing F.png/.webp" in r.stdout
+    assert FEEDBACK_LINE in r.stdout
 
 def test_box_mode_catches_tamper(tmp_path):
     _make_set(tmp_path, tamper=True)

@@ -39,11 +39,13 @@ def load_set(d: Path, names: list):
     for n in names:
         matches = [p for ext in ("png", "webp") for p in [d / f"{n}.{ext}"] if p.exists()]
         if not matches:
-            print(f"FAIL: missing {n}.png/.webp"); sys.exit(1)
+            print(f"FAIL: missing {n}.png/.webp. Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
+            sys.exit(1)
         imgs[n] = Image.open(matches[0]).convert("RGBA")
     sizes = {im.size for im in imgs.values()}
     if len(sizes) != 1:
-        print(f"FAIL: frame sizes differ: {sizes}"); sys.exit(1)
+        print(f"FAIL: frame sizes differ: {sizes}. Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
+        sys.exit(1)
     return imgs
 
 def diff_mask(a: Image.Image, b: Image.Image):
@@ -94,7 +96,8 @@ def main():
                 failed.append(n)
 
     if failed:
-        print(f"FAIL: {', '.join(failed)} changed outside the eye and mouth boxes; regenerate these frames")
+        print(f"FAIL: {', '.join(failed)} changed outside the eye and mouth boxes; regenerate these frames. "
+              f"Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
         sys.exit(1)
     print(f"PASS: all {len(names)} frames aligned")
     sys.exit(0)

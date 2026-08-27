@@ -226,3 +226,5 @@ http://127.0.0.1:8300/demo/expression-lab.html?set=assets/my-character/
 The bundled sample opens with its Smile button and its blush both working. An appearance that declares neither key opens with the buttons quiet and a note naming what is missing; add the keys and the buttons appear.
 
 One difference from the chat room, on purpose: the lab holds whatever you pick until you pick something else, so a `flash` expression does not clear itself after 2.5 seconds and blush does not ease out after 90. The status line names the mode, and its tooltip gives the chat-room timing.
+
+Stuck? Tell us: [marshmallow-qa.com/a4u0myommjpyzup](https://marshmallow-qa.com/a4u0myommjpyzup)

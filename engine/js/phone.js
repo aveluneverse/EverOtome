@@ -21,6 +21,7 @@
 
 import { envelopeForUrl } from "./envelope.js";
 import { t, tAttr } from "./i18n.js";
+import { logWarn } from "./feedback.js";
 
 // iOS 手勢解鎖用的 44-byte 靜音 wav data URI（沿用既有實作：純 HTMLMediaElement
 // 技巧，跟 Web Audio API／AudioContext 無關，不是「第二顆 AudioContext」）。
@@ -232,7 +233,7 @@ export class PhoneController {
       this._enterCallScreen();
     } catch (err) {
       if (this._connectAttempt !== ctrl) return; // 同上
-      console.warn("[phone] dial failed:", err);
+      logWarn("[phone] dial failed:", err);
       const timedOut = err && err.name === "AbortError";
       this._setStatusMsg(timedOut ? t("phone.dialFailedRetry") : t("phone.dialFailedLater"));
       this.state = "idle";
@@ -273,7 +274,7 @@ export class PhoneController {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ call_id: id }),
-      }).catch((err) => console.warn("[phone] end failed:", err));
+      }).catch((err) => logWarn("[phone] end failed:", err));
     }
     this._renderActiveView();
     this._refreshLog();
@@ -358,7 +359,7 @@ export class PhoneController {
       })
       .catch((err) => {
         if (this._connectAttempt !== attempt) return; // 同上
-        console.warn("[phone] accept failed:", err);
+        logWarn("[phone] accept failed:", err);
         this._abortFailedAccept();
         this._setStatusMsg(t("phone.answerFailed"));
       });
@@ -373,7 +374,7 @@ export class PhoneController {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ call_id: callId }),
-    }).catch((err) => console.warn("[phone] decline failed:", err));
+    }).catch((err) => logWarn("[phone] decline failed:", err));
   }
 
   // ── DOM 建構 ──────────────────────────────────────────────────────────────
@@ -465,7 +466,7 @@ export class PhoneController {
     try {
       this.onCallContent(ev);
     } catch (e) {
-      console.warn("[phone] onCallContent handler failed:", e);
+      logWarn("[phone] onCallContent handler failed:", e);
     }
   }
 
@@ -476,7 +477,7 @@ export class PhoneController {
     try {
       this.onCallState({ phase, seconds: this._seconds });
     } catch (e) {
-      console.warn("[phone] onCallState handler failed:", e);
+      logWarn("[phone] onCallState handler failed:", e);
     }
   }
 
@@ -570,7 +571,7 @@ export class PhoneController {
       })
       .catch((err) => {
         if (this._micSession !== session) return; // 上一通遲到的失敗，不動這一通
-        console.warn("[phone] mic denied:", err);
+        logWarn("[phone] mic denied:", err);
         this._setStatusMsg(t("phone.noCall", { msg: this._micErrText(err) }));
         this.hangUp();
       });
@@ -766,7 +767,7 @@ export class PhoneController {
         this.chatClient.send(JSON.stringify({ call: true, text }));
       })
       .catch((err) => {
-        console.warn("[phone] utterance failed:", err);
+        logWarn("[phone] utterance failed:", err);
         if (this._typedSttMode) return; // 打字模式：上傳失敗同樣不洗提示（console 留證）
         this._emitContent({ type: "sys", text: t("phone.unclear") });
       });
@@ -857,7 +858,7 @@ export class PhoneController {
   }
 
   _handlePlayRejection(gen, err) {
-    console.warn("[phone] play() rejected:", err);
+    logWarn("[phone] play() rejected:", err);
     if (err && err.name === "NotAllowedError" && !this._autoplayUnlockShown) {
       this._autoplayUnlockShown = true;
       this._setStatusMsg(t("phone.tapForSound"));
@@ -1060,7 +1061,7 @@ export class PhoneController {
       // 留言卡退場：vmSlot 恆空（:empty CSS 藏、hasVoicemail 顯隱邏輯自然歸位）
       this._dom.vmSlot.innerHTML = "";
     } catch (err) {
-      console.warn("[phone] call log failed to load:", err);
+      logWarn("[phone] call log failed to load:", err);
     }
   }
 }

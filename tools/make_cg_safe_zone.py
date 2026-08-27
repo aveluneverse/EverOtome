@@ -175,7 +175,8 @@ LATIN_FONTS = [
 def find_font(explicit, candidates):
     if explicit:
         if not os.path.exists(explicit):
-            raise SystemExit(f"[abort] font not found: {explicit}")
+            raise SystemExit(f"[abort] font not found: {explicit}. "
+                              f"Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
         return explicit
     for p in candidates:
         if p and os.path.exists(p):
@@ -233,9 +234,11 @@ def main(argv=None):
 
     langs = ["en", "zh-Hant"] if args.lang == "all" else [args.lang]
     if "zh-Hant" in langs and cjk is None:
-        raise SystemExit("[abort] no CJK font found; pass --font-cjk PATH (the zh-Hant labels would render blank)")
+        raise SystemExit("[abort] no CJK font found; pass --font-cjk PATH (the zh-Hant labels would render blank). "
+                          "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
     if latin is None:
-        raise SystemExit("[abort] no usable font found; pass --font-latin PATH")
+        raise SystemExit("[abort] no usable font found; pass --font-latin PATH. "
+                          "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup")
     for lang in langs:
         font = cjk if lang == "zh-Hant" else latin
         for device, spec in (("desktop", DESKTOP), ("mobile", MOBILE)):

@@ -23,6 +23,7 @@
  * tts.js，歷史訊息在架構上就摸不到 `TtsSpeaker.speak`——這是路徑分離，不是靠旗標擋。
  */
 import { t, tAttr } from "./i18n.js";
+import { logWarn } from "./feedback.js";
 
 const RECONNECT_DELAY_MS = 3000;
 
@@ -448,13 +449,13 @@ function _setUnrosed(btn) {
 }
 
 /** 點擊分派：已亮＝樂觀熄滅＋hooks.remove(id)，resolve false／reject 都回滾點亮
- * （false＝業務性未成功，靜默；reject＝技術性失敗，console.warn）；未亮＝樂觀
+ * （false＝業務性未成功，靜默；reject＝技術性失敗，logWarn）；未亮＝樂觀
  * 點亮＋hooks.add(text)，resolve {saved:true,id} 落 dataset.roseId、
- * {saved:false}（親密模式攔截，非錯誤）靜默回滾、reject 回滾＋console.warn。
+ * {saved:false}（親密模式攔截，非錯誤）靜默回滾、reject 回滾＋logWarn。
  * hooks.add/remove **同步**呼叫（鏡照 _buildReplayBtn 對 hooks.before/attach 的
  * 既有慣例——點下去當下就該觸發，不能因為防禦包裝多等一個 microtask 才真的打
  * 出去）；外面包 try/catch 轉成 rejected promise 餵同一條 `.catch()` rollback／
- * console.warn 路徑——hook 若同步 throw（呼叫端寫壞），例外一樣不會裸奔逃出
+ * logWarn 路徑——hook 若同步 throw（呼叫端寫壞），例外一樣不會裸奔逃出
  * 事件處理器、把鈕卡死在樂觀態。
  * btn.disabled 包住整段飛行中請求：防連點在 add 還沒 resolve、dataset.roseId
  * 還是 undefined 時就被當「已亮」誤點第二下（Number(undefined) = NaN 會送壞
@@ -476,7 +477,7 @@ function _onRoseClick(btn, ctx) {
     Promise.resolve(result)
       .then((ok) => { if (!ok) _setRosed(btn, id); })
       .catch((e) => {
-        console.warn("[chat] removing from favorites failed; rolling back to favorited:", e);
+        logWarn("[chat] removing from favorites failed; rolling back to favorited:", e);
         _setRosed(btn, id);
       })
       .finally(done);
@@ -496,7 +497,7 @@ function _onRoseClick(btn, ctx) {
         else _setUnrosed(btn); // saved:false（親密模式攔截）＝靜默回滾，不是錯誤
       })
       .catch((e) => {
-        console.warn("[chat] adding to favorites failed; rolling back:", e);
+        logWarn("[chat] adding to favorites failed; rolling back:", e);
         _setUnrosed(btn);
       })
       .finally(done);
@@ -1134,7 +1135,7 @@ export function renderHistory(entries, listEl, ctx = {}) {
 /**
  * 回填 `/api/history`：fetch → 解析 → 交給 `renderHistory` 畫上屏。任何一步失敗
  * （網路錯誤／逾時／4xx／5xx／body 不是合法 JSON／`entries` 缺失或不是陣列）一律
- * `console.warn` 後直接返回——絕不把例外丟給呼叫端，呼叫端不需要、也不應該再包一層
+ * `logWarn` 後直接返回——絕不把例外丟給呼叫端，呼叫端不需要、也不應該再包一層
  * try/catch；聊天永遠不會因為歷史回填失敗而被擋住（失敗＝空清單，
  * 聊天照常可用）。
  *
@@ -1149,7 +1150,7 @@ export function renderHistory(entries, listEl, ctx = {}) {
  * timer 蓋住 `fetch()` 到 `res.json()` 兩步（不是只到 headers 到手就
  * clearTimeout）——理由同 tts.js：body／JSON 解析卡住一樣要被同一顆 abort 打斷，
  * 否則卡在「headers 到手、body 還沒讀完」這個縫隙一樣會無限期卡住。逾時／中止都
- * 走既有的外層 catch（console.warn＋空清單，行為不變，見上）。
+ * 走既有的外層 catch（logWarn＋空清單，行為不變，見上）。
  *
  * TTS 隔離：本函式（連同它呼叫的 `renderHistory`／`renderFrame`）全程不 import、不
  * 接觸 `tts.js`／`TtsSpeaker` 任何一行——歷史回填在架構上就摸不到 `speak`，這是路徑
@@ -1190,7 +1191,7 @@ export async function loadHistory(url, listEl, ctx = {}, opts = {}) {
     // 清除線生效時回傳的是濾後清單——ADV 開場自然不會撿回線內的舊句。
     return entries;
   } catch (e) {
-    console.warn("[chat] history backfill failed; keeping the chat empty:", e);
+    logWarn("[chat] history backfill failed; keeping the chat empty:", e);
     return [];
   }
 }
@@ -1221,7 +1222,7 @@ export async function fetchLastEntryTs(url) {
     }
     return null;
   } catch (e) {
-    console.warn("[chat] fetching the clear-line timestamp failed (this clear will not be persisted):", e);
+    logWarn("[chat] fetching the clear-line timestamp failed (this clear will not be persisted):", e);
     return null;
   }
 }
@@ -1251,7 +1252,7 @@ export async function postServerClearLine(url) {
     const ts = data && typeof data.cleared_at === "string" ? data.cleared_at : null;
     return ts || null;
   } catch (e) {
-    console.warn("[chat] writing the clear line to the server failed (falling back to the local line):", e);
+    logWarn("[chat] writing the clear line to the server failed (falling back to the local line):", e);
     return null;
   }
 }

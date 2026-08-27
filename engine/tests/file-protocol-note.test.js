@@ -17,4 +17,10 @@ describe("file:// hint", () => {
     expect(html).toMatch(/<script>\s*if \(location\.protocol === "file:"\)/);
     expect(html.indexOf('id="file-protocol-note"')).toBeLessThan(html.indexOf('<script type="module" src="js/app.js">'));
   });
+
+  it("carries the feedback box as a link (Mira 2026-08-27 rule: every user-facing error path)", () => {
+    const note = html.match(/<p id="file-protocol-note" hidden>([\s\S]*?)<\/p>/)[1];
+    expect(note).toMatch(/Stuck\? Tell us: /);
+    expect(note).toMatch(/<a href="https:\/\/marshmallow-qa\.com\/a4u0myommjpyzup">https:\/\/marshmallow-qa\.com\/a4u0myommjpyzup<\/a>/);
+  });
 });

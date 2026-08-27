@@ -81,6 +81,7 @@ import { initThemes } from "./theme.js";
 import { createAdvVisibility } from "./adv-visibility.js";
 import { initI18n, applyConfigLocale, t, tEl, tAttr, pickLabel, onLocaleChange } from "./i18n.js";
 import { bindLocaleRelabel } from "./appearance-labels.js";
+import { logError, logWarn, FEEDBACK_URL } from "./feedback.js";
 import { installViewportLock } from "./viewport-lock.js";
 import { initVersionChip } from "./version-chip.js";
 
@@ -131,7 +132,7 @@ async function loadConfig() {
     const res = await fetch("config.example.json");
     if (res.ok) return await res.json();
   } catch (e) {
-    console.warn("config.example.json could not be loaded either; using built-in defaults:", e);
+    logWarn("config.example.json could not be loaded either; using built-in defaults:", e);
   }
   return HARD_DEFAULTS;
 }
@@ -433,7 +434,7 @@ async function main() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ call_id: decodeURIComponent(m[1]) }),
-      }).catch((err) => console.warn("[app] voicemail played report failed:", err));
+      }).catch((err) => logWarn("[app] voicemail played report failed:", err));
     },
   };
 
@@ -519,7 +520,7 @@ async function main() {
   } catch (e) {
     // 載入失敗不擋聊天——sprite.js 內部也有自己的降級（靜態 A 圖），
     // 這裡再包一層是防 manifest 本身就抓不到（load() 在讀到 manifest 之前就會 throw）。
-    console.warn("sprite failed to load; portrait temporarily unavailable, chat unaffected:", e);
+    logWarn("sprite failed to load; portrait temporarily unavailable, chat unaffected:", e);
   }
 
   // 事件直驅制後 low/high 不再參與判定。仲裁鉤子：語音開講＝
@@ -1144,14 +1145,14 @@ async function main() {
         try { localStorage.setItem(APPEARANCE_KEY, ap.id); } catch (e) { /* 無痕等 */ }
       } catch (err) {
         // 換裝失敗：試著回穿上一套（回穿也失敗＝sprite 自身降級接手，聊天不受影響）
-        console.warn("[app] appearance switch failed; reverting to the previous set:", err);
+        logWarn("[app] appearance switch failed; reverting to the previous set:", err);
         ok = false;
         try {
           await sprite.switchTo(prev.assetsPath);
           sprite.startIdle();
           blush.syncFrom(sprite.manifest, prev.assetsPath); // 回穿也要對回原套素材
           expr.syncFrom(sprite.manifest, prev.assetsPath);
-        } catch (e2) { console.warn("[app] revert also failed (portrait falls back, chat unaffected):", e2); }
+        } catch (e2) { logWarn("[app] revert also failed (portrait falls back, chat unaffected):", e2); }
       } finally {
         switching = false;
         markActive();
@@ -1451,17 +1452,17 @@ async function main() {
     if (f && f.theme && themeMgr && themeMgr.current !== f.theme) {
       try {
         themeMgr.applyById(f.theme);
-      } catch (e) { console.warn("[app] room theme apply failed (chat unaffected):", e); }
+      } catch (e) { logWarn("[app] room theme apply failed (chat unaffected):", e); }
     }
     if (f && f.outfit) {
       try {
         await switchAppearanceById(f.outfit);
-      } catch (e) { console.warn("[app] room outfit apply failed (chat unaffected):", e); }
+      } catch (e) { logWarn("[app] room outfit apply failed (chat unaffected):", e); }
     }
     if (f && f.furniture && furnitureMgr) {
       try {
         for (const [id, on] of Object.entries(f.furniture)) furnitureMgr.setOn(id, on);
-      } catch (e) { console.warn("[app] room furniture apply failed (chat unaffected):", e); }
+      } catch (e) { logWarn("[app] room furniture apply failed (chat unaffected):", e); }
     }
   }
 
@@ -1573,7 +1574,7 @@ async function main() {
   // 歷史回填：await 完整跑完才往下接 WS，保證一開頁面
   // 看到的是完整回填好的歷史，不會有「連線比回填先跑完、WS 新訊息插在歷史中間」
   // 這種順序倒錯的尷尬瞬間。失敗（4xx/5xx/網路錯誤/逾時）loadHistory 內部已經
-  // console.warn 並吞掉，這裡不需要、也不應該再包一層 try/catch。
+  // logWarn 並吞掉，這裡不需要、也不應該再包一層 try/catch。
   // clearedAt＝清畫面持久清除線：server 線優先（跨裝置一致——在手機
   // 清的，電腦這裡 GET 到同一條）；404（flag 未開）／失敗＝單機 localStorage
   // 線。有線＝只回填線後 entries；沒線＝全量。ADV 開場末句吃濾後回傳值。
@@ -1689,7 +1690,22 @@ async function main() {
   const connNote = new ConnNoteTracker(); // 待機提示選句（見 conn-note.js）
   chat.onStatusChange = (status) => {
     const noteKey = connNote.keyFor(status);
-    if (statusEl) statusEl.textContent = connText(status);
+    if (statusEl) {
+      statusEl.textContent = connText(status);
+      // 從沒連上過又已失敗（見 conn-note.js）：Chat Log 表頭這行「已斷線，重新
+      // 連線中……」不會自己好轉，附上回饋盒連結（Mira 2026-08-27 規則：每一條
+      // 使用者會看到的錯誤路徑都要有）。這裡動的是表頭狀態字，不是下面
+      // adv.setIdleNote 寫的角色 ADV 待機句——兩處文案故意分開維護、各自的 DOM。
+      if (noteKey === "conn.idleOffline") {
+        statusEl.appendChild(document.createTextNode(" "));
+        const a = document.createElement("a");
+        a.href = FEEDBACK_URL;
+        a.target = "_blank";
+        a.rel = "noopener";
+        tEl(a, "feedback.report");
+        statusEl.appendChild(a);
+      }
+    }
     // ADV 待機提示：正文空著時框裡給一句介面系統文字（不是對方的話——本機預覽
     // 沒有後端、或斷線期間，看到的不該是一塊沉默的空玻璃）。正文已有內容時
     // `:empty` 不成立，這行純粹是設 data 屬性、不會蓋掉任何一句話。
@@ -2104,4 +2120,4 @@ async function main() {
   }
 }
 
-main().catch((e) => console.error("app.js failed to initialize:", e));
+main().catch((e) => logError("app.js failed to initialize:", e));

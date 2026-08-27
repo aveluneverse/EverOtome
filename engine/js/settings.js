@@ -17,6 +17,7 @@ import { confirmDialog } from "./confirm.js";
 import { t, tEl, setLocale, getStoredChoice, localeOptions, onLocaleChange } from "./i18n.js";
 import { VERSION } from "./version.js";
 import { checkForUpdate, getUpdateState, onUpdateState } from "./update-check.js";
+import { FEEDBACK_URL } from "./feedback.js";
 
 const KEYS = {
   ttsEnabled: "v4.ttsEnabled",
@@ -726,7 +727,13 @@ export class SettingsPanel {
       tEl(a, "settings.updateView");
       line.appendChild(a);
     } else if (state.kind === "failed") {
-      line.textContent = t("settings.updateFailed");
+      line.textContent = t("settings.updateFailed") + " ";
+      const a = document.createElement("a");
+      a.href = FEEDBACK_URL;
+      a.target = "_blank";
+      a.rel = "noopener";
+      tEl(a, "feedback.report");
+      line.appendChild(a);
     }
   }
 

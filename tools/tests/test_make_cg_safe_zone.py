@@ -45,4 +45,6 @@ def test_lang_filter_writes_only_that_pair(tmp_path):
 def test_explicit_missing_font_path_aborts(tmp_path):
     r = _run("--out", str(tmp_path), "--font-cjk", str(tmp_path / "nope.ttf"))
     assert r.returncode != 0
-    assert "[abort]" in (r.stdout + r.stderr)
+    out = r.stdout + r.stderr
+    assert "[abort]" in out
+    assert "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup" in out  # Mira 2026-08-27 rule
