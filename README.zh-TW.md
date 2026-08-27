@@ -207,7 +207,7 @@ EverOtome 目前處於 **Beta** 階段：核心功能穩定可用，1.0 前設�
 
 ## 回饋
 
-卡住、發現 bug、有想法？丟進匿名投稿箱：[マシュマロ](https://marshmallow-qa.com/a4u0myommjpyzup)（不用帳號）。習慣用 GitHub 的話開 issue 也行。投稿箱是第三方服務、完全自願；EverOtome 本體仍然不會把任何東西送去任何地方。
+卡住、發現 bug、有想法？丟進匿名投稿箱：[Marshmallow](https://marshmallow-qa.com/a4u0myommjpyzup)（不用帳號）。習慣用 GitHub 的話開 issue 也行。投稿箱是第三方服務、完全自願；EverOtome 本體仍然不會把任何東西送去任何地方。
 
 ---
 
