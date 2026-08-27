@@ -24,13 +24,14 @@ maskable 安全區：E 標記的座標刻意收在畫布中心、半徑約 9.2/2
 maskable icon 80% 安全圓半徑 9.6/24 單位內留有餘裕），OS 把它拿去裁成
 圓形／圓角方形時標記不會被切到。
 
-用法：  python tools/make_placeholder_icons.py
+用法：  python tools/make_placeholder_icons.py --force
 """
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from _overwrite_guard import add_force_argument, refuse_unless_force
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "engine"
@@ -62,6 +63,8 @@ def draw_icon(size: int) -> Image.Image:
     柔化亮色光暈（呼應站內 SVG 框件既有的 glow 語彙），標記本體是
     亮色細邊＋主色實心的雙層疊色（同 SVG 框件 outer/inner 雙層邊框語彙）。
     """
+    from PIL import Image, ImageDraw, ImageFilter
+
     unit = size / 24.0
 
     def pt(x, y):
@@ -100,6 +103,14 @@ def draw_icon(size: int) -> Image.Image:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Regenerate the geometric placeholder favicon and app icons in engine/. "
+                    "This REPLACES the shipped brand icons.")
+    add_force_argument(ap)
+    args = ap.parse_args()
+    targets = [OUT_DIR / name for name, _ in TARGETS]
+    if refuse_unless_force(targets, args.force, "engine/") != 0:
+        return 1
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for name, size in TARGETS:
         icon = draw_icon(size)

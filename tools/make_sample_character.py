@@ -4,14 +4,22 @@
 open→A/B/C、half→D/E/F、closed→G/H/I。六張制舊版的「D/E/F=closed」在九張制
 被重新定位成「half」中間態，closed 讓給新增的 G/H/I——不是同名重用，是全新中間態。
 """
+import argparse
 import json
 from pathlib import Path
-from PIL import Image, ImageDraw
+
+from _overwrite_guard import add_force_argument, refuse_unless_force
 
 OUT = Path(__file__).resolve().parents[1] / "engine" / "assets" / "sample"
 W, H = 512, 768
 
-def draw(eye: str, mouth: int) -> Image.Image:  # eye: open/half/closed, mouth: 0閉/1半/2開
+SPEC = {"A": ("open", 0), "B": ("open", 1), "C": ("open", 2),
+        "D": ("half", 0), "E": ("half", 1), "F": ("half", 2),
+        "G": ("closed", 0), "H": ("closed", 1), "I": ("closed", 2)}
+
+
+def draw(eye: str, mouth: int):  # eye: open/half/closed, mouth: 0閉/1半/2開
+    from PIL import Image, ImageDraw
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((156, 320, 356, 700), 60, fill=(70, 80, 105, 255))   # 身
@@ -28,19 +36,28 @@ def draw(eye: str, mouth: int) -> Image.Image:  # eye: open/half/closed, mouth: 
     d.ellipse((240, 250 - mh // 2, 272, 250 + mh // 2), fill=(120, 60, 60, 255))
     return img
 
-def main():
+
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Regenerate the geometric placeholder character: nine frames (A-I) plus "
+                    "manifest.json in engine/assets/sample/. This REPLACES the shipped sample "
+                    "character's manifest and adds .webp frames beside it.")
+    add_force_argument(ap)
+    args = ap.parse_args()
+    targets = [OUT / f"{name}.webp" for name in SPEC] + [OUT / "manifest.json"]
+    if refuse_unless_force(targets, args.force, "engine/assets/sample") != 0:
+        return 1
     OUT.mkdir(parents=True, exist_ok=True)
-    spec = {"A": ("open", 0), "B": ("open", 1), "C": ("open", 2),
-            "D": ("half", 0), "E": ("half", 1), "F": ("half", 2),
-            "G": ("closed", 0), "H": ("closed", 1), "I": ("closed", 2)}
-    for name, (eye, mouth) in spec.items():
+    for name, (eye, mouth) in SPEC.items():
         draw(eye, mouth).save(OUT / f"{name}.webp", quality=90)
     (OUT / "manifest.json").write_text(json.dumps({
         "size": [W, H],
         "eyeStates": 3,
-        "moods": {"neutral": {n: f"{n}.webp" for n in spec}}
+        "moods": {"neutral": {n: f"{n}.webp" for n in SPEC}}
     }, indent=2), encoding="utf-8")
     print(f"OK: 9 frames + manifest -> {OUT}")
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -10,12 +10,15 @@
 重跑本腳本即可各主題同步。色值來源與 config.example.json themes[].vars
 同源（改 config 主色時記得同步這裡的框件色再重跑）。
 
-用法：  python tools/gen_theme_frames.py
+用法：  python tools/gen_theme_frames.py --force
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
+
+from _overwrite_guard import add_force_argument, refuse_unless_force
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "engine" / "assets" / "themes" / "crystal-swan" / "chatlog-frame.svg"
@@ -68,6 +71,14 @@ THEMES = {
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Regenerate the per-theme Chat Log frame SVGs from the crystal-swan source frame. "
+                    "This REPLACES the shipped engine/assets/themes/<id>/chatlog-frame.svg files.")
+    add_force_argument(ap)
+    args = ap.parse_args()
+    targets = [base / theme_id / "chatlog-frame.svg" for base in OUT_DIRS for theme_id in THEMES]
+    if refuse_unless_force(targets, args.force, "engine/assets/themes") != 0:
+        return 1
     svg = SRC.read_text(encoding="utf-8")
     for role, color in SRC_COLORS.items():
         if color not in svg:
