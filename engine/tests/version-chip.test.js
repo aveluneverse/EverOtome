@@ -303,6 +303,51 @@ describe("手機版回報問題 icon（.report-icon-btn，Mira 2026-08-27 22:5x 
   });
 });
 
+describe("手機版 has-result class（Mira 2026-08-27 拍板：有結果時版本號與分隔線一起藏，版本列擠在標題同一行、不再換行）", () => {
+  it("idle（尚未查詢過）：#ver-chip 沒有 has-result class", () => {
+    const container = buildChip();
+    initVersionChip(container);
+    const chip = container.querySelector("#ver-chip");
+    expect(chip.classList.contains("has-result")).toBe(false);
+  });
+
+  it("found：#ver-chip 加上 has-result class", async () => {
+    global.fetch = vi.fn(async () => okResponse([{
+      tag_name: "v9.9.9-beta",
+      html_url: "https://github.com/aveluneverse/EverOtome/releases/tag/v9.9.9-beta",
+    }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const chip = container.querySelector("#ver-chip");
+    container.querySelector(".ver-chip-check").click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(chip.classList.contains("has-result")).toBe(true);
+  });
+
+  it("latest：查到結果時加上 has-result；6.3 秒後鈕淡回，has-result 跟著一起移除（fake timers）", async () => {
+    vi.useFakeTimers();
+    global.fetch = vi.fn(async () => okResponse([{ tag_name: "v" + VERSION }]));
+    const container = buildChip();
+    initVersionChip(container);
+    const chip = container.querySelector("#ver-chip");
+    container.querySelector(".ver-chip-check").click();
+    await vi.advanceTimersByTimeAsync(0); // 讓 fetch/json 兩個 microtask 跑完
+    expect(chip.classList.contains("has-result")).toBe(true);
+    await vi.advanceTimersByTimeAsync(6300); // 6000 停留 ＋ 300 淡出，鈕淡回
+    expect(chip.classList.contains("has-result")).toBe(false);
+  });
+
+  it("failed：#ver-chip 加上 has-result class", async () => {
+    global.fetch = vi.fn(async () => { throw new TypeError("network down"); });
+    const container = buildChip();
+    initVersionChip(container);
+    const chip = container.querySelector("#ver-chip");
+    container.querySelector(".ver-chip-check").click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(chip.classList.contains("has-result")).toBe(true);
+  });
+});
+
 describe("焦點管理（Mira 2026-08-27 規則：鈕被 hidden 甩掉的鍵盤焦點要接住，不要掉到 body）", () => {
   it("found：點擊前鈕有鍵盤焦點 → 鈕藏起來後焦點接到新出現的連結", async () => {
     global.fetch = vi.fn(async () => okResponse([{

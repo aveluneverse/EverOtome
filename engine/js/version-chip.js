@@ -129,6 +129,7 @@ export function initVersionChip(root = document) {
     resultEl.style.opacity = "";
     resultEl.textContent = "";
     btn.hidden = false;
+    chip.classList.remove("has-result"); // 鈕淡回＝結果不再顯示，見上方 render() 的對稱加法
     if (hadFocusInChip) btn.focus();
   }
 
@@ -149,6 +150,7 @@ export function initVersionChip(root = document) {
       // 白白吃掉，害真正該搬焦點的那一刻讀到 false。
       resultEl.hidden = true;
       resultEl.textContent = "";
+      chip.classList.remove("has-result"); // 尚未查過／查詢剛重新開始＝沒有結果可顯示
       return;
     }
     const hadFocus = hadFocusBeforeQuery; // 消費一次即歸零，見上方宣告處與本函式開頭註解
@@ -159,6 +161,10 @@ export function initVersionChip(root = document) {
     btn.removeAttribute("aria-busy");
     resultEl.hidden = false;
     resultEl.textContent = "";
+    // found／latest／failed 共通：結果行顯示了＝手機版把版本號＋分隔線藏起來
+    // 讓這一行擠得下（layout.css 的 .ver-chip.has-result 那條規則，手機限定；
+    // 桌機空間夠、版本號照樣留著）。latest 淡回鈕時的對稱移除見 finishFadeBack()。
+    chip.classList.add("has-result");
     if (state.kind === "found") {
       // 鈕要被藏起來了——查詢開始那一刻若鍵盤焦點正在鈕上（hadFocus，見上方
       // click handler 那一刻就先記住的理由），藏完馬上把焦點接到新出現的連結，

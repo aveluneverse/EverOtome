@@ -93,7 +93,7 @@ describe("engine/css/layout.css: .report-icon-btn is desktop-hidden, mobile-visi
     expect(mobileBlock).toMatch(/--m-head-h:\s*2\.2rem/);
     expect(mobileBlock).toMatch(/--m-status-top:\s*2\.6rem/);
     expect(mobileBlock).toMatch(/--m-msgs-top:\s*1\.7rem/);
-    expect(mobileBlock).toMatch(/--m-full-pad:\s*3\.1rem/);
+    expect(mobileBlock).toMatch(/--m-full-pad:\s*3\.6rem/);
     expect(css).toMatch(/\.chatlog-head\s*\{[^}]*height:\s*var\(--m-head-h\)/);
     expect(css).toMatch(/top:\s*var\(--m-head-h\);/);
     expect(css).toMatch(/#chat-status\s*\{\s*top:\s*var\(--m-status-top\)/);

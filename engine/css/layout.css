@@ -1550,12 +1550,14 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   /* 手機頂部三列（標題＋版本列／CHAT LOG・THINKING 分頁／狀態句）垂直間距
    * token 化（Mira 2026-08-27 22:5x：「手機上下間距不能太密」）；先給一組
    * 可以之後單獨調整任一顆數字的正式數值，不必再回頭改動四個屬性各自的
-   * 寫死值。 */
+   * 寫死值。--m-full-pad 2026-08-27 二輪再拍板從 3.1rem 加到 3.6rem——滿版態
+   * 分頁列（CHAT LOG／THINKING）再往下讓開約 8px（0.5rem@16px 根字級），
+   * 跟標題角版本列拉開肉眼看得出來的安全距離；其餘三顆 token 不動。 */
   :root {
     --m-head-h: 2.2rem;
     --m-status-top: 2.6rem;
     --m-msgs-top: 1.7rem;
-    --m-full-pad: 3.1rem;
+    --m-full-pad: 3.6rem;
   }
 
   #stage-root {
@@ -1848,7 +1850,10 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
   body.chatlog-full .chatlog-full-btn .icon-expand { display: none; }
   body.chatlog-full .chatlog-full-btn .icon-collapse { display: block; }
 
-  /* 回報問題手機版：貼在滿版鈕左側，同一顆 geometry（top／transform／寬高）；
+  /* 回報問題手機版：跟滿版鈕貼齊同一個右邊界（Mira 2026-08-27 依截圖拍板：
+   * right 直接對齊 2.5%，不再退讓「滿版鈕左側再空 2.1rem+0.35rem」的舊算法）
+   * ——兩顆分屬不同排（這顆在標題列，滿版鈕在下面 Chat Log 表頭的分頁列），
+   * 即使容器不同、只要 right 百分比一致視覺上仍對齊同一條邊，不會互相碰撞。
    * 顏色跟展開鈕同一階暗色，hover／active／focus-visible 也比照辦理。
    * .feedback-link 本身的底線這裡不要（icon 沒有文字可加底線）；#brand 整體
    * pointer-events:none，這裡跟 .chatlog-full-btn 一樣單獨開回 auto。 */
@@ -1856,7 +1861,7 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
     display: flex;
     position: absolute;
     top: 0.95rem;
-    right: calc(2.5% + 2.1rem + 0.35rem);
+    right: 2.5%;
     transform: translateY(-50%);
     width: 2.1rem;
     height: 2.1rem;
@@ -1962,6 +1967,16 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
     font-size: 11.5px;
     flex-shrink: 0;
   }
+  /* 有結果時（found／latest／failed）手機把版本號＋它的分隔線一起藏起來——
+   * 版本號在結果已經顯示的當下是多餘資訊，藏掉才擠得進標題那一行、不必換行
+   * （Mira：「手機上下間格不能太密」，換行後的第二行會貼近下面 CHAT LOG／
+   * THINKING 分頁列，見上面幾行的既有說明）。has-result 由 version-chip.js
+   * 的 render()／finishFadeBack() 維護；:not(.ver-chip-sep-report) 排除
+   * 回報問題那顆分隔線——它已經被上面的規則整段隱藏，這裡不需要也不應該
+   * 重複處理它。桌機不受影響：這條規則只在本媒體查詢（手機）裡，桌機版本號
+   * 在有結果時照樣留著。 */
+  .ver-chip.has-result .ver-chip-v,
+  .ver-chip.has-result .ver-chip-sep:not(.ver-chip-sep-report) { display: none; }
   /* 找到新版時手機收成一顆可點：「查看更新內容」文字換成 › 符號，整段仍是
    * 同一顆 <a>（可點區域＝那個符號；版本號與「有新版本：」前綴仍是純文字，
    * 保留桌機那組淡色／亮色兩階視覺——見 .ver-chip-result b 的既有樣式）。文字

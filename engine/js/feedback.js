@@ -1,7 +1,8 @@
 // engine/js/feedback.js —— 回饋管道單一真相（Mira 2026-08-27 規則：每一條使用者
 // 會看到的錯誤路徑都要附上這個回饋盒）。FEEDBACK_URL 本身＋console 小工具
-// （logError／logWarn）＋回饋連結建構式（buildFeedbackLink）：三處呼叫端
-// （Chat Log 表頭、設定頁查詢失敗、版本列查詢失敗）共用同一份。
+// （logError／logWarn）＋回饋連結建構式（buildFeedbackLink）：目前唯一呼叫端
+// 是設定頁查詢失敗；其餘連結各自直接讀 FEEDBACK_URL 組字面值，只共用
+// .feedback-link 這顆 CSS class。
 import { tEl, tAttr } from "./i18n.js";
 
 export const FEEDBACK_URL = "https://marshmallow-qa.com/a4u0myommjpyzup";

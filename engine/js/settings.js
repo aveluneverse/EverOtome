@@ -731,7 +731,7 @@ export class SettingsPanel {
       line.appendChild(a);
     } else if (state.kind === "failed") {
       line.textContent = t("settings.updateFailed") + " ";
-      line.appendChild(buildFeedbackLink()); // 跟 Chat Log 表頭共用同一份建構式（見 feedback.js）
+      line.appendChild(buildFeedbackLink()); // buildFeedbackLink() 現在唯一的呼叫端（見 feedback.js 頂部說明）
     }
   }
 
