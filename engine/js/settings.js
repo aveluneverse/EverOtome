@@ -689,6 +689,9 @@ export class SettingsPanel {
       checkUpdateBtn: checkBtn,
       updateResult,
     };
+    // 面板可能在首頁那顆「檢查更新」查過之後才第一次建立：建好當下就把共用狀態裡
+    // 現有的結果畫上，不然要等下一次狀態變化才會出現（首頁查→開設定頁＝空行）。
+    this._renderUpdateResult();
   }
 
   /** 「檢查更新」：只由設定頁按鈕觸發。實際查詢／比對／三態判斷全部搬進共用模組

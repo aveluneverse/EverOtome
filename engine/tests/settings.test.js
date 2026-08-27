@@ -18,6 +18,7 @@ import {
 import { setLocale, getLocale, STORAGE_KEY, t } from "../js/i18n.js";
 import { VERSION } from "../js/version.js";
 import { FEEDBACK_URL } from "../js/feedback.js";
+import { setUpdateState } from "../js/update-check.js";
 
 // 每個測試前清乾淨 localStorage＋body class，避免測試互相汙染狀態（settings.js 的
 // 讀寫全部經過同一組 localStorage key，順序不同的測試檔／測試案例都共用同一個
@@ -911,6 +912,13 @@ describe("版本顯示與檢查更新（純本地顯示；只在主動點擊時�
     panel.open();
     return panel;
   }
+
+  it("面板在首頁那顆查過之後才建立：建好當下就畫出共用狀態裡的結果", () => {
+    setUpdateState({ kind: "latest" }); // 模擬首頁 version-chip 已經查過
+    buildPanel();
+    expect(document.querySelector(".settings-update-result").textContent).toBe(t("settings.updateLatest"));
+    setUpdateState(null); // 還原共用狀態，不影響後面的測試
+  });
 
   it("設定頁常駐顯示目前版本（version.js 單一真相；零網路請求）", async () => {
     const fetchSpy = vi.fn();
