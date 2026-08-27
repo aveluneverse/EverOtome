@@ -11,7 +11,7 @@ FAIL. Exit code 0 when nothing failed, 1 otherwise. Standard library only, Pytho
 What it sends: one WebSocket text message (the --message text; the companion may remember it), one short
 POST to the text-to-speech endpoint unless --skip-tts, one empty POST to the photo endpoint (no file is
 uploaded), and GETs to the history, call-log, album and chat-clear paths. It never starts a call and never
-sends /new.
+sends /new. With --no-chat it connects and sends nothing at all.
 """
 import argparse
 import base64
@@ -304,6 +304,10 @@ def check_chat(base, cfg, loaded, args, rep):
         rep.add("FAIL", "websocket", "no WebSocket at %s (%s)" % (ws_path, e), ONE_ORIGIN)
         return
     rep.add("PASS", "websocket", "connected at %s" % ws_path)
+    if args.no_chat:
+        rep.add("INFO", "chat", "no message sent (--no-chat); the reply path was not exercised")
+        ws.close()
+        return
     started = time.monotonic()
     deadline = started + args.timeout
     seen = []
@@ -526,6 +530,8 @@ def build_parser():
                    help="seconds to wait for the reply (default 60)")
     p.add_argument("--skip-tts", action="store_true",
                    help="do not POST a short line to the text-to-speech endpoint")
+    p.add_argument("--no-chat", action="store_true",
+                   help="connect the WebSocket but send nothing, so the companion is not talked to; the chat area is reported as INFO")
     return p
 
 

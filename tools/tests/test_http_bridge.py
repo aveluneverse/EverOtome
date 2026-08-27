@@ -127,7 +127,7 @@ def test_companion_down_is_reported_as_a_system_line():
         frame = ws.recv_json()
         ws.close()
     assert frame["role"] == "system"
-    assert frame["text"].startswith("bridge:") and "could not reach" in frame["text"] and FEEDBACK in frame["text"]
+    assert frame["text"].startswith("bridge:") and "the companion at" in frame["text"] and FEEDBACK in frame["text"]
 
 
 class _WrongJson(BaseHTTPRequestHandler):
@@ -168,3 +168,52 @@ def test_companion_answering_garbage_http_is_reported():
             ws.close()
     assert frame["role"] == "system"
     assert frame["text"].startswith("bridge:") and "could not be read" in frame["text"] and FEEDBACK in frame["text"]
+
+
+class _MessageReplyCompanion(BaseHTTPRequestHandler):
+    """A companion whose route uses other field names: {"message"} in, {"reply"} out."""
+
+    def do_POST(self):
+        data = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)).decode("utf-8"))
+        reply = "(reset)" if data.get("command") == "new" else "echo: " + data.get("message", "?")
+        body = json.dumps({"reply": reply}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+def test_field_name_options_need_no_shim():
+    companion_port = free_port()
+    httpd = HTTPServer(("127.0.0.1", companion_port), _MessageReplyCompanion)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        with bridge_stack("http://127.0.0.1:%d/chat" % companion_port,
+                          extra_args=("--text-key", "message", "--reply-key", "reply")) as port:
+            ws = WsProbe(port)
+            ws.send("hi")
+            assert ws.recv_json() == {"role": "assistant", "text": "echo: hi"}
+            ws.send("/new")
+            assert ws.recv_json() == {"role": "assistant", "text": "(reset)"}
+            ws.close()
+    finally:
+        httpd.shutdown()
+
+
+def test_wrong_reply_key_is_named_in_the_error():
+    companion_port = free_port()
+    httpd = HTTPServer(("127.0.0.1", companion_port), _MessageReplyCompanion)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        with bridge_stack("http://127.0.0.1:%d/chat" % companion_port, extra_args=("--text-key", "message")) as port:
+            ws = WsProbe(port)
+            ws.send("hi")
+            frame = ws.recv_json()
+            ws.close()
+    finally:
+        httpd.shutdown()
+    assert frame["role"] == "system" and 'no "text" string' in frame["text"]

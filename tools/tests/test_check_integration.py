@@ -8,6 +8,7 @@ import subprocess
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.request import urlopen
 
 import pytest
 
@@ -33,7 +34,7 @@ def test_help_needs_nothing_and_writes_nothing(tmp_path):
     r = subprocess.run([sys.executable, "-S", str(TOOL), "--help"], capture_output=True, text=True, cwd=tmp_path)
     assert r.returncode == 0, r.stdout + r.stderr
     assert "usage" in r.stdout.lower()
-    for flag in ("--message", "--timeout", "--skip-tts"):
+    for flag in ("--message", "--timeout", "--skip-tts", "--no-chat"):
         assert flag in r.stdout
     assert not CJK.search(r.stdout), r.stdout
     assert list(tmp_path.iterdir()) == []
@@ -102,20 +103,23 @@ def stack():
         yield port
 
 
+def test_no_chat_connects_and_sends_nothing(stack):
+    r = run("http://127.0.0.1:%d" % stack, "--timeout", "10", "--no-chat", "--skip-tts")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "[PASS] websocket" in r.stdout and "[INFO] chat: no message sent (--no-chat)" in r.stdout
+    with urlopen("http://127.0.0.1:%d/api/history" % stack, timeout=5) as res:
+        entries = json.loads(res.read().decode("utf-8"))["entries"]
+    assert entries == []
+
+
 def test_end_to_end_pass_behind_the_bridge(stack):
     r = run("http://127.0.0.1:%d" % stack, "--timeout", "30")
     out = r.stdout
     assert r.returncode == 0, out + r.stderr
-    # The bridge serves the repo's engine/ as is: on this machine a gitignored engine/config.json (equal to the
-    # example) is present, and the example keeps historyEndpoint, cgEndpoint and a non-empty ttsEndpoint, which
-    # is what [PASS] history, [PASS] album and [WARN] voice below rely on.
-    for needle in ("[PASS] shell", "[PASS] websocket", "[PASS] chat", "[PASS] history",
+    for needle in ("[PASS] shell", "[WARN] config", "[PASS] websocket", "[PASS] chat", "[PASS] history",
                    "[WARN] voice", "[INFO] photos", "[INFO] phone", "[PASS] album", "[INFO] chat-clear",
                    "RESULT: PASS"):
         assert needle in out, needle + "\n" + out
-    # This dev machine has a gitignored engine/config.json identical to config.example.json, so the
-    # checker reports [PASS] config here while a clean clone (no config.json) reports [WARN] config.
-    assert re.search(r"\[(PASS|WARN)\] config", out), out
     assert "You said:" in out
     assert not CJK.search(out), out
 

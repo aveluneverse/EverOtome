@@ -5,6 +5,8 @@ import base64
 import hashlib
 import json
 import os
+import re
+import shutil
 import socket
 import struct
 import subprocess
@@ -65,22 +67,38 @@ def server(cmd_args, ready_url, cwd=None):
         log.close()
 
 
+def make_engine_dir():
+    """A minimal engine/ folder for the end-to-end tests: index.html, js/app.js, config.example.json and the
+    demo album copied from the real engine/, and no config.json, so the tests never depend on the developer's
+    own gitignored engine/config.json. The caller removes it."""
+    root = Path(tempfile.mkdtemp(prefix="eo-engine-"))
+    for rel in ("index.html", "js/app.js", "config.example.json", "api/v4/cg/album"):
+        dst = root / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ENGINE / rel, dst)
+    return root
+
+
 @contextmanager
-def bridge_stack(reply_url=None):
-    """The bridge on a free port, fronting the echo companion (reply_url None) or the given URL.
-    Yields the bridge port."""
+def bridge_stack(reply_url=None, extra_args=()):
+    """The bridge on a free port, fronting the echo companion (reply_url None) or the given URL, serving a
+    self-contained engine folder. extra_args are appended to the bridge command. Yields the bridge port."""
+    engine = make_engine_dir()
     bridge_port = free_port()
-    if reply_url is None:
-        echo_port = free_port()
-        with server([str(ECHO), "--port", str(echo_port)], "http://127.0.0.1:%d/" % echo_port):
-            with server([str(BRIDGE), "--reply", "http://127.0.0.1:%d/reply" % echo_port,
-                         "--engine", str(ENGINE), "--port", str(bridge_port)],
-                        "http://127.0.0.1:%d/" % bridge_port):
+    try:
+        if reply_url is None:
+            echo_port = free_port()
+            with server([str(ECHO), "--port", str(echo_port)], "http://127.0.0.1:%d/" % echo_port):
+                with server([str(BRIDGE), "--reply", "http://127.0.0.1:%d/reply" % echo_port,
+                             "--engine", str(engine), "--port", str(bridge_port), *extra_args],
+                            "http://127.0.0.1:%d/" % bridge_port):
+                    yield bridge_port
+        else:
+            with server([str(BRIDGE), "--reply", reply_url, "--engine", str(engine), "--port", str(bridge_port),
+                         *extra_args], "http://127.0.0.1:%d/" % bridge_port):
                 yield bridge_port
-    else:
-        with server([str(BRIDGE), "--reply", reply_url, "--engine", str(ENGINE), "--port", str(bridge_port)],
-                    "http://127.0.0.1:%d/" % bridge_port):
-            yield bridge_port
+    finally:
+        shutil.rmtree(engine, ignore_errors=True)
 
 
 class WsProbe:
@@ -160,12 +178,38 @@ def garbage_http_server():
             except OSError:
                 break
             try:
-                conn.settimeout(2)
-                try:
-                    conn.recv(65536)
-                except (socket.timeout, OSError):
-                    pass
+                conn.settimeout(0.5)
+                # Drain the whole request first (headers, then the body announced by Content-Length), so the
+                # socket is never closed with unread bytes: that would turn the close into a reset and the
+                # client would report a connection error instead of the unreadable answer under test.
+                buf = b""
+                while b"\r\n\r\n" not in buf:
+                    chunk = conn.recv(65536)
+                    if not chunk:
+                        break
+                    buf += chunk
+                head, _, body = buf.partition(b"\r\n\r\n")
+                match = re.search(rb"content-length:\s*(\d+)", head, re.I)
+                want = int(match.group(1)) if match else 0
+                while len(body) < want:
+                    chunk = conn.recv(65536)
+                    if not chunk:
+                        break
+                    body += chunk
                 conn.sendall(b"garbage\r\n\r\n")
+                try:
+                    conn.shutdown(socket.SHUT_WR)
+                except OSError:
+                    pass
+                end = time.monotonic() + 2   # let the client close first, so both ends close gracefully
+                while time.monotonic() < end:
+                    try:
+                        if not conn.recv(65536):
+                            break
+                    except socket.timeout:
+                        continue
+                    except OSError:
+                        break
             except OSError:
                 pass
             finally:

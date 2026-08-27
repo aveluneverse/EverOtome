@@ -20,6 +20,9 @@ Usage (from the repository root):
     python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/reply
 Then open http://127.0.0.1:8400/ in the browser.
 
+A companion whose route already does the job under other field names needs no shim:
+    --reply http://127.0.0.1:8401/chat --text-key message --reply-key reply
+
 Python 3.7 or newer, standard library only.
 """
 import argparse
@@ -75,13 +78,15 @@ class Ledger:
 class Companion:
     """One HTTP POST per message."""
 
-    def __init__(self, url, timeout):
+    def __init__(self, url, timeout, text_key="text", reply_key="text"):
         self.url = url
         self.timeout = timeout
+        self.text_key = text_key
+        self.reply_key = reply_key
         self.relayed = 0
 
     def ask(self, text, command=None):
-        body = {"text": text}
+        body = {self.text_key: text}
         if command:
             body["command"] = command
         req = urlrequest.Request(self.url, data=json.dumps(body).encode("utf-8"),
@@ -101,8 +106,10 @@ class Companion:
             data = json.loads(raw.decode("utf-8"))
         except ValueError:
             raise BridgeError("the companion did not answer with JSON")
-        if not isinstance(data, dict) or not isinstance(data.get("text"), str):
-            raise BridgeError("the companion's JSON has no \"text\" string")
+        if not isinstance(data, dict) or not isinstance(data.get(self.reply_key), str):
+            raise BridgeError("the companion's JSON has no \"%s\" string" % self.reply_key)
+        if self.reply_key != "text":
+            data["text"] = data[self.reply_key]
         self.relayed += 1
         return data
 
@@ -318,6 +325,10 @@ def build_parser():
                    help="path that serves this run's chat history (default /api/history)")
     p.add_argument("--reply-timeout", type=float, default=120,
                    help="seconds to wait for the companion's answer (default 120)")
+    p.add_argument("--text-key", default="text", metavar="NAME",
+                   help="JSON field the companion reads the message from (default text)")
+    p.add_argument("--reply-key", default="text", metavar="NAME",
+                   help="JSON field that carries the reply in the companion's answer (default text)")
     return p
 
 
@@ -359,7 +370,7 @@ def main(argv=None):
     BridgeHandler.engine_dir = engine
     BridgeHandler.ws_path = args.ws_path
     BridgeHandler.history_path = args.history_path
-    BridgeHandler.companion = Companion(args.reply, args.reply_timeout)
+    BridgeHandler.companion = Companion(args.reply, args.reply_timeout, args.text_key, args.reply_key)
     BridgeHandler.ledger = Ledger()
     try:
         httpd = ThreadingHTTPServer((args.host, args.port), BridgeHandler)
@@ -371,6 +382,8 @@ def main(argv=None):
     print("[bridge] serving %s" % engine)
     print("[bridge] open http://%s:%d/ in the browser" % (args.host, args.port))
     print("[bridge] chat goes to %s (WebSocket at %s, history at %s)" % (args.reply, args.ws_path, args.history_path))
+    if args.text_key != "text" or args.reply_key != "text":
+        print("[bridge] field names: sending {\"%s\": ...}, reading \"%s\" from the answer" % (args.text_key, args.reply_key))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
