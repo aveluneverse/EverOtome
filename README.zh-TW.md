@@ -2,9 +2,9 @@
 
 [English](README.md) | [日本語](README.ja.md) | 中文
 
-![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)
-
 > **更新（2026-08-27）：v0.2.1-beta。** 在這個日期之前 clone 的人，請 `git pull`（或重新下載）。如果你或你的 AI 助手曾經跑過 `tools/make_sample_character.py`，用 `git checkout -- engine/assets/sample` 救回範例角色並刪掉那支腳本；細節見 [release notes](https://github.com/aveluneverse/EverOtome/releases/tag/v0.2.1-beta)。
+
+![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)
 
 ---
 
