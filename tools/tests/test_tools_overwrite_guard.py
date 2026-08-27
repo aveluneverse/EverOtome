@@ -68,13 +68,14 @@ def test_bare_run_refuses_when_targets_exist(tmp_path, tool):
     assert r.returncode == 1, out
     assert "[abort]" in out
     assert "--force" in out
-    assert str(len(TARGETS[tool])) in out          # the count of files it would overwrite
+    assert f"{len(TARGETS[tool])} shipped file(s)" in out   # the count of files it would overwrite
     assert untouched(tmp_path, tool)
 
 
 @pytest.mark.parametrize("tool", ["make_sample_character.py", "make_placeholder_icons.py", "gen_theme_frames.py"])
 def test_force_regenerates(tmp_path, tool):
-    pytest.importorskip("PIL")
+    if tool != "gen_theme_frames.py":
+        pytest.importorskip("PIL")
     r = run(fake_repo(tmp_path, tool), "--force")
     assert r.returncode == 0, r.stdout + r.stderr
     assert not untouched(tmp_path, tool)

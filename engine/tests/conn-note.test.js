@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ConnNoteTracker } from "../js/conn-note.js";
+import zhHant from "../js/locales/zh-Hant.js";
+import en from "../js/locales/en.js";
 
 const last = (seq) => {
   const tr = new ConnNoteTracker();
@@ -30,5 +32,11 @@ describe("ConnNoteTracker — which idle note the dialogue box shows", () => {
   it("closed and error always show the offline note", () => {
     expect(last(["connecting", "open", "closed"])).toBe("conn.idleOffline");
     expect(last(["connecting", "error"])).toBe("conn.idleOffline");
+  });
+  it("both idle-note keys exist in every dictionary (the tracker names them as bare strings)", () => {
+    for (const dict of [zhHant, en]) {
+      expect(typeof dict["conn.idleOffline"]).toBe("string");
+      expect(typeof dict["conn.idleConnecting"]).toBe("string");
+    }
   });
 });
