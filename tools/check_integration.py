@@ -87,8 +87,8 @@ def check_history_body(data):
 def check_album_body(data):
     """(level, text, fix) for the JSON body of {cgEndpoint}/album."""
     if not isinstance(data, dict) or not isinstance(data.get("items"), list):
-        return ("FAIL", "no \"items\" array in the album body",
-                "answer {\"items\": [...]} (docs/cg-guide.md), or remove cgEndpoint from config.json")
+        return ("FAIL", "no \"items\" array in the album body: the shell shows an empty album",
+                "answer {\"items\": [...]} (docs/cg-guide.md)")
     n = len(data["items"])
     return ("PASS", "%d item%s" % (n, "" if n == 1 else "s"), None)
 
@@ -372,6 +372,22 @@ def check_voice(base, cfg, loaded, args, rep):
         return
     absent = "ttsEndpoint" not in loaded
     where = "%s%s" % (path, " (ttsEndpoint is absent from config, so the shell uses this default path)" if absent else "")
+    # The per-sentence play buttons are gated by ttsUsageEndpoint when it is set: the shell GETs it once at
+    # startup and creates the buttons only on a 2xx answer (engine/js/app.js, the ttsAlive gate).
+    buttons_hidden = False
+    usage = cfg.get("ttsUsageEndpoint")
+    if isinstance(usage, str) and usage:
+        if not usage.startswith("/"):
+            rep.add("WARN", "voice", "ttsUsageEndpoint is %r" % (usage,))
+        else:
+            status, _, body = http("GET", base + usage, timeout=15)
+            if status is not None and 200 <= status < 300:
+                rep.add("PASS", "voice", "%s answers, so the per-sentence play buttons are enabled" % usage)
+            else:
+                buttons_hidden = True
+                rep.add("WARN", "voice", "%s answered %s: the per-sentence play buttons stay hidden this session; "
+                                         "read-aloud still posts to ttsEndpoint"
+                        % (usage, status if status is not None else "nothing (%s)" % body))
     if args.skip_tts:
         rep.add("INFO", "voice", "not probed (--skip-tts); the shell would POST to %s" % where)
         return
@@ -385,9 +401,10 @@ def check_voice(base, cfg, loaded, args, rep):
     elif status == 429:
         rep.add("WARN", "voice", "%s answered 429: the shell shows the daily-cap notice" % path)
     else:
-        rep.add("WARN", "voice", "%s answered %s: every reply shows a play button that cannot produce sound"
-                % (where, status if status is not None else "nothing (%s)" % body),
-                None)
+        what = ("read-aloud cannot produce sound" if buttons_hidden
+                else "every reply shows a play button that cannot produce sound")
+        rep.add("WARN", "voice", "%s answered %s: %s"
+                % (where, status if status is not None else "nothing (%s)" % body, what))
         print("       hint: set \"ttsEndpoint\": \"\" in config.json to hide the buttons, or implement "
               "POST {\"text\": ...} -> audio there")
 
@@ -436,16 +453,16 @@ def check_album(base, cfg, rep):
     status, _, raw = http("GET", base + path + "/album", timeout=15)
     if status == 200:
         data, err = parse_json(raw)
-        if err is not None:
-            rep.add("FAIL", "album", "%s/album answered 200 but not JSON (%s)" % (path, err),
-                    "answer {\"items\": [...]} as JSON, or remove cgEndpoint from config.json")
+        if err is None:
+            level, text, fix = check_album_body(data)
+            rep.add(level, "album", text, fix)
             return
-        level, text, fix = check_album_body(data)
-        rep.add(level, "album", text, fix)
+        why = "%s/album answered 200 but not JSON (%s)" % (path, err)
     else:
-        rep.add("FAIL", "album", "%s/album answered %s: the album button opens a broken album"
-                % (path, status if status is not None else "nothing (%s)" % raw),
-                "serve %s/album (docs/cg-guide.md) or remove cgEndpoint from config.json (the button disappears)" % path)
+        why = "%s/album answered %s" % (path, status if status is not None else "nothing (%s)" % raw)
+    rep.add("WARN", "album", "cgEndpoint is set but %s: the shell hides the album button when the album "
+                             "cannot be fetched" % why)
+    print("       hint: serve %s/album (docs/cg-guide.md) or remove cgEndpoint from config.json" % path)
 
 
 def check_chat_clear(base, rep):

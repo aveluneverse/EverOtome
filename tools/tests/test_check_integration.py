@@ -2,6 +2,7 @@
 validators judge frames and bodies the way engine/js does, and the end-to-end verdict is PASS behind the
 bridge + echo companion, FAIL against a plain static server, FAIL when no assistant frame ever comes."""
 import importlib.util
+import json
 import re
 import subprocess
 import sys
@@ -123,6 +124,27 @@ def test_end_to_end_fail_against_a_plain_static_server(tmp_path):
     assert r.returncode == 1, r.stdout + r.stderr
     for needle in ("[FAIL] shell", "[FAIL] websocket", "fix:", "RESULT: FAIL", FEEDBACK):
         assert needle in r.stdout, needle + "\n" + r.stdout
+
+
+def test_config_gated_probes_report_hidden_buttons(tmp_path):
+    """A static server with a config that names cgEndpoint, ttsEndpoint and ttsUsageEndpoint, but serves
+    none of them: the checker must say the buttons are hidden, the way the shell behaves."""
+    (tmp_path / "js").mkdir()
+    (tmp_path / "js" / "app.js").write_text("// stub", encoding="utf-8")
+    (tmp_path / "index.html").write_text('<script type="module" src="js/app.js"></script>', encoding="utf-8")
+    (tmp_path / "config.json").write_text(json.dumps({
+        "wsEndpoint": "/ws", "cgEndpoint": "/api/v4/cg",
+        "ttsEndpoint": "/api/v4/tts", "ttsUsageEndpoint": "/api/v4/tts/usage"}), encoding="utf-8")
+    port = free_port()
+    with server(["-m", "http.server", str(port), "--bind", "127.0.0.1"], "http://127.0.0.1:%d/" % port, cwd=tmp_path):
+        r = run("http://127.0.0.1:%d" % port, "--timeout", "5")
+    out = r.stdout
+    assert r.returncode == 1, out + r.stderr  # the static server has no WebSocket, so RESULT is FAIL
+    assert "[PASS] config" in out
+    assert "[FAIL] websocket" in out
+    assert "[WARN] voice: /api/v4/tts/usage answered 404: the per-sentence play buttons stay hidden" in out, out
+    assert re.search(r"\[WARN\] voice: /api/v4/tts answered (404|501): read-aloud cannot produce sound", out), out
+    assert "[WARN] album: cgEndpoint is set but /api/v4/cg/album answered 404: the shell hides the album button" in out, out
 
 
 class _SilentCompanion(BaseHTTPRequestHandler):
