@@ -33,7 +33,7 @@ Replies go through the Claude CLI, so allow a minute or more.
 
 Pick one:
 
-- `--with-telegram`: the adapter starts Everthine's own Telegram bot inside the same process. One conversation, one session, one engine lock; Telegram and EverOtome see the same companion. Use this instead of `run.py`.
+- `--with-telegram`: the adapter starts Everthine's own Telegram bot inside the same process, so Telegram and EverOtome see the same companion and the same session. Two messages arriving at once are answered one after the other, because the Claude CLI is serialized by Everthine's own engine lock (`engine._reply_lock`, held by both the Telegram path and `POST /reply`); the adapter adds no lock of its own beyond the one around its own route. Use this instead of `run.py`. This mode was not part of the verification run below; it needs a real bot token.
 - No flag: the adapter serves HTTP only. Stop `run.py` first. Never run `run.py` and the adapter side by side: two processes would fight over the session file and the Claude CLI.
 
 ## What comes back
@@ -43,6 +43,6 @@ Pick one:
 - Everthine's system notices (a full notebook, for instance) in the `system` key; the bridge shows them as one Chat Log line.
 - "New conversation" from the MENU answers nothing: Everthine keeps one continuous conversation and has no reset.
 
-Run on 2026-08-28 against Everthine `3334d21` with a stub Claude CLI (the Everthine code path executed end to end; the CLI itself was substituted so no real session was created).
+Run on 2026-08-28 against Everthine `3334d21` with a stub Claude CLI: the HTTP path executed end to end through Everthine's `produce_reply` (adapter, bridge and `tools/check_integration.py` all passing); the CLI itself was substituted, so no real session was created, and `--with-telegram` was not exercised.
 
 Stuck? Tell us: [marshmallow-qa.com/a4u0myommjpyzup](https://marshmallow-qa.com/a4u0myommjpyzup)

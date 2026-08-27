@@ -65,7 +65,7 @@ def load_everthine():
 
 
 def make_handler(cfg, store, produce_reply):
-    lock = threading.Lock()  # produce_reply is not reentrant: one reply at a time
+    lock = threading.Lock()  # one reply at a time on this route; across channels the Claude CLI is serialized by Everthine's own engine._reply_lock
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args):
