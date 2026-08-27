@@ -177,10 +177,11 @@ copy config.example.json config.json     # Windows
 
 バックエンドをつなぐための技術ドキュメントは `docs/` にあります：
 
+- **[既存のコンパニオンをつなぐ（Integration Guide）](docs/integration-guide.md)**：すでにどこかで動いているコンパニオン（bot、スクリプト、自作サーバーなど）に、EverOtome をもうひとつの顔として足したい人向け。まずこれを AI に渡してください。
 - **[バックエンド連携仕様（Backend Contract）](docs/backend-contract.md)**：バックエンドが実装する WebSocket メッセージと REST エンドポイント
 - **[CG アルバムと構図ガイド](docs/cg-guide.md)**：2 トラック式アルバムの形式と、顔をどこに置くかのセーフゾーンテンプレート
 
-> この 2 つのファイルをそのまま AI アシスタントに渡して、ドキュメントどおりに配線してもらってください。
+> これらのファイルをそのまま AI アシスタントに渡して、ドキュメントどおりに配線してもらってください。
 
 ---
 

@@ -12,6 +12,8 @@ A backend integration falls into three categories:
 2. **Optional, config-gated REST**: history, CG, model switching, sandbox mode, favorites, room state, Thinking visibility. Each is enabled by its own config key, and a missing key means the matching UI never renders. No errors, no dead buttons. Three features are always on and fall back to built-in default paths when their key is absent: text-to-speech (`ttsEndpoint`, default `/api/v4/tts`), photo attachments (`photoEndpoint`, default `/api/photo`) and phone calls (fixed `/api/call/*` paths). To hide the TTS play buttons, set `"ttsEndpoint": ""` (an empty string); the paperclip and the phone button are always rendered.
 3. **Optional, fixed-path REST**: the phone-call endpoints and the chat-clear sync endpoint use fixed paths (`/api/call/*`, `/api/v4/chat-clear`) rather than config keys in this version. See [Fixed-path endpoints](#fixed-path-endpoints).
 
+Already have a companion running somewhere? Start with the [integration guide](integration-guide.md): it covers the required part in the shortest form, with a checker (`tools/check_integration.py`) and a ready-made bridge (`examples/http-bridge/`).
+
 The shell ignores unknown WebSocket roles and unknown JSON fields, so a richer backend can send more than the shell reads and nothing breaks. One exception: a frame carrying a truthy `room` field is dropped entirely (that field is reserved), so do not reuse `room` as your own room or thread id. The three call-family frames (`call`, `incoming_call`, `incoming_call_end`) are handed to the phone module by `role` before that check runs, so they are the one place the rule does not apply; leave `room` off them all the same.
 
 ## config.json keys

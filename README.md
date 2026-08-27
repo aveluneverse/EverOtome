@@ -177,10 +177,11 @@ To add a language, copy `engine/js/locales/en.js` to `engine/js/locales/<code>.j
 
 The technical docs for wiring a backend live in `docs/`:
 
+- **[Connect an existing companion](docs/integration-guide.md)**: your companion already runs somewhere (a bot, a script, a server of your own) and you want EverOtome as one more face for it. Hand this one to your AI first.
 - **[Backend Contract](docs/backend-contract.md)**: the WebSocket messages and REST endpoints your backend needs to implement
 - **[CG Album and Composition Guide](docs/cg-guide.md)**: the dual-track album format, plus safe-zone templates for where faces should go
 
-> Hand these two files to your AI assistant and have it follow them.
+> Hand these files to your AI assistant and have it follow them.
 
 ---
 

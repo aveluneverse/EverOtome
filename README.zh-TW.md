@@ -177,10 +177,11 @@ copy config.example.json config.json     # Windows
 
 接後端要讀的技術文件，都在 `docs/`：
 
+- **[接入現有伴侶（Integration Guide）](docs/integration-guide.md)**：你的伴侶已經在某台伺服器上跑著（bot、腳本、自刻前端都算），想讓 EverOtome 成為它多出來的一張臉。先把這份給你的 AI。
 - **[接線手冊（Backend Contract）](docs/backend-contract.md)**：你的後端要實作的 WebSocket 訊息與 REST 端點
 - **[CG 相冊與構圖指南](docs/cg-guide.md)**：雙軌相冊格式，加上安全區模板（你的 CG 該把臉畫在哪）
 
-> 把這兩份直接丟給你的 AI 助手，讓它照文件幫你串接。
+> 把這些文件直接丟給你的 AI 助手，讓它照文件幫你串接。
 
 ---
 
