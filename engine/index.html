@@ -193,8 +193,8 @@
          下方（flex column——線永遠跟著字，不用硬算字高）。
          漸層必須 userSpaceOnUse——objectBoundingBox 遇水平直線（bbox 高 0）依 SVG
          規範漸層視同 none＝整條隱形（實測命中的陷阱，非理論疑慮）。 -->
-    <div class="brand-lockup" aria-hidden="true">
-      <span id="brand-title"></span>
+    <div class="brand-lockup">
+      <span id="brand-title" aria-hidden="true"></span>
       <svg class="brand-wave" viewBox="0 0 420 8" preserveAspectRatio="none" fill="none" aria-hidden="true">
         <defs>
           <linearGradient id="brand-wave-fade" gradientUnits="userSpaceOnUse" x1="2" y1="4" x2="418" y2="4">
@@ -206,6 +206,13 @@
         <line x1="2" y1="4" x2="418" y2="4" stroke="url(#brand-wave-fade)"
               stroke-width="1.4" stroke-linecap="round" vector-effect="non-scaling-stroke"></line>
       </svg>
+      <!-- 版本列＋檢查更新：手動點擊才連線 GitHub（同設定頁那顆共用 update-check.js
+           一份查詢與狀態）。#brand 整體 pointer-events:none，這裡單獨開回 auto。 -->
+      <div id="ver-chip" class="ver-chip">
+        <span class="ver-chip-v" id="ver-chip-version"></span><span class="ver-chip-sep" aria-hidden="true">·</span>
+        <button type="button" class="ver-chip-check" data-i18n="settings.checkUpdate">檢查更新</button>
+        <span class="ver-chip-result" role="status" aria-live="polite" hidden></span>
+      </div>
     </div>
     <span id="char-name" hidden></span>
     <!-- 左側欄五鈕：打電話→外觀→CG→設定→顯示選項，由上而下（CG 鈕預設

@@ -654,6 +654,67 @@ body.has-theme-assets #brand-title { font-size: clamp(1rem, 1.5vw, 1.6rem); }
 body.has-ui-skin .brand-wave,
 body.has-theme-assets .brand-wave { display: block; }
 
+/* 版本列＋檢查更新（標題角）：Mira 8/21 拍板設計 A——手動點擊才連 GitHub，
+ * 同設定頁那顆共用 update-check.js 一份查詢與狀態（見 version-chip.js）。位置
+ * 絕對定位掛在 .brand-lockup 下方（同 .brand-wave 的既有手法——鎖組本身高度
+ * 只等於字高，不能讓這裡的內容走一般文件流，否則會撐大鎖組高度、把
+ * .brand-wave 的 top:100% 算歪，見上方「鎖組高＝字高」說明）：無皮＝緊貼字下
+ * 7px；有皮則再讓開波浪線的高度＋間距（0.25dvh+0.8dvh）＋7px（批准設計值）。
+ * #brand 整體 pointer-events:none（見上）；這裡容器本身不開回 auto——手機窄螢幕
+ * 英文「找到新版」句子長，換行後這條可能貼近下方 CHAT LOG／THINKING 分頁列，
+ * 整塊開 auto 會讓純文字（版本號／分隔點／前綴句）那段空隙也擋住分頁列的點擊。
+ * 只在真的可點的兩顆子節點（.ver-chip-check／.ver-chip-result a）個別開回
+ * auto，其餘文字维持穿透。 */
+.ver-chip {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 7px);
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: var(--text-faint);
+  text-shadow: 0 1px 8px rgba(var(--glow-rgb), 0.55), 0 0 2px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+body.has-ui-skin .ver-chip,
+body.has-theme-assets .ver-chip { top: calc(100% + 1.05dvh + 7px); }
+
+.ver-chip-v { font-style: italic; }
+.ver-chip-sep { opacity: 0.55; }
+.ver-chip-check {
+  pointer-events: auto;
+  font: inherit;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--text-dim) 45%, transparent);
+  transition: color 0.3s ease;
+}
+.ver-chip-check:hover { color: var(--text); }
+.ver-chip-check:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ver-chip-result {
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+.ver-chip-result b { font-weight: normal; color: var(--text); }
+.ver-chip-result a { pointer-events: auto; color: var(--text); text-decoration: underline; text-underline-offset: 4px; margin-left: 0.6em; }
+.ver-chip-result a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .ver-chip-result { transition: none; }
+}
+
 /* 左側欄五鈕：電話→外觀→CG→設定→眼睛，由上而下；水平中心對齊徽章
  * （--sidebtn-left 公式）；尺寸 dvh 束縛防超寬爆大。 */
 .side-btn {
@@ -1795,19 +1856,50 @@ body.in-call .js-open-phone .icon-hangup { display: block; }
     z-index: 4;
   }
 
-  /* 品牌角（有皮同款——桌機的徽章旁定位是桌機限定；鎖組回左上、字級回大） */
+  /* 品牌角（有皮同款——桌機的徽章旁定位是桌機限定；鎖組回左上、字級回大）。手機
+   * 沒有波浪線（.brand-wave 上面已 display:none）可以掛版本列，改讓 .brand-lockup
+   * 本身變一列 flex（title／ver-chip 兩個可見子項基線對齊、中間留 gap）——桌機那條
+   * 「鎖組高＝字高，線靠絕對定位垂在組底」的既有限制在手機不成立（沒有線要顧），
+   * 這裡切 flex 是安全的。flex-wrap:wrap＋兩個子項都 flex-shrink:0＝版本列字串太長
+   * （英文「found」句常比中文長很多）擠不下時整塊換到第二行，不會反過來把標題字
+   * 擠到換行（實測抓到的陷阱：兩者都用預設 flex-shrink:1 時，視窗窄＋英文長字串
+   * 會把 "AI Model" title 自己斷成兩行）。 */
   .brand-lockup,
   body.has-ui-skin .brand-lockup,
   body.has-theme-assets .brand-lockup {
     left: 3%;
     top: calc(0.9% + env(safe-area-inset-top));
     transform: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.8em;
   }
   #brand-title,
   body.has-ui-skin #brand-title,
   body.has-theme-assets #brand-title {
     font-size: clamp(1.1rem, 2vw, 2rem);
+    flex-shrink: 0;
+    white-space: nowrap;
   }
+  /* 版本列跟著切回一般文件流（取消桌機那份絕對定位），成為 .brand-lockup 這行
+   * flex 的第二個子項，貼題字右邊、基線對齊；字級縮一階（批准設計值）。
+   * flex-shrink:0＝寧可整塊換行，不要被壓縮到內部文字（本身 white-space:nowrap）
+   * 溢出裁切。 */
+  .ver-chip,
+  body.has-ui-skin .ver-chip,
+  body.has-theme-assets .ver-chip {
+    position: static;
+    font-size: 11.5px;
+    flex-shrink: 0;
+  }
+  /* 找到新版時手機收成一顆可點：「查看更新內容」文字換成 › 符號，整段仍是
+   * 同一顆 <a>（可點區域＝那個符號；版本號與「有新版本：」前綴仍是純文字，
+   * 保留桌機那組淡色／亮色兩階視覺——見 .ver-chip-result b 的既有樣式）。文字
+   * 用 aria-label 保留在可及性樹上，不是真的從 DOM 拿掉。 */
+  .ver-chip-view-label { display: none; }
+  .ver-chip-result a::after { content: "\203a"; }
 
   /* 電話面板：全舞台 */
   #phone-root { left: 0; top: 0; width: 100%; height: 100%; }

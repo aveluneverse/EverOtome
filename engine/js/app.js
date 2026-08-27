@@ -82,10 +82,15 @@ import { createAdvVisibility } from "./adv-visibility.js";
 import { initI18n, applyConfigLocale, t, tEl, tAttr, pickLabel, onLocaleChange } from "./i18n.js";
 import { bindLocaleRelabel } from "./appearance-labels.js";
 import { installViewportLock } from "./viewport-lock.js";
+import { initVersionChip } from "./version-chip.js";
 
 // iOS 頁面級捏合鎖在模組層級就掛（不等 main）：頁面一被放大，視覺視口小於
 // 佈局視口＝整頁可平移、fixed 底部列被推出可視區——app 式介面開機即擋。
 installViewportLock();
+// 首頁標題角版本列＋檢查更新：跟 config／後端連線無關（純本地版本號＋手動點擊
+// 才連 GitHub），不必等 main() 的 config load，模組層級就能掛（module script
+// 預設延後到 DOM 解析完才跑，#ver-chip 這時已經在樹上）。
+initVersionChip();
 
 // config.json 撈不到（開源使用者本機、或尚未疊上私有角色覆蓋層）時的最後防線：即使
 // 兩份 config 都讀不到，也不能讓整頁掛掉——退回這組跟 config.example.json 同形狀的值。
