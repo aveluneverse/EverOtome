@@ -141,6 +141,7 @@ Clone the project, then one command gets you a zero-backend preview:
 ```bash
 cd engine
 python serve.py       # http://127.0.0.1:8300
+# no "python" command? use:  python3 serve.py
 ```
 
 (`serve.py` is a static file server for local preview. EverOtome itself has zero framework dependencies.)
@@ -148,11 +149,14 @@ python serve.py       # http://127.0.0.1:8300
 It runs with nothing configured: the sample character **Rye** (with a smile expression and a blush layer), a demo CG album, and one piece of furniture are bundled, and the core interactions (blinking, theme switching, the appearance panel, the Character Lab) all work as-is. To see the bigger features in action, open `demo/tour.html?seg=cg` for an automated, zero-backend tour running on demo data. To connect your own AI:
 
 ```bash
-cp config.example.json config.json     # Windows: copy
+cp config.example.json config.json       # macOS / Linux
+copy config.example.json config.json     # Windows
 # then edit config.json to point at your backend and assets
 ```
 
-Features that need a backend (sending and receiving messages, calls, CG push) won't work until you connect a service that implements them. **That's expected, not broken.**
+Your backend has to serve the `engine/` folder itself, or sit behind the same reverse proxy: the shell only talks to same-origin paths such as `/ws`. The [backend contract](docs/backend-contract.md) has the details.
+
+Features that need a backend (sending and receiving messages, calls, CG push) won't work until you connect a service that implements them. **That's expected, not broken.** While no backend is running, the browser console shows a 404 for `config.json` and repeated WebSocket reconnect errors, and the dialogue box says it is not connected yet; the sample character, the themes, the album and the tour work regardless.
 
 ---
 
@@ -185,6 +189,7 @@ EverOtome is in **Beta**: the core feature set is stable and usable, and the con
 
 - A modern browser (recent versions of Chrome, Edge, Safari, or Firefox)
 - Local preview: Python 3 (3.7 or later), used only to run `serve.py`
+- Asset tools in `tools/` (expression patches, alignment check, safe-zone templates): Python 3 plus Pillow (`pip install pillow`)
 - Live chat, calls, and CG push need a backend that implements the [backend contract](docs/backend-contract.md)
 
 ---

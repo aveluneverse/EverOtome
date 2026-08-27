@@ -182,7 +182,7 @@ Either way the patch fades in over 0.35s and out over 0.6s. Swapping states with
 
 ## Generating expression patches
 
-`tools/gen_expression.py` cuts the patches. Feed it the appearance's frame folder and one or more full-body images of the expression, drawn on the same canvas with nothing changed outside the eyes, the mouth and the face tint:
+`tools/gen_expression.py` cuts the patches (it needs Pillow, `pip install pillow`; run it from the repository root). Feed it the appearance's frame folder and one or more full-body images of the expression, drawn on the same canvas with nothing changed outside the eyes, the mouth and the face tint:
 
 ```
 python tools/gen_expression.py --name smile --label Smile \
@@ -210,7 +210,7 @@ Naming your source images `<name>_A.png` through `<name>_I.png` maps them onto t
 
 ## Previewing expressions and blush
 
-`engine/demo/expression-lab.html` puts an appearance on a live sprite with a button for every expression its manifest declares, plus talking and blush. Start the local server and open it:
+`engine/demo/expression-lab.html` puts an appearance on a live sprite with a button for every expression its manifest declares, plus talking and blush. Start the local server from the repository root and open it:
 
 ```
 python engine/serve.py

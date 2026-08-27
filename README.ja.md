@@ -141,6 +141,7 @@ https://github.com/user-attachments/assets/3ffa2d4c-0748-4eaf-8f4a-a5ba31f5aadf
 ```bash
 cd engine
 python serve.py       # http://127.0.0.1:8300
+# python コマンドが無い場合は：python3 serve.py
 ```
 
 （`serve.py` はローカルプレビュー用の静的ファイルサーバーです。EverOtome 本体はフレームワーク依存ゼロです。）
@@ -148,11 +149,14 @@ python serve.py       # http://127.0.0.1:8300
 何も設定しなくても動きます。サンプルキャラクター **Rye**（微笑み表情と頬染めレイヤー付き）、デモ CG アルバム、家具ひとつが同梱で、コアの操作（まばたき、テーマ切り替え、外見パネル、Character Lab）はそのまま動きます。大きめの機能が動く様子を見るなら `demo/tour.html?seg=cg` へ。デモデータで動く、ゼロバックエンドの自動ツアーです。自分の AI をつなぐには：
 
 ```bash
-cp config.example.json config.json     # Windows は copy
+cp config.example.json config.json       # macOS / Linux
+copy config.example.json config.json     # Windows
 # config.json を編集して、バックエンドと素材の場所を指定します
 ```
 
-バックエンドが必要な機能（メッセージ送受信、通話、CG プッシュ）は、実装したサービスをつなぐまで動きません。**これは想定どおりの動作で、壊れているわけではありません。**
+バックエンドは `engine/` フォルダを自分で配信するか、同じリバースプロキシの後ろに置いてください。インターフェースは `/ws` のような同一オリジンのパスとしか通信しません。詳しくは[バックエンド連携仕様](docs/backend-contract.md)を参照してください。
+
+バックエンドが必要な機能（メッセージ送受信、通話、CG プッシュ）は、実装したサービスをつなぐまで動きません。**これは想定どおりの動作で、壊れているわけではありません。**バックエンドが動いていない間、ブラウザのコンソールには `config.json` の 404 と WebSocket 再接続エラーが繰り返し出て、メッセージウィンドウには未接続の表示が出ます。サンプルキャラクター、テーマ、アルバム、ツアーはそのまま動きます。
 
 ---
 
@@ -185,6 +189,7 @@ EverOtome は現在 **Beta** です。コア機能は安定して使えますが
 
 - モダンブラウザ（Chrome、Edge、Safari、Firefox の近年のバージョン）
 - ローカルプレビュー：Python 3（3.7 以上）。用途は `serve.py` の起動だけです
+- `tools/` の素材ツール（表情パッチ、位置合わせチェック、セーフゾーンテンプレート）：Python 3 と Pillow（`pip install pillow`）
 - ライブチャット・通話・CG プッシュには、[バックエンド連携仕様](docs/backend-contract.md)を実装したバックエンドが必要です
 
 ---

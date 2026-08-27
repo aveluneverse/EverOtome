@@ -146,6 +146,7 @@ clone 專案後，一行指令零後端預覽：
 ```bash
 cd engine
 python serve.py       # http://127.0.0.1:8300
+# 沒有 python 指令的話改用：python3 serve.py
 ```
 
 （`serve.py` 只是本機預覽用的靜態伺服器，EverOtome 本體零框架依賴。）
@@ -153,11 +154,14 @@ python serve.py       # http://127.0.0.1:8300
 不配任何東西就能跑：內建範例角色 **Rye**（附一個微笑表情與一層紅暈）、示範 CG 相冊與一件家具，核心介面互動（眨眼、換主題、外觀面板、試妝間）全部可玩；想看功能演出，開 `demo/tour.html?seg=cg` 有零後端的自動導覽（示範資料演出）。要接自己的 AI：
 
 ```bash
-cp config.example.json config.json     # Windows 用 copy
+cp config.example.json config.json       # macOS／Linux
+copy config.example.json config.json     # Windows
 # 編輯 config.json 指向你的後端與素材
 ```
 
-需要後端的功能（收發訊息、電話、CG 推送）在接上你的服務前不會連線。**這是預期行為，不是壞掉。**
+你的後端要自己供應 `engine/` 資料夾，或跟它擋在同一個反向代理後面：介面只跟同源路徑（例如 `/ws`）說話。細節在[接線手冊](docs/backend-contract.md)。
+
+需要後端的功能（收發訊息、電話、CG 推送）在接上你的服務前不會連線。**這是預期行為，不是壞掉。**後端還沒跑起來時，瀏覽器 console 會出現 `config.json` 的 404 與反覆的 WebSocket 重連錯誤，對話框會寫著尚未連線；範例角色、主題、相冊與導覽照常可用。
 
 ---
 
@@ -190,6 +194,7 @@ EverOtome 目前處於 **Beta** 階段：核心功能穩定可用，1.0 前設�
 
 - 現代瀏覽器（Chrome、Edge、Safari、Firefox 的近年版本）
 - 本機預覽：Python 3（3.7 以上），只為跑 `serve.py`
+- `tools/` 的素材工具（表情貼片、對位檢查、安全區模板）：Python 3 加 Pillow（`pip install pillow`）
 - 即時聊天、電話、CG 推送：需要一個實作[接線手冊](docs/backend-contract.md)的後端
 
 ---
