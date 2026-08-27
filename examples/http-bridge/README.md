@@ -3,7 +3,7 @@
 A translator between EverOtome and a companion that already answers HTTP. One Python file, no dependencies. It serves the `engine/` folder, accepts the shell's WebSocket at `/ws`, and turns every chat message into one HTTP request to your companion:
 
 ```
-POST http://127.0.0.1:5000/reply
+POST http://127.0.0.1:8401/reply
 {"text": "what the user typed"}
 
 200 OK
@@ -27,7 +27,7 @@ python examples/http-bridge/echo_companion.py
 Terminal 2:
 
 ```bash
-python examples/http-bridge/bridge.py --reply http://127.0.0.1:5000/reply
+python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/reply
 ```
 
 Then open `http://127.0.0.1:8400/` in the browser and say something. The echo answers `You said: ...`. To check without a browser:
@@ -36,7 +36,7 @@ Then open `http://127.0.0.1:8400/` in the browser and say something. The echo an
 python tools/check_integration.py http://127.0.0.1:8400
 ```
 
-`RESULT: PASS` with a warning about voice is the expected outcome (see below).
+`RESULT: PASS` with two warnings is the expected outcome on a fresh clone: no `config.json` yet, and voice (see below).
 
 No `python` command? Use `python3`.
 
@@ -55,6 +55,8 @@ Edit `engine/config.json` (copy `config.example.json` first if you have not):
 - keep `"historyEndpoint": "/api/history"`: the bridge serves this run's chat as scrollback
 
 Options: `--port` (default 8400), `--host`, `--engine` (the `engine/` folder, default the one in this repository), `--ws-path`, `--history-path`, `--reply-timeout` (seconds to wait for the companion, default 120). `--help` lists them.
+
+On a server, start the bridge with `--host 0.0.0.0` so a browser elsewhere can reach it, or put it behind the reverse proxy from the [backend contract](../../docs/backend-contract.md#deployment-one-origin). The bridge has no login of its own: anyone who can reach the port can talk to the companion, so keep the port firewalled or behind whatever already protects the rest of the server.
 
 ## What it does not relay
 

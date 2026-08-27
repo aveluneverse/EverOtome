@@ -194,7 +194,7 @@ EverOtome 目前處於 **Beta** 階段：核心功能穩定可用，1.0 前設�
 ## 執行需求
 
 - 現代瀏覽器（Chrome、Edge、Safari、Firefox 的近年版本）
-- 本機預覽：Python 3（3.7 以上），只為跑 `serve.py`
+- Python 3（3.7 以上）：本機預覽（`serve.py`）、接入自檢（`tools/check_integration.py`）與 HTTP 翻譯官（`examples/http-bridge/`）都靠它，三者都不用另外裝套件
 - `tools/` 的素材工具（表情貼片、對位檢查、安全區模板）：Python 3 加 Pillow（`pip install pillow`）
 - 即時聊天、電話、CG 推送：需要一個實作[接線手冊](docs/backend-contract.md)的後端
 

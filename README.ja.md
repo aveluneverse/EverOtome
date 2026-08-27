@@ -194,7 +194,7 @@ EverOtome は現在 **Beta** です。コア機能は安定して使えますが
 ## 動作要件
 
 - モダンブラウザ（Chrome、Edge、Safari、Firefox の近年のバージョン）
-- ローカルプレビュー：Python 3（3.7 以上）。用途は `serve.py` の起動だけです
+- Python 3（3.7 以上）：ローカルプレビュー（`serve.py`）、接続チェッカー（`tools/check_integration.py`）、HTTP ブリッジ（`examples/http-bridge/`）の起動に使います。追加パッケージは不要です
 - `tools/` の素材ツール（表情パッチ、位置合わせチェック、セーフゾーンテンプレート）：Python 3 と Pillow（`pip install pillow`）
 - ライブチャット・通話・CG プッシュには、[バックエンド連携仕様](docs/backend-contract.md)を実装したバックエンドが必要です
 

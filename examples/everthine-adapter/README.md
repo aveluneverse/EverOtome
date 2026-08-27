@@ -16,8 +16,10 @@ python <path to EverOtome>/examples/everthine-adapter/companion_server.py
 Then, from the EverOtome folder, the bridge:
 
 ```bash
-python examples/http-bridge/bridge.py --reply http://127.0.0.1:5000/reply
+python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/reply --reply-timeout 180
 ```
+
+The adapter listens on `127.0.0.1:8401` by default (`--host` and `--port` change that; `--reply` must then match). `--reply-timeout 180` gives the Claude CLI the same three minutes the checker below allows; without it the bridge gives up at 120 seconds.
 
 Open `http://127.0.0.1:8400/`. In `engine/config.json` set `"ttsEndpoint": ""` (Everthine has no voice endpoint) and keep `"wsEndpoint": "/ws"`.
 

@@ -194,7 +194,7 @@ EverOtome is in **Beta**: the core feature set is stable and usable, and the con
 ## Requirements
 
 - A modern browser (recent versions of Chrome, Edge, Safari, or Firefox)
-- Local preview: Python 3 (3.7 or later), used only to run `serve.py`
+- Python 3 (3.7 or later) for the local preview (`serve.py`), the integration checker (`tools/check_integration.py`) and the HTTP bridge (`examples/http-bridge/`); none of them needs a package installed
 - Asset tools in `tools/` (expression patches, alignment check, safe-zone templates): Python 3 plus Pillow (`pip install pillow`)
 - Live chat, calls, and CG push need a backend that implements the [backend contract](docs/backend-contract.md)
 
