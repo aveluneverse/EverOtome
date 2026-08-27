@@ -24,6 +24,10 @@
 <link rel="stylesheet" href="css/layout.css">
 </head>
 <body>
+<!-- 雙擊 index.html（file://）時瀏覽器擋 ES module，整頁只剩空殼；這是唯一還跑得動的提示
+     （classic script、靜態英文：i18n 模組此時載不進來）。用 serve.py 開時永遠隱藏。 -->
+<p id="file-protocol-note" hidden>This page needs the local server. Open a terminal in the <code>engine</code> folder, run <code>python serve.py</code> (or <code>python3 serve.py</code>), then visit <a href="http://127.0.0.1:8300/">http://127.0.0.1:8300/</a>. See the README.</p>
+<script>if (location.protocol === "file:") document.getElementById("file-protocol-note").hidden = false;</script>
 <!-- 乙女遊戲式舞台：
      桌機＝背景 cover 滿版自由裁邊；右側 Chat Log 前景 SVG 框
      （chatlog-frame.svg）＋輸入列錨視窗右欄；左下 ADV 對話框（半透玻璃）；
