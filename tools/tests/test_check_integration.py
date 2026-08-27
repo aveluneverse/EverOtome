@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from _servers import ROOT, bridge_stack, free_port, server
+from _servers import ROOT, bridge_stack, free_port, garbage_http_server, server
 
 TOOL = ROOT / "tools" / "check_integration.py"
 FEEDBACK = "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup"
@@ -106,6 +106,9 @@ def test_end_to_end_pass_behind_the_bridge(stack):
     r = run("http://127.0.0.1:%d" % stack, "--timeout", "30")
     out = r.stdout
     assert r.returncode == 0, out + r.stderr
+    # The bridge serves the repo's engine/ as is: on this machine a gitignored engine/config.json (equal to the
+    # example) is present, and the example keeps historyEndpoint, cgEndpoint and a non-empty ttsEndpoint, which
+    # is what [PASS] history, [PASS] album and [WARN] voice below rely on.
     for needle in ("[PASS] shell", "[PASS] websocket", "[PASS] chat", "[PASS] history",
                    "[WARN] voice", "[INFO] photos", "[INFO] phone", "[PASS] album", "[INFO] chat-clear",
                    "RESULT: PASS"):
@@ -173,3 +176,11 @@ def test_no_assistant_frame_is_a_fail():
     assert r.returncode == 1, r.stdout + r.stderr
     assert "[FAIL] chat" in r.stdout and "no assistant frame" in r.stdout and "system" in r.stdout
     assert "[INFO] voice" in r.stdout
+
+
+def test_garbage_http_server_is_a_clean_fail():
+    with garbage_http_server() as port:
+        r = run("http://127.0.0.1:%d" % port, "--timeout", "5")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "[FAIL] shell" in r.stdout and "RESULT: FAIL" in r.stdout and FEEDBACK in r.stdout
+    assert "Traceback" not in r.stderr, r.stderr

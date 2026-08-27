@@ -23,6 +23,7 @@ import ssl
 import struct
 import sys
 import time
+from http.client import HTTPException
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -122,6 +123,8 @@ def http(method, url, body=None, headers=None, timeout=15):
         return e.code, dict(e.headers), e.read()
     except URLError as e:
         return None, {}, str(e.reason)
+    except HTTPException as e:
+        return None, {}, str(e)
     except OSError as e:
         return None, {}, str(e)
 
@@ -349,6 +352,9 @@ def check_history(base, cfg, rep):
     if not isinstance(path, str) or not path:
         rep.add("INFO", "history", "no historyEndpoint: the Chat Log opens blank on each load (fine)")
         return
+    if not path.startswith("/"):
+        rep.add("WARN", "history", "historyEndpoint is %r; a same-origin path such as \"/api/history\" is expected" % (path,))
+        return
     status, _, raw = http("GET", base + path)
     if status == 200:
         data, err = parse_json(raw)
@@ -450,6 +456,9 @@ def check_album(base, cfg, rep):
     if not isinstance(path, str) or not path:
         rep.add("INFO", "album", "no cgEndpoint: no album button (fine)")
         return
+    if not path.startswith("/"):
+        rep.add("WARN", "album", "cgEndpoint is %r; a same-origin path such as \"/api/v4/cg\" is expected" % (path,))
+        return
     status, _, raw = http("GET", base + path + "/album", timeout=15)
     if status == 200:
         data, err = parse_json(raw)
@@ -522,7 +531,7 @@ def build_parser():
 
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(errors="replace")
+        sys.stdout.reconfigure(errors="replace", line_buffering=True)
     args = build_parser().parse_args(argv)
     u = urlsplit(args.url)
     if u.scheme not in ("http", "https") or not u.hostname:

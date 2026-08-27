@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 
 import pytest
 
-from _servers import BRIDGE, ECHO, ENGINE, WsProbe, bridge_stack, free_port
+from _servers import BRIDGE, ECHO, ENGINE, WsProbe, bridge_stack, free_port, garbage_http_server
 
 FEEDBACK = "Stuck? Tell us: https://marshmallow-qa.com/a4u0myommjpyzup"
 CJK = re.compile(r"[\u4e00-\u9fff]")
@@ -157,3 +157,14 @@ def test_companion_answering_without_text_is_reported():
     finally:
         httpd.shutdown()
     assert frame["role"] == "system" and frame["text"].startswith("bridge:") and '"text"' in frame["text"]
+
+
+def test_companion_answering_garbage_http_is_reported():
+    with garbage_http_server() as companion_port:
+        with bridge_stack("http://127.0.0.1:%d/reply" % companion_port) as port:
+            ws = WsProbe(port)
+            ws.send("hi")
+            frame = ws.recv_json()
+            ws.close()
+    assert frame["role"] == "system"
+    assert frame["text"].startswith("bridge:") and "could not be read" in frame["text"] and FEEDBACK in frame["text"]

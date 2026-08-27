@@ -4,7 +4,7 @@
     POST /reply   {"text": "hello"}   ->   {"text": "You said: hello"}
 
 It has no brain, no persona and no memory; replace it with your own server once the bridge works.
-Usage: python examples/http-bridge/echo_companion.py [--port 5000]
+Usage: python examples/http-bridge/echo_companion.py [--port 8401]
 Python 3.7 or newer, standard library only.
 """
 import argparse
@@ -61,10 +61,10 @@ class _Parser(argparse.ArgumentParser):
 
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(errors="replace")
+        sys.stdout.reconfigure(errors="replace", line_buffering=True)
     p = _Parser(prog="echo_companion.py", description="Echo companion for the EverOtome http-bridge: POST /reply echoes the text back.")
     p.add_argument("--host", default="127.0.0.1", help="address to listen on (default 127.0.0.1)")
-    p.add_argument("--port", type=int, default=5000, help="port to listen on (default 5000)")
+    p.add_argument("--port", type=int, default=8401, help="port to listen on (default 8401)")
     args = p.parse_args(argv)
     try:
         httpd = ThreadingHTTPServer((args.host, args.port), EchoHandler)

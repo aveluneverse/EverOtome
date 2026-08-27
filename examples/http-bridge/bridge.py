@@ -17,7 +17,7 @@ relayed: those endpoints answer 404, which the shell reports as "feature not ena
 "ttsEndpoint": "" in engine/config.json so no silent play buttons appear.
 
 Usage (from the repository root):
-    python examples/http-bridge/bridge.py --reply http://127.0.0.1:5000/reply
+    python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/reply
 Then open http://127.0.0.1:8400/ in the browser.
 
 Python 3.7 or newer, standard library only.
@@ -31,6 +31,7 @@ import sys
 import threading
 import time
 from datetime import datetime, timezone
+from http.client import HTTPException
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib import request as urlrequest
@@ -92,6 +93,8 @@ class Companion:
             raise BridgeError("the companion answered HTTP %d" % e.code)
         except URLError as e:
             raise BridgeError("could not reach the companion at %s (%s)" % (self.url, e.reason))
+        except HTTPException as e:
+            raise BridgeError("the companion's HTTP answer could not be read (%s)" % e)
         except OSError as e:
             raise BridgeError("no answer from the companion at %s (%s)" % (self.url, e))
         try:
@@ -305,7 +308,7 @@ def build_parser():
                 description="Serve EverOtome's engine/ and relay its chat WebSocket to a companion over HTTP: "
                             "POST {\"text\": ...} in, {\"text\": ...} out.")
     p.add_argument("--reply", required=True, metavar="URL",
-                   help="the companion's reply endpoint, e.g. http://127.0.0.1:5000/reply")
+                   help="the companion's reply endpoint, e.g. http://127.0.0.1:8401/reply")
     p.add_argument("--engine", default=str(DEFAULT_ENGINE), metavar="PATH",
                    help="EverOtome's engine/ folder (default: the one in this repository)")
     p.add_argument("--host", default="127.0.0.1", help="address to listen on (default 127.0.0.1)")
@@ -343,7 +346,7 @@ def config_notes(engine, args):
 
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(errors="replace")
+        sys.stdout.reconfigure(errors="replace", line_buffering=True)
     args = build_parser().parse_args(argv)
     engine = Path(args.engine).resolve()
     if not (engine / "index.html").is_file() or not (engine / "js" / "app.js").is_file():

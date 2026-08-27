@@ -10,6 +10,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -137,3 +138,44 @@ class WsProbe:
 
     def close(self):
         self.sock.close()
+
+
+@contextmanager
+def garbage_http_server():
+    """A raw TCP listener that answers every connection with a line no HTTP client can parse, then closes.
+    Yields the port. Models a companion behind a broken proxy or a wrong port."""
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(5)
+    port = srv.getsockname()[1]
+    stop = threading.Event()
+
+    def serve():
+        srv.settimeout(0.2)
+        while not stop.is_set():
+            try:
+                conn, _ = srv.accept()
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+            try:
+                conn.settimeout(2)
+                try:
+                    conn.recv(65536)
+                except (socket.timeout, OSError):
+                    pass
+                conn.sendall(b"garbage\r\n\r\n")
+            except OSError:
+                pass
+            finally:
+                conn.close()
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+    try:
+        yield port
+    finally:
+        stop.set()
+        srv.close()
+        thread.join(2)

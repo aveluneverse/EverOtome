@@ -45,7 +45,7 @@ def build_parser():
                 description="Expose an Everthine companion as POST /reply for EverOtome's http-bridge. "
                             "Run it from your Everthine folder.")
     p.add_argument("--host", default="127.0.0.1", help="address to listen on (default 127.0.0.1)")
-    p.add_argument("--port", type=int, default=5000, help="port to listen on (default 5000)")
+    p.add_argument("--port", type=int, default=8401, help="port to listen on (default 8401)")
     p.add_argument("--with-telegram", action="store_true",
                    help="also run Everthine's Telegram bot in this process (one conversation, two channels)")
     return p
@@ -130,7 +130,7 @@ def make_handler(cfg, store, produce_reply):
 
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(errors="replace")
+        sys.stdout.reconfigure(errors="replace", line_buffering=True)
     args = build_parser().parse_args(argv)
     engine, bot, load_config, ConfigError, SessionStore = load_everthine()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -155,7 +155,12 @@ def main(argv=None):
     if args.with_telegram:
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
         print("[adapter] Telegram bot starting in this process; Ctrl+C stops both")
-        bot.make_app(cfg).run_polling(allowed_updates=bot._allowed_updates(cfg))
+        app = bot.make_app(cfg)
+        allowed = getattr(bot, "_allowed_updates", None)  # private helper; fall back to PTB's default list if it goes away
+        if allowed is not None:
+            app.run_polling(allowed_updates=allowed(cfg))
+        else:
+            app.run_polling()
         return
     try:
         httpd.serve_forever()
