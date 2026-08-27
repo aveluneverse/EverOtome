@@ -2,9 +2,9 @@
 
 電話功能用途：`engine/config.example.json` 的 `ringtonePath` 指向這個
 2 秒合成嗶聲迴圈佔位檔——單純兩段方波風格提示音＋靜音間隔，loop=true 播放時
-聽起來像通用「鈴聲」節奏，跟 `tools/make_sample_character.py` 產出範例立繪素材
-同一個精神：開源使用者拿到的是乾淨、非角色專屬的佔位資產，真正的角色鈴聲
-是獨立的私有素材，永不進 engine/、永不進公開 repo。
+聽起來像通用「鈴聲」節奏。精神是：開源使用者拿到的是乾淨、非角色
+專屬的佔位資產，真正的角色鈴聲是獨立的私有素材，永不進 engine/、
+永不進公開 repo。
 
 需要 ffmpeg 在 PATH 上（pydub 匯出 mp3 靠它轉檔）。
 """

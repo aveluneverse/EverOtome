@@ -14,8 +14,6 @@ SENTINEL = b"shipped-bytes-do-not-touch"
 
 # tool file -> the files (relative to the fake repo root) it would overwrite
 TARGETS = {
-    "make_sample_character.py": [f"engine/assets/sample/{n}.webp" for n in "ABCDEFGHI"]
-                                + ["engine/assets/sample/manifest.json"],
     "make_placeholder_icons.py": ["engine/favicon.png", "engine/app-icon-180.png",
                                   "engine/app-icon-192.png", "engine/app-icon-512.png"],
     "gen_theme_frames.py": [f"engine/assets/themes/{t}/chatlog-frame.svg"
@@ -72,7 +70,7 @@ def test_bare_run_refuses_when_targets_exist(tmp_path, tool):
     assert untouched(tmp_path, tool)
 
 
-@pytest.mark.parametrize("tool", ["make_sample_character.py", "make_placeholder_icons.py", "gen_theme_frames.py"])
+@pytest.mark.parametrize("tool", ["make_placeholder_icons.py", "gen_theme_frames.py"])
 def test_force_regenerates(tmp_path, tool):
     if tool != "gen_theme_frames.py":
         pytest.importorskip("PIL")

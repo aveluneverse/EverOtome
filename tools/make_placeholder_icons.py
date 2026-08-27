@@ -17,8 +17,8 @@ manifest 還有第三顆 app-icon-512-maskable.png（purpose: maskable，不透�
 換掉的話自己補一顆同規格的。
 
 設計：crystal-swan 主題色（深夜藍底 #0c1c28＋冰晶藍幾何「E」標記，主色
-#6fbdd3、亮色 #c2e9f2）——與 tools/make_sample_character.py 產出的幾何範例
-臉同一個「簡潔幾何、零照片級渲染」美術方向，開源殼零額外美術資產依賴。
+#6fbdd3、亮色 #c2e9f2）——「簡潔幾何、零照片級渲染」的美術方向，開源殼零
+額外美術資產依賴。
 
 maskable 安全區：E 標記的座標刻意收在畫布中心、半徑約 9.2/24 單位處（W3C
 maskable icon 80% 安全圓半徑 9.6/24 單位內留有餘裕），OS 把它拿去裁成
