@@ -315,7 +315,7 @@ Optional cross-device "clear screen" line. `GET` → `{ "cleared_at": "<ts>" }` 
 
 ## Deployment: one origin
 
-The shell only talks to same-origin paths: `wsEndpoint` becomes `ws(s)://<the host that served the page>/ws`, and every REST path in `config.json` is fetched from that same host. So the process that serves `engine/` and the process that answers `/ws` and `/api/...` have to look like one server to the browser. Two ways to get there:
+The shell only talks to same-origin paths: `wsEndpoint` becomes `ws(s)://<the host that served the page>/ws`, and the REST endpoints in `config.json` are written as paths, so they resolve against that same host. So the process that serves `engine/` and the process that answers `/ws` and `/api/...` have to look like one server to the browser. Two ways to get there:
 
 1. **Your backend serves `engine/` itself**: a static route for the folder plus your WebSocket and REST handlers. Simplest when you control the backend.
 2. **A reverse proxy in front of both**: static files from `engine/`, `/ws` and `/api/` forwarded to the backend. The two configurations below were run against this repository on 2026-08-27 (engine served as static files, a stand-in backend on port 9000): the chat connected through the proxy and replies rendered.
@@ -344,10 +344,13 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
+        proxy_read_timeout 1h;
+        proxy_send_timeout 1h;
     }
     location /api/ {
         proxy_pass http://127.0.0.1:9000;
         proxy_set_header Host $host;
+        client_max_body_size 20m;
     }
 }
 ```
@@ -355,6 +358,7 @@ server {
 Then open `http://localhost:8400/` in the browser: the proxy's port, not the backend's, and not `serve.py` (which is the zero-backend preview and proxies nothing). Notes:
 
 - Everything under `/api/` now goes to your backend, so the bundled demo album under `engine/api/v4/cg/` is no longer reachable. That is the intended state once your backend serves CGs; if it does not, remove `cgEndpoint` from `config.json` and the album button disappears.
+- In the nginx block, `proxy_read_timeout` keeps an idle chat socket open (nginx drops a silent upstream connection after 60 seconds by default) and `client_max_body_size` lets photo and CG uploads through (the default limit is 1 MB; the shell refuses photos over 10 MB by itself, and its CG oversize hint assumes 20 MB). Both were checked on 2026-08-27: a 5 MB upload passed through, and a socket idle for 70 seconds still answered. Caddy needs no extra lines for either.
 - Replace `9000` with your backend's port and `8400` with the port you want to open. For HTTPS, terminate TLS on the proxy; the shell switches to `wss://` by itself.
 - On Windows, write the `root` path with forward slashes and keep it free of non-ASCII characters (nginx for Windows cannot open paths outside the system code page).
 

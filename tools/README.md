@@ -11,5 +11,6 @@ Maintainer scripts. **Nothing in this folder is needed to run EverOtome or to co
 | `gen_theme_frames.py` | Regenerates the per-theme Chat Log frame SVGs; refuses unless `--force` | Maintainers |
 | `make_sample_ringtone.py` | Regenerates the placeholder ringtone; refuses unless `--force` | Maintainers |
 | `record_demo.py` | Records the demo videos with Playwright | Maintainers |
+| `_overwrite_guard.py` | Shared helper the three regenerators import for their `--force` check; not a command | Nobody runs it directly |
 
-`--help` on any script is safe: it prints usage and writes nothing. The three regenerators refuse to overwrite shipped files unless you pass `--force`. The image scripts need Pillow (`pip install pillow`).
+`--help` on each command listed above prints usage and writes nothing; for `gen_expression.py`, `check_alignment.py` and `make_cg_safe_zone.py` it needs Pillow installed first, because they import it at the top. The three regenerators (`make_placeholder_icons.py`, `gen_theme_frames.py`, `make_sample_ringtone.py`) refuse to overwrite shipped files unless you pass `--force`. `make_cg_safe_zone.py` has no `--force`: it redraws the safe-zone templates in `docs/` every time it runs, so run it only after a layout change. Dependencies: Pillow (`pip install pillow`) for the image scripts (`gen_expression.py`, `check_alignment.py`, `make_cg_safe_zone.py`, and `make_placeholder_icons.py` when it actually draws), pydub plus ffmpeg on `PATH` for `make_sample_ringtone.py`, Playwright for `record_demo.py`.
