@@ -476,7 +476,7 @@ function _onRoseClick(btn, ctx) {
     Promise.resolve(result)
       .then((ok) => { if (!ok) _setRosed(btn, id); })
       .catch((e) => {
-        console.warn("[chat] 玫瑰移除失敗，回滾點亮：", e);
+        console.warn("[chat] removing from favorites failed; rolling back to favorited:", e);
         _setRosed(btn, id);
       })
       .finally(done);
@@ -496,7 +496,7 @@ function _onRoseClick(btn, ctx) {
         else _setUnrosed(btn); // saved:false（親密模式攔截）＝靜默回滾，不是錯誤
       })
       .catch((e) => {
-        console.warn("[chat] 玫瑰加入失敗，回滾：", e);
+        console.warn("[chat] adding to favorites failed; rolling back:", e);
         _setUnrosed(btn);
       })
       .finally(done);
@@ -1190,7 +1190,7 @@ export async function loadHistory(url, listEl, ctx = {}, opts = {}) {
     // 清除線生效時回傳的是濾後清單——ADV 開場自然不會撿回線內的舊句。
     return entries;
   } catch (e) {
-    console.warn("[chat] 歷史回填失敗，維持空聊天室：", e);
+    console.warn("[chat] history backfill failed; keeping the chat empty:", e);
     return [];
   }
 }
@@ -1221,7 +1221,7 @@ export async function fetchLastEntryTs(url) {
     }
     return null;
   } catch (e) {
-    console.warn("[chat] 清除線 ts 撈取失敗（本次清畫面不記持久線）：", e);
+    console.warn("[chat] fetching the clear-line timestamp failed (this clear will not be persisted):", e);
     return null;
   }
 }
@@ -1251,7 +1251,7 @@ export async function postServerClearLine(url) {
     const ts = data && typeof data.cleared_at === "string" ? data.cleared_at : null;
     return ts || null;
   } catch (e) {
-    console.warn("[chat] server 清除線寫入失敗（退回單機線）：", e);
+    console.warn("[chat] writing the clear line to the server failed (falling back to the local line):", e);
     return null;
   }
 }

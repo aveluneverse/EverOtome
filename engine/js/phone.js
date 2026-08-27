@@ -1060,7 +1060,7 @@ export class PhoneController {
       // 留言卡退場：vmSlot 恆空（:empty CSS 藏、hasVoicemail 顯隱邏輯自然歸位）
       this._dom.vmSlot.innerHTML = "";
     } catch (err) {
-      console.warn("[phone] call log 載入失敗:", err);
+      console.warn("[phone] call log failed to load:", err);
     }
   }
 }

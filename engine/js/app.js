@@ -126,7 +126,7 @@ async function loadConfig() {
     const res = await fetch("config.example.json");
     if (res.ok) return await res.json();
   } catch (e) {
-    console.warn("config.example.json 也讀不到，使用內建預設值：", e);
+    console.warn("config.example.json could not be loaded either; using built-in defaults:", e);
   }
   return HARD_DEFAULTS;
 }
@@ -514,7 +514,7 @@ async function main() {
   } catch (e) {
     // 載入失敗不擋聊天——sprite.js 內部也有自己的降級（靜態 A 圖），
     // 這裡再包一層是防 manifest 本身就抓不到（load() 在讀到 manifest 之前就會 throw）。
-    console.warn("sprite 載入失敗，立繪暫時不可用，聊天不受影響：", e);
+    console.warn("sprite failed to load; portrait temporarily unavailable, chat unaffected:", e);
   }
 
   // 事件直驅制後 low/high 不再參與判定。仲裁鉤子：語音開講＝
@@ -1139,14 +1139,14 @@ async function main() {
         try { localStorage.setItem(APPEARANCE_KEY, ap.id); } catch (e) { /* 無痕等 */ }
       } catch (err) {
         // 換裝失敗：試著回穿上一套（回穿也失敗＝sprite 自身降級接手，聊天不受影響）
-        console.warn("[app] 換裝失敗，回穿上一套：", err);
+        console.warn("[app] appearance switch failed; reverting to the previous set:", err);
         ok = false;
         try {
           await sprite.switchTo(prev.assetsPath);
           sprite.startIdle();
           blush.syncFrom(sprite.manifest, prev.assetsPath); // 回穿也要對回原套素材
           expr.syncFrom(sprite.manifest, prev.assetsPath);
-        } catch (e2) { console.warn("[app] 回穿也失敗（立繪降級，聊天不受影響）：", e2); }
+        } catch (e2) { console.warn("[app] revert also failed (portrait falls back, chat unaffected):", e2); }
       } finally {
         switching = false;
         markActive();
@@ -1446,17 +1446,17 @@ async function main() {
     if (f && f.theme && themeMgr && themeMgr.current !== f.theme) {
       try {
         themeMgr.applyById(f.theme);
-      } catch (e) { console.warn("[app] 房間主題套用失敗（不擋聊天）：", e); }
+      } catch (e) { console.warn("[app] room theme apply failed (chat unaffected):", e); }
     }
     if (f && f.outfit) {
       try {
         await switchAppearanceById(f.outfit);
-      } catch (e) { console.warn("[app] 房間換裝套用失敗（不擋聊天）：", e); }
+      } catch (e) { console.warn("[app] room outfit apply failed (chat unaffected):", e); }
     }
     if (f && f.furniture && furnitureMgr) {
       try {
         for (const [id, on] of Object.entries(f.furniture)) furnitureMgr.setOn(id, on);
-      } catch (e) { console.warn("[app] 房間家具套用失敗（不擋聊天）：", e); }
+      } catch (e) { console.warn("[app] room furniture apply failed (chat unaffected):", e); }
     }
   }
 
@@ -2099,4 +2099,4 @@ async function main() {
   }
 }
 
-main().catch((e) => console.error("app.js 初始化失敗：", e));
+main().catch((e) => console.error("app.js failed to initialize:", e));
