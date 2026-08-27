@@ -40,7 +40,7 @@ export default {
   "conn.closed": "連線已關閉",
   "conn.error": "無法建立連線",
   "conn.idleConnecting": "（連線中）",
-  "conn.idleOffline": "（尚未連上線——部署後，他就會在這裡等你。）",
+  "conn.idleOffline": "（尚未連上線。接上你的後端之後，他就會在這裡等你。）",
   // ── 電話（app.js 側欄鈕）
   "call.dialing": "接通中",
   // ── 沙盒
