@@ -7,14 +7,17 @@ one HTTP POST to your companion:
     POST <reply url>   {"text": "<what the user typed>"}     ->     {"text": "<the companion's reply>"}
 
 Optional keys in the answer: "thoughts" (a string shown behind the Thinking button) and "system" (one
-notice line in the Chat Log). Empty "text" puts nothing on the screen. The two MENU commands travel the
-same way: /new is posted as {"text": "/new", "command": "new"} (reset your session if you like, or
-answer with empty text); /status is answered by the bridge itself and never reaches the companion.
+notice line in the Chat Log). Empty "text" draws no reply: for an ordinary message the bridge adds a Chat
+Log notice that the companion sent nothing back, while an empty answer to /new stays silent. The two MENU
+commands travel the same way: /new is posted as {"text": "/new", "command": "new"} (reset your session if
+you like, or answer with empty text); /status is answered by the bridge itself and never reaches the
+companion.
 
 The bridge keeps a small in-memory ledger so the Chat Log has scrollback within one run (served at
 /api/history); it is gone when the bridge stops. Photos, voice, phone calls and CG management are not
-relayed: those endpoints answer 404, which the shell reports as "feature not enabled". Set
-"ttsEndpoint": "" in engine/config.json so no silent play buttons appear.
+relayed: those endpoints answer 404, so the paperclip and the phone report the feature as not enabled,
+CG uploads and edits fail, and the play button stays silent. Set "ttsEndpoint": "" in engine/config.json
+so no silent play buttons appear.
 
 Usage (from the repository root):
     python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/reply
@@ -217,7 +220,8 @@ class BridgeHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         # Nothing is relayed by POST: photos, phone calls, voice and CG management stay unwired.
-        # 404 is the answer the shell reads as "feature not enabled". Drain first so keep-alive stays clean.
+        # 404 is what the paperclip and the phone read as "not enabled" (CG edits fail, voice stays silent).
+        # Drain first so keep-alive stays clean.
         self._drain_body()
         self._send_json(404, {"detail": "not relayed by the EverOtome http-bridge: " + self.path})
 
