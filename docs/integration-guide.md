@@ -13,10 +13,10 @@ EverOtome is a face, not a home and not a brain. The companion keeps living wher
 
 ## The whole protocol
 
-The shell needs two things from your side. Everything else is optional and stays switched off while its config key is missing.
+The shell needs two things from your side. Everything else is optional: a feature stays off while its config key is missing, except the three buttons in trap 4.
 
 1. **Serve the `engine/` folder as static files**, with `index.html` at `/`.
-2. **Accept a WebSocket at a same-origin path** (the sample config says `/ws`). The shell sends each message as a **bare string**, not JSON. Answer each one with one JSON frame:
+2. **Accept a WebSocket at a same-origin path** (the sample config says `/ws`). For ordinary chat, the shell sends each message as a **bare string**, not JSON. Answer each one with one JSON frame:
 
 ```json
 { "role": "assistant", "text": "the companion's reply" }
@@ -35,7 +35,7 @@ Three more shapes can arrive on the same socket. Two are JSON objects with a `te
 
 ## Three ways in: pick one
 
-**A. Run the bridge.** No dependencies, and nothing to add to the companion beyond one HTTP route. `examples/http-bridge/bridge.py` serves `engine/`, accepts `/ws`, and turns each message into one `POST` to the companion: `{"text": "..."}` in, `{"text": "..."}` out. Give the companion that one route; when an existing route already does the job under other names, keep it and tell the bridge the names, for example `--text-key message --reply-key reply`. Then, from the EverOtome folder:
+**A. Run the bridge.** No dependencies, and nothing to add to the companion beyond one HTTP route. `examples/http-bridge/bridge.py` serves `engine/`, accepts `/ws`, and turns each chat message into one `POST` to the companion: `{"text": "..."}` in, `{"text": "..."}` out. Give the companion that one route; when an existing route already does the job under other names, keep it and tell the bridge the names, for example `--text-key message --reply-key reply`. Then, from the EverOtome folder:
 
 ```bash
 python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/reply
@@ -120,7 +120,7 @@ new WebSocketServer({ server, path: "/ws" }).on("connection", (ws) => {
 1. **Same origin.** The shell builds the socket address from the page's own host plus the path in `wsEndpoint`. A page served from port 8400 cannot talk to a socket on port 8401. Either the companion's process serves `engine/` itself, or one proxy (or the bridge) fronts both.
 2. **Do not move the brain.** Persona files, memory, conversation logs and API keys stay in the companion's own folder and process. The connection code calls into the companion; it never copies its files somewhere else.
 3. **Two loops, one process.** A Telegram, Discord or WeChat bot blocks on its own polling loop. Start the web server in a thread (or as an asyncio task, or as the separate bridge process) before that loop, never after it, because the loop does not return. The Everthine adapter below shows the thread version.
-4. **Three buttons never hide.** The paperclip (photos), the phone and the play button on replies are always drawn. Without endpoints: the paperclip reports "feature not enabled" on use, the phone shows an error when pressed, and the play button stays silent. The first two are acceptable defaults; the third is not, so set `"ttsEndpoint": ""` when there is no voice. When you do implement them, the paths are `photoEndpoint` (default `/api/photo`), the fixed `/api/call/*` routes, and `ttsEndpoint` (default `/api/v4/tts`). A static-file framework that answers `405` to the photo upload (aiohttp does) makes the paperclip say "upload failed" instead of "feature not enabled"; answer `404` on that route when you do not take photos.
+4. **Three buttons are drawn no matter what you serve.** The paperclip (photos), the phone and the play button on replies appear even when nothing answers them. Without endpoints: the paperclip reports "feature not enabled" on use, the phone shows an error when pressed, and the play button stays silent. The first two are acceptable defaults; the third is not, so set `"ttsEndpoint": ""` when there is no voice (the play button is the only one of the three that can be switched off). When you do implement them, the paths are `photoEndpoint` (default `/api/photo`), the fixed `/api/call/*` routes, and `ttsEndpoint` (default `/api/v4/tts`). A static-file framework that answers `405` to the photo upload (aiohttp does) makes the paperclip say "upload failed" instead of "feature not enabled"; answer `404` on that route when you do not take photos.
 5. **History has one shape.** `GET historyEndpoint` answers `{ "entries": [ { "ts": "...", "speaker": "User", "text": "..." }, ... ] }`: an object with an `entries` array, never a bare array; `speaker` is exactly `User`, `Assistant` or `System`; `audio`, when present, is an array of URLs.
 
 On Windows, the commands on this page are one per line on purpose; PowerShell 5 has no `&&`.
@@ -133,13 +133,13 @@ You cannot see the screen, so use the checker. It does what the browser does on 
 python tools/check_integration.py http://127.0.0.1:8400
 ```
 
-`RESULT: PASS` means the shell is served, the socket accepted the message, and a well-formed reply came back within the time limit (60 seconds by default; `--timeout 180` for a slow companion). Each `[FAIL]` line carries a `fix:` line. `[WARN]` lines are things to decide rather than breakage: a silent play button, a missing history, a sample config still in use, a `405` where a `404` would read better. The checker sends exactly one chat message (the text after `--message`, or a default greeting), and the companion may remember it; it never starts a call and never sends `/new`. `--no-chat` connects without sending anything, for a companion that must not be talked to yet. Standard library only, Python 3.7 or newer.
+`RESULT: PASS` means the shell is served, the socket accepted the message, and a well-formed reply came back within the time limit (60 seconds by default; `--timeout 180` for a slow companion). Each `[FAIL]` line carries a `fix:` line. `[WARN]` lines are things to decide rather than breakage: a silent play button, a missing history, a sample config still in use, a `405` where a `404` would read better. The checker sends exactly one chat message (the text after `--message`, or a default greeting), and the companion may remember it; it never starts a call and never sends `/new`. `--no-chat` opens the socket without sending a chat message, for a companion that must not be talked to yet; the other probes still run (add `--skip-tts` to leave the voice endpoint alone as well), and `RESULT: PASS` then says nothing about the reply path. Standard library only, Python 3.7 or newer.
 
 Then have the person open the address in a browser and say something. The checker proves the pipe; their eyes prove the face.
 
 ## Example: Everthine
 
-[Everthine](https://github.com/aveluneverse/Everthine) keeps its companion in Telegram, with the Claude Code CLI as the engine and memory on disk, and its `bot.py` has a seam, `produce_reply()`, that turns one message into one reply. [`examples/everthine-adapter/`](../examples/everthine-adapter/README.md) wraps that seam (its `companion_server.py`) as `POST /reply` for the bridge without modifying anything inside Everthine: run it from the Everthine folder, then run the bridge against it. Its README covers the two ways to keep Telegram running alongside. Everthine is one example of the pattern, not a requirement; any companion with a "text in, text out" function can be wrapped the same way.
+[Everthine](https://github.com/aveluneverse/Everthine) keeps its companion in Telegram, with the Claude Code CLI as the engine and memory on disk, and its `bot.py` has a seam, `produce_reply()`, that turns one message into one reply. [`examples/everthine-adapter/`](../examples/everthine-adapter/README.md) wraps that seam (its `companion_server.py`) as `POST /reply` for the bridge without touching Everthine's code or copying its files; memory and session stay on Everthine's own disk, read and written by Everthine itself as they are from Telegram. Run it from the Everthine folder, then run the bridge against it. Its README covers the choice between running Telegram in the same process and serving HTTP only. Everthine is one example of the pattern, not a requirement; any companion with a "text in, text out" function can be wrapped the same way.
 
 ## When something does not fit
 

@@ -10,7 +10,7 @@ POST http://127.0.0.1:8401/reply
 {"text": "the companion's reply"}
 ```
 
-That is the whole protocol. Two optional keys in the answer: `"thoughts"` (a string the shell shows behind the Thinking button) and `"system"` (one notice line in the Chat Log). Empty `"text"` puts nothing on the screen.
+That is the whole protocol. Two optional keys in the answer: `"thoughts"` (a string the shell shows behind the Thinking button) and `"system"` (one notice line in the Chat Log). Empty `"text"` draws no reply; for an ordinary message the bridge then adds a Chat Log notice that the companion sent nothing back, while an empty answer to `/new` stays silent.
 
 The companion's persona, memory and process stay exactly where they are. The bridge only calls the one route you give it.
 
@@ -48,7 +48,7 @@ Give your companion one HTTP route that takes `{"text": "..."}` and answers `{"t
 python examples/http-bridge/bridge.py --reply http://127.0.0.1:8401/chat --text-key message --reply-key reply
 ```
 
-Your route also receives `{"text": "/new", "command": "new"}` when the user picks "New conversation" in the MENU. Reset your session there if that makes sense for your companion, or answer `{"text": ""}` to say nothing. `/status` never reaches you; the bridge answers it itself.
+Your route also receives `{"text": "/new", "command": "new"}` when the user picks "New conversation" in the MENU (with `--text-key`, that name replaces `"text"` here as well). Reset your session there if that makes sense for your companion, or answer `{"text": ""}` to say nothing. `/status` never reaches you; the bridge answers it itself.
 
 A bot that runs its own polling loop (Telegram, Discord, WeChat) keeps running as it is: the bridge is a separate process and only talks to the route you added. If that route lives inside the bot's process, start the HTTP server in a thread before the polling loop, not after it.
 
@@ -56,9 +56,9 @@ Edit `engine/config.json` (copy `config.example.json` first if you have not):
 
 - keep `"wsEndpoint": "/ws"` (or pass the same value as `--ws-path`)
 - set `"ttsEndpoint": ""` so no silent play buttons appear
-- keep `"historyEndpoint": "/api/history"`: the bridge serves this run's chat as scrollback
+- keep `"historyEndpoint": "/api/history"` (or whatever you pass as `--history-path`): the bridge serves this run's chat as scrollback
 
-Options: `--port` (default 8400), `--host`, `--engine` (the `engine/` folder, default the one in this repository), `--ws-path`, `--history-path`, `--reply-timeout` (seconds to wait for the companion, default 120), `--text-key` and `--reply-key` (the JSON field names when the companion's route uses others than `text`). `--help` lists them.
+Options: `--reply` (the companion's route, required), `--port` (default 8400), `--host`, `--engine` (the `engine/` folder, default the one in this repository), `--ws-path`, `--history-path`, `--reply-timeout` (seconds to wait for the companion, default 120), `--text-key` and `--reply-key` (the JSON field names when the companion's route uses names other than `text`). `--help` lists them.
 
 On a server, start the bridge with `--host 0.0.0.0` so a browser elsewhere can reach it, or put it behind the reverse proxy from the [backend contract](../../docs/backend-contract.md#deployment-one-origin). The bridge has no login of its own: anyone who can reach the port can talk to the companion, so keep the port firewalled or behind whatever already protects the rest of the server.
 

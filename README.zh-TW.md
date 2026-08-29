@@ -141,7 +141,9 @@ https://github.com/user-attachments/assets/3039bccf-f584-4cfe-8258-84bb3f1f2b63
 
 ### 自己動手
 
-clone 專案後，一行指令零後端預覽：
+clone 專案後，一行指令就能零後端預覽。
+
+`serve.py` 只是預覽用的靜態伺服器，不會代理任何後端，聊天不會經由它接通。
 
 ```bash
 cd engine
@@ -149,7 +151,7 @@ python serve.py       # http://127.0.0.1:8300
 # 沒有 python 指令的話改用：python3 serve.py
 ```
 
-（`serve.py` 只是本機預覽用的靜態伺服器，EverOtome 本體零框架依賴。）
+（EverOtome 本體零框架依賴。）
 
 不配任何東西就能跑：內建範例角色 **Rye**（附一個微笑表情與一層紅暈）、示範 CG 相冊與一件家具，核心介面互動（眨眼、換主題、外觀面板、試妝間）全部可玩；想看功能演出，開 `demo/tour.html?seg=cg` 有零後端的自動導覽（示範資料演出）。要接自己的 AI：
 
@@ -177,7 +179,7 @@ copy config.example.json config.json     # Windows
 
 接後端要讀的技術文件，都在 `docs/`：
 
-- **[接入現有伴侶（Integration Guide）](docs/integration-guide.md)**：你的伴侶已經在某台伺服器上跑著（bot、腳本、自刻前端都算），想讓 EverOtome 成為它多出來的一張臉。先把這份給你的 AI。
+- **[接入現有伴侶（Integration Guide）](docs/integration-guide.md)**：你的伴侶已經在自己的伺服器或電腦上跑著（bot、腳本、自刻前端都算），想讓 EverOtome 成為它多出來的一張臉。先把這份給你的 AI。
 - **[接線手冊（Backend Contract）](docs/backend-contract.md)**：你的後端要實作的 WebSocket 訊息與 REST 端點
 - **[CG 相冊與構圖指南](docs/cg-guide.md)**：雙軌相冊格式，加上安全區模板（你的 CG 該把臉畫在哪）
 

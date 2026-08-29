@@ -141,7 +141,9 @@ Point your AI assistant at this repo and say:
 
 ### By hand
 
-Clone the project, then one command gets you a zero-backend preview:
+Clone the project, then one command gets you a zero-backend preview.
+
+`serve.py` only serves the files for that preview; it does not relay anything to a backend, so chat will not connect through it.
 
 ```bash
 cd engine
@@ -149,7 +151,7 @@ python serve.py       # http://127.0.0.1:8300
 # no "python" command? use:  python3 serve.py
 ```
 
-(`serve.py` is a static file server for local preview. EverOtome itself has zero framework dependencies.)
+(EverOtome itself has zero framework dependencies.)
 
 It runs with nothing configured: the sample character **Rye** (with a smile expression and a blush layer), a demo CG album, and one piece of furniture are bundled, and the core interactions (blinking, theme switching, the appearance panel, the Character Lab) all work as-is. To see the bigger features in action, open `demo/tour.html?seg=cg` for an automated, zero-backend tour running on demo data. To connect your own AI:
 
@@ -194,7 +196,7 @@ EverOtome is in **Beta**: the core feature set is stable and usable, and the con
 ## Requirements
 
 - A modern browser (recent versions of Chrome, Edge, Safari, or Firefox)
-- Python 3 (3.7 or later) for the local preview (`serve.py`), the integration checker (`tools/check_integration.py`) and the HTTP bridge (`examples/http-bridge/`); none of them needs a package installed
+- Python 3 (3.7 or later) for the local preview (`serve.py`), the integration checker (`tools/check_integration.py`) and the HTTP bridge (`examples/http-bridge/`); none of them needs an extra package
 - Asset tools in `tools/` (expression patches, alignment check, safe-zone templates): Python 3 plus Pillow (`pip install pillow`)
 - Live chat, calls, and CG push need a backend that implements the [backend contract](docs/backend-contract.md)
 

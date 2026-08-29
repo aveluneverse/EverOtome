@@ -5,9 +5,9 @@ Wraps Everthine's produce_reply() as one HTTP route, POST /reply, so the bridge 
 companion that already lives in Everthine. Nothing inside Everthine is modified: this script only imports
 it from the folder you run it in (the one with run.py), reads the same .env, and uses the same data folder.
 
-    cd <your Everthine folder>
-    python <path to EverOtome>/examples/everthine-adapter/companion_server.py
-    python <path to EverOtome>/examples/everthine-adapter/companion_server.py --with-telegram
+    cd "<your Everthine folder>"
+    python "<path to EverOtome>/examples/everthine-adapter/companion_server.py"
+    python "<path to EverOtome>/examples/everthine-adapter/companion_server.py" --with-telegram
 
 Without --with-telegram this serves HTTP only: stop run.py first, because two processes would fight over
 the session file and the Claude CLI. With --with-telegram the Telegram bot runs inside this same process,
