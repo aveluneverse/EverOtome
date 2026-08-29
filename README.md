@@ -154,13 +154,19 @@ Then open `http://127.0.0.1:8300` in the browser. The last number is the port; u
 
 (EverOtome itself has zero framework dependencies.)
 
-It runs with nothing configured: the sample character **Rye** (with a smile expression and a blush layer), a demo CG album, and one piece of furniture are bundled, and the core interactions (blinking, theme switching, the appearance panel, the Character Lab) all work as-is. To see the bigger features in action, open `demo/tour.html?seg=cg` for an automated, zero-backend tour running on demo data. To connect your own AI:
+It runs with nothing configured: the sample character **Rye** (with a smile expression and a blush layer), a demo CG album, and one piece of furniture are bundled, and the core interactions (blinking, theme switching, the appearance panel, the Character Lab) all work as-is. To see the bigger features in action, open `demo/tour.html?seg=cg` for an automated, zero-backend tour running on demo data. To connect your own AI, copy the sample config. macOS / Linux:
 
 ```bash
-cp config.example.json config.json       # macOS / Linux
-copy config.example.json config.json     # Windows
-# then edit config.json to point at your backend and assets
+cp config.example.json config.json
 ```
+
+Windows:
+
+```bat
+copy config.example.json config.json
+```
+
+Then edit `config.json` to point at your backend and assets.
 
 The live chat runs over a WebSocket at a same-origin path such as `/ws`, so your backend has to serve the `engine/` folder itself, or sit behind the same reverse proxy. The [backend contract](docs/backend-contract.md#deployment-one-origin) has Caddy and nginx examples that were run against this repo.
 
@@ -198,7 +204,7 @@ EverOtome is in **Beta**: the core feature set is stable and usable, and the con
 
 - A modern browser (recent versions of Chrome, Edge, Safari, or Firefox)
 - Python 3 (3.7 or later) for the local preview (`serve.py`), the integration checker (`tools/check_integration.py`) and the HTTP bridge (`examples/http-bridge/`); none of them needs an extra package
-- Asset tools in `tools/` (expression patches, alignment check, safe-zone templates): Python 3 plus Pillow (`pip install pillow`)
+- Asset tools in `tools/` (expression patches, alignment check, safe-zone templates): Python 3 plus Pillow (`python -m pip install pillow`; use `python3 -m pip` where only `python3` exists)
 - Live chat, calls, and CG push need a backend that implements the [backend contract](docs/backend-contract.md)
 
 ---

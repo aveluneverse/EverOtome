@@ -182,14 +182,10 @@ Either way the patch fades in over 0.35s and out over 0.6s. Swapping states with
 
 ## Generating expression patches
 
-`tools/gen_expression.py` cuts the patches (it needs Pillow, `pip install pillow`; run it from the repository root). Feed it the appearance's frame folder and one or more full-body images of the expression, drawn on the same canvas with nothing changed outside the eyes, the mouth and the face tint:
+`tools/gen_expression.py` cuts the patches (it needs Pillow, `python -m pip install pillow`; run it from the repository root). Feed it the appearance's frame folder and one or more full-body images of the expression, drawn on the same canvas with nothing changed outside the eyes, the mouth and the face tint. The command is one line on purpose (PowerShell has no backslash line continuation):
 
-```
-python tools/gen_expression.py --name smile --label Smile \
-    --base engine/assets/my-character \
-    --src expr-src/smile_A.png \
-    --out engine/assets/my-character/expr \
-    --manifest engine/assets/my-character/manifest.json
+```bash
+python tools/gen_expression.py --name smile --label Smile --base engine/assets/my-character --src expr-src/smile_A.png --out engine/assets/my-character/expr --manifest engine/assets/my-character/manifest.json
 ```
 
 What it does: it measures which pixels the base frames actually move (A against D and G for the eyes, A against B and C for the mouth), derives the patch regions from that, cuts the eye and mouth pieces out of your image with a feathered edge, writes them into `--out`, and merges the `expressions.<name>` entry into every `--manifest` you list.
@@ -210,12 +206,13 @@ Naming your source images `<name>_A.png` through `<name>_I.png` maps them onto t
 
 ## Previewing expressions and blush
 
-`engine/demo/expression-lab.html` puts an appearance on a live sprite with a button for every expression its manifest declares, plus talking and blush. Start the local server from the repository root and open it:
+`engine/demo/expression-lab.html` puts an appearance on a live sprite with a button for every expression its manifest declares, plus talking and blush. Start the local server from the repository root:
 
+```bash
+python engine/serve.py 8300
 ```
-python engine/serve.py
-# then http://127.0.0.1:8300/demo/expression-lab.html
-```
+
+Then open `http://127.0.0.1:8300/demo/expression-lab.html` in the browser (the number is the port; pick another if 8300 is taken).
 
 `?set=` picks the appearance, and takes the same folder string as `assetsPath` in `config.json`:
 

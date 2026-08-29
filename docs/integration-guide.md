@@ -45,7 +45,7 @@ Details, an echo companion to try first, and what the bridge does not relay: [`e
 
 **B. Add the WebSocket to the companion's own process.** Best when the companion is a Python or Node program you can edit. Both examples below serve `engine/` and answer `/ws`; replace the one function that fakes the reply with a call into the companion. Both were run against this repository on 2026-08-28.
 
-Python (`pip install aiohttp`):
+Python (`python -m pip install aiohttp`):
 
 ```python
 import json

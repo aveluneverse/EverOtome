@@ -154,13 +154,19 @@ python serve.py 8300
 
 （EverOtome 本体はフレームワーク依存ゼロです。）
 
-何も設定しなくても動きます。サンプルキャラクター **Rye**（微笑み表情と頬染めレイヤー付き）、デモ CG アルバム、家具ひとつが同梱で、コアの操作（まばたき、テーマ切り替え、外見パネル、Character Lab）はそのまま動きます。大きめの機能が動く様子を見るなら `demo/tour.html?seg=cg` へ。デモデータで動く、ゼロバックエンドの自動ツアーです。自分の AI をつなぐには：
+何も設定しなくても動きます。サンプルキャラクター **Rye**（微笑み表情と頬染めレイヤー付き）、デモ CG アルバム、家具ひとつが同梱で、コアの操作（まばたき、テーマ切り替え、外見パネル、Character Lab）はそのまま動きます。大きめの機能が動く様子を見るなら `demo/tour.html?seg=cg` へ。デモデータで動く、ゼロバックエンドの自動ツアーです。自分の AI をつなぐには、まずサンプル設定をコピーします。macOS／Linux：
 
 ```bash
-cp config.example.json config.json       # macOS / Linux
-copy config.example.json config.json     # Windows
-# config.json を編集して、バックエンドと素材の場所を指定します
+cp config.example.json config.json
 ```
+
+Windows：
+
+```bat
+copy config.example.json config.json
+```
+
+そのあと `config.json` を編集して、バックエンドと素材の場所を指定します。
 
 ライブチャットは `/ws` のような同一オリジンのパス上の WebSocket で動くため、バックエンドは `engine/` フォルダを自分で配信するか、同じリバースプロキシの後ろに置いてください。この repo で動作確認した Caddy／nginx の例は[バックエンド連携仕様](docs/backend-contract.md#deployment-one-origin)にあります。
 
@@ -198,7 +204,7 @@ EverOtome は現在 **Beta** です。コア機能は安定して使えますが
 
 - モダンブラウザ（Chrome、Edge、Safari、Firefox の近年のバージョン）
 - Python 3（3.7 以上）：ローカルプレビュー（`serve.py`）、接続チェッカー（`tools/check_integration.py`）、HTTP ブリッジ（`examples/http-bridge/`）の起動に使います。追加パッケージは不要です
-- `tools/` の素材ツール（表情パッチ、位置合わせチェック、セーフゾーンテンプレート）：Python 3 と Pillow（`pip install pillow`）
+- `tools/` の素材ツール（表情パッチ、位置合わせチェック、セーフゾーンテンプレート）：Python 3 と Pillow（`python -m pip install pillow`。`python3` しかない環境では `python3 -m pip`）
 - ライブチャット・通話・CG プッシュには、[バックエンド連携仕様](docs/backend-contract.md)を実装したバックエンドが必要です
 
 ---

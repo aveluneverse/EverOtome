@@ -154,13 +154,19 @@ python serve.py 8300
 
 （EverOtome 本體零框架依賴。）
 
-不配任何東西就能跑：內建範例角色 **Rye**（附一個微笑表情與一層紅暈）、示範 CG 相冊與一件家具，核心介面互動（眨眼、換主題、外觀面板、試妝間）全部可玩；想看功能演出，開 `demo/tour.html?seg=cg` 有零後端的自動導覽（示範資料演出）。要接自己的 AI：
+不配任何東西就能跑：內建範例角色 **Rye**（附一個微笑表情與一層紅暈）、示範 CG 相冊與一件家具，核心介面互動（眨眼、換主題、外觀面板、試妝間）全部可玩；想看功能演出，開 `demo/tour.html?seg=cg` 有零後端的自動導覽（示範資料演出）。要接自己的 AI，先複製一份範例設定。macOS／Linux：
 
 ```bash
-cp config.example.json config.json       # macOS／Linux
-copy config.example.json config.json     # Windows
-# 編輯 config.json 指向你的後端與素材
+cp config.example.json config.json
 ```
+
+Windows：
+
+```bat
+copy config.example.json config.json
+```
+
+然後編輯 `config.json`，指向你的後端與素材。
 
 即時聊天走的是同源路徑上的 WebSocket（例如 `/ws`），所以你的後端要自己供應 `engine/` 資料夾，或跟它一起放在同一個反向代理後面。實際跑過的 Caddy／nginx 範例在[接線手冊](docs/backend-contract.md#deployment-one-origin)。
 
@@ -198,7 +204,7 @@ EverOtome 目前處於 **Beta** 階段：核心功能穩定可用，1.0 前設�
 
 - 現代瀏覽器（Chrome、Edge、Safari、Firefox 的近年版本）
 - Python 3（3.7 以上）：本機預覽（`serve.py`）、接入自檢（`tools/check_integration.py`）與 HTTP 翻譯官（`examples/http-bridge/`）都靠它，三者都不用另外裝套件
-- `tools/` 的素材工具（表情貼片、對位檢查、安全區模板）：Python 3 加 Pillow（`pip install pillow`）
+- `tools/` 的素材工具（表情貼片、對位檢查、安全區模板）：Python 3 加 Pillow（`python -m pip install pillow`；只有 `python3` 的環境用 `python3 -m pip`）
 - 即時聊天、電話、CG 推送：需要一個實作[接線手冊](docs/backend-contract.md)的後端
 
 ---
