@@ -4,7 +4,7 @@
 
 > [!IMPORTANT]
 > ✨ **2026/08/30 更新：v0.4.0-beta 已發布**
-> 這版是給「已經有自己的 AI 伴侶」的人：新增一頁給你的 AI 看的接入說明（`docs/integration-guide.md`）、一支接線自檢工具，和一個不用裝套件的 HTTP 翻譯官，伴侶留在原地就能多一張 EverOtome 的臉。之前 Clone / Fork 過的朋友，`git pull`（Fork 按 Sync fork）就是最新版，素材和設定都不用動。
+> 這版是給已經有自己 AI 伴侶的人：新增一頁給 AI 助手看的接入指南（`docs/integration-guide.md`）、一支接線自檢工具，以及一個不用另外裝套件的 HTTP 翻譯官。伴侶的人設與記憶都留在原地，接上 EverOtome 就能多一張臉。之前 Clone / Fork 過的朋友，`git pull`（Fork 按 Sync fork）就是最新版，素材和設定都不用動。
 > → [Release Notes](https://github.com/aveluneverse/EverOtome/releases)
 
 ![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)

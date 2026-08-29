@@ -4,7 +4,7 @@ English | [日本語](README.ja.md) | [中文](README.zh-TW.md)
 
 > [!IMPORTANT]
 > ✨ **Update, 2026/08/30: v0.4.0-beta is out**
-> For people who already have an AI companion: a one-page integration guide written for your AI assistant (`docs/integration-guide.md`), an integration checker, and an HTTP bridge with nothing to install, so the companion stays where it lives and gets EverOtome as one more face. If you cloned or forked before, `git pull` (fork: Sync fork) brings you up to date; your assets and config stay as they are.
+> This release is for anyone who already has an AI companion. It adds a one-page integration guide for your AI assistant (`docs/integration-guide.md`), an integration checker, and an HTTP bridge that needs no extra packages, so you can give your companion an EverOtome face without moving its persona or memory. If you cloned or forked before, `git pull` (fork: Sync fork) brings you up to date; your assets and config stay as they are.
 > → [Release notes](https://github.com/aveluneverse/EverOtome/releases)
 
 ![EverOtome — Chat with your AI like you're in an otome game.](docs/readme-kv-en.webp)
