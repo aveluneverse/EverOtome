@@ -147,9 +147,10 @@ Clone the project, then one command gets you a zero-backend preview.
 
 ```bash
 cd engine
-python serve.py       # http://127.0.0.1:8300
-# no "python" command? use:  python3 serve.py
+python serve.py 8300
 ```
+
+Then open `http://127.0.0.1:8300` in the browser. The last number is the port; use another one if 8300 is taken. No `python` command? Use `python3`.
 
 (EverOtome itself has zero framework dependencies.)
 

@@ -147,9 +147,10 @@ clone 專案後，一行指令就能零後端預覽。
 
 ```bash
 cd engine
-python serve.py       # http://127.0.0.1:8300
-# 沒有 python 指令的話改用：python3 serve.py
+python serve.py 8300
 ```
+
+然後在瀏覽器開 `http://127.0.0.1:8300` 這個網址。最後那個數字是連接埠（port），8300 被占用的話換一個就好。沒有 `python` 指令的話改用 `python3`。
 
 （EverOtome 本體零框架依賴。）
 

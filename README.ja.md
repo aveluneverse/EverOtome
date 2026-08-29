@@ -147,9 +147,10 @@ https://github.com/user-attachments/assets/3ffa2d4c-0748-4eaf-8f4a-a5ba31f5aadf
 
 ```bash
 cd engine
-python serve.py       # http://127.0.0.1:8300
-# python コマンドが無い場合は：python3 serve.py
+python serve.py 8300
 ```
+
+ブラウザで `http://127.0.0.1:8300` を開いてください。最後の数字がポート番号なので、8300 が使われているときは別の番号にできます。`python` コマンドが無い場合は `python3` を使ってください。
 
 （EverOtome 本体はフレームワーク依存ゼロです。）
 

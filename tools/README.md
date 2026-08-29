@@ -16,6 +16,6 @@ Maintainer scripts, plus one check for people connecting a backend. **Nothing in
 
 `--help` on each command listed above prints usage and writes nothing; for `gen_expression.py`, `check_alignment.py` and `make_cg_safe_zone.py` it needs Pillow installed first, because they import it at the top. `check_integration.py` needs nothing installed. The three regenerators (`make_placeholder_icons.py`, `gen_theme_frames.py`, `make_sample_ringtone.py`) refuse to overwrite shipped files unless you pass `--force`. `make_cg_safe_zone.py` has no `--force`: it redraws the safe-zone templates in `docs/` every time it runs, so run it only after a layout change. Dependencies: Pillow (`pip install pillow`) for the image scripts (`gen_expression.py`, `check_alignment.py`, `make_cg_safe_zone.py`, and `make_placeholder_icons.py` when it actually draws), pydub plus ffmpeg on `PATH` for `make_sample_ringtone.py`, Playwright for `record_demo.py`.
 
-Tests: from the repository root, `pip install pytest pillow` once, then `python -m pytest tools/tests` (the engine's own suite is `cd engine && npm install && npm test`).
+Tests: from the repository root, `pip install pytest pillow` once, then `python -m pytest tools/tests` (the engine's own suite: `cd engine`, then `npm install`, then `npm test`, one command per line).
 
 Stuck? Tell us: [marshmallow-qa.com/a4u0myommjpyzup](https://marshmallow-qa.com/a4u0myommjpyzup)
