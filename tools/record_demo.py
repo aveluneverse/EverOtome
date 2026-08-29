@@ -31,7 +31,7 @@
                                              # 與改動前逐字相同；允許值見
                                              # LANG_ALLOWLIST（不在表中即中止，
                                              # 訊息附可用值）
-需求：pip install playwright && playwright install chromium
+需求：python -m pip install playwright，然後 python -m playwright install chromium（兩行分開跑，PowerShell 5 沒有 &&）
 """
 import os
 import shutil
@@ -160,7 +160,7 @@ USAGE = """usage: record_demo.py [segment | --shots] [--lang <code>] [--out <fol
                    to the repo root)
   -h, --help       show this message and exit
 
-Requires: pip install playwright && playwright install chromium
+Requires: python -m pip install playwright, then python -m playwright install chromium (two commands; PowerShell 5 has no &&)
 """.format(segments="/".join(SEGMENTS))
 
 

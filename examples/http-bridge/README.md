@@ -52,7 +52,7 @@ Your route also receives `{"text": "/new", "command": "new"}` when the user pick
 
 A bot that runs its own polling loop (Telegram, Discord, WeChat) keeps running as it is: the bridge is a separate process and only talks to the route you added. If that route lives inside the bot's process, start the HTTP server in a thread before the polling loop, not after it.
 
-Edit `engine/config.json` (copy `config.example.json` first if you have not):
+Edit `engine/config.json` (if it does not exist yet, copy `engine/config.example.json` to `engine/config.json` first; the sample lives in `engine/`, not in the repository root):
 
 - keep `"wsEndpoint": "/ws"` (or pass the same value as `--ws-path`)
 - set `"ttsEndpoint": ""` so no silent play buttons appear

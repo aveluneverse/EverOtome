@@ -86,7 +86,7 @@ app.router.add_static("/", ENGINE)
 web.run_app(app, host="127.0.0.1", port=8400)
 ```
 
-Node (`npm install express ws`):
+Node (Node.js 20.19+ or 22.12+ with npm; `npm install express ws`):
 
 ```js
 const express = require("express");
