@@ -3,8 +3,8 @@
 [English](README.md) | [日本語](README.ja.md) | 中文
 
 > [!IMPORTANT]
-> ✨ **2026/08/27 更新：v0.3.1-beta 已發布**
-> 首頁左上角現在一行就看得到版本號和「檢查更新」，「回報問題」就在旁邊（手機是右上角的小圖示）。之前 Clone / Fork 過的朋友，`git pull`（Fork 按 Sync fork）就是最新版，素材和設定都不用動。如果你曾經跑過舊版的 `tools/make_sample_character.py`，release notes 裡有讓 Rye 回來的小步驟。
+> ✨ **2026/08/30 更新：v0.4.0-beta 已發布**
+> 這版是給「已經有自己的 AI 伴侶」的人：新增一頁給你的 AI 看的接入說明（`docs/integration-guide.md`）、一支接線自檢工具，和一個不用裝套件的 HTTP 翻譯官，伴侶留在原地就能多一張 EverOtome 的臉。之前 Clone / Fork 過的朋友，`git pull`（Fork 按 Sync fork）就是最新版，素材和設定都不用動。
 > → [Release Notes](https://github.com/aveluneverse/EverOtome/releases)
 
 ![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)

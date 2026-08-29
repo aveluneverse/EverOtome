@@ -3,8 +3,8 @@
 [English](README.md) | 日本語 | [中文](README.zh-TW.md)
 
 > [!IMPORTANT]
-> ✨ **2026/08/27 更新：v0.3.1-beta を公開しました**
-> ホーム画面左上のタイトルの下にバージョン番号と「アップデートを確認」を表示し、「問題を報告」もすぐ横に置きました（スマートフォンでは右上の小さなアイコンです）。以前に clone / fork した方は `git pull`（fork の場合は Sync fork）で最新版になります。素材や設定はそのままで大丈夫です。旧版の `tools/make_sample_character.py` を実行したことがある方は、release notes に Rye を戻す短い手順があります。
+> ✨ **2026/08/30 更新：v0.4.0-beta を公開しました**
+> すでに自分の AI コンパニオンをお持ちの方向けの版です。AI アシスタントに渡すための接続ガイド（`docs/integration-guide.md`）、接続チェッカー、追加パッケージ不要の HTTP ブリッジを加えました。コンパニオンはそのままの場所に置いたまま、EverOtome をもうひとつの顔として足せます。以前に clone / fork した方は `git pull`（fork の場合は Sync fork）で最新版になります。素材や設定はそのままで大丈夫です。
 > → [Release notes](https://github.com/aveluneverse/EverOtome/releases)
 
 ![EverOtome — 乙女ゲームの中にいるみたいに AI とチャット](docs/readme-kv-en.webp)

@@ -3,8 +3,8 @@
 English | [日本語](README.ja.md) | [中文](README.zh-TW.md)
 
 > [!IMPORTANT]
-> ✨ **Update, 2026/08/27: v0.3.1-beta is out**
-> The version number and "Check for updates" now sit under the title on the home screen, with "Report a problem" right beside them (a small icon in the top-right corner on phones). If you cloned or forked before, `git pull` (fork: Sync fork) brings you up to date; your assets and config stay as they are. If you ever ran the old `tools/make_sample_character.py`, the release notes have a short step to bring Rye back.
+> ✨ **Update, 2026/08/30: v0.4.0-beta is out**
+> For people who already have an AI companion: a one-page integration guide written for your AI assistant (`docs/integration-guide.md`), an integration checker, and an HTTP bridge with nothing to install, so the companion stays where it lives and gets EverOtome as one more face. If you cloned or forked before, `git pull` (fork: Sync fork) brings you up to date; your assets and config stay as they are.
 > → [Release notes](https://github.com/aveluneverse/EverOtome/releases)
 
 ![EverOtome — Chat with your AI like you're in an otome game.](docs/readme-kv-en.webp)
