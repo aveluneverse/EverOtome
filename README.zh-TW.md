@@ -4,7 +4,7 @@
 
 > [!IMPORTANT]
 > ✨ **2026/08/30 更新：v0.4.0-beta 已發布**
-> 這版是給已經有自己 AI 伴侶的人：新增一頁給 AI 助手看的接入指南（`docs/integration-guide.md`）、一支接線自檢工具，以及一個不用另外裝套件的 HTTP 翻譯官。伴侶照舊在你的伺服器或電腦上跑，人設和記憶檔都不用搬，EverOtome 接上去就是它的新臉。之前 Clone / Fork 過的朋友，`git pull`（Fork 按 Sync fork）就是最新版，素材和設定都不用動。
+> 這版是給已經有自己 AI 伴侶的人：新增一頁給 AI 助手看的接入指南（`docs/integration-guide.md`）、一支接線自檢工具，以及一個不用另外裝套件的 HTTP 翻譯官。伴侶照舊在你的伺服器或電腦上跑，人設和記憶檔都不用搬，EverOtome 接上去就是它的新窗戶。之前 Clone / Fork 過的朋友，`git pull`（Fork 按 Sync fork）就是最新版，素材和設定都不用動。
 > → [Release Notes](https://github.com/aveluneverse/EverOtome/releases)
 
 ![EverOtome｜把 AI 伴侶放進乙女遊戲介面裡聊天吧！](docs/readme-kv-zh.webp)
@@ -186,7 +186,7 @@ copy config.example.json config.json
 
 接後端要讀的技術文件，都在 `docs/`：
 
-- **[接入現有伴侶（Integration Guide）](docs/integration-guide.md)**：你的伴侶已經在自己的伺服器或電腦上跑著（bot、腳本、自刻前端都算），想讓 EverOtome 成為它多出來的一張臉。先把這份給你的 AI。
+- **[接入現有伴侶（Integration Guide）](docs/integration-guide.md)**：你的伴侶已經在自己的伺服器或電腦上跑著（bot、腳本、自刻前端都算），想讓 EverOtome 成為它多出來的一扇窗戶。先把這份給你的 AI。
 - **[接線手冊（Backend Contract）](docs/backend-contract.md)**：你的後端要實作的 WebSocket 訊息與 REST 端點
 - **[CG 相冊與構圖指南](docs/cg-guide.md)**：雙軌相冊格式，加上安全區模板（你的 CG 該把臉畫在哪）
 
